@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import PixelSprite from "@/components/PixelSprite";
-import { getSpiritSprite, getSpiritStage } from "@/lib/sprites";
+import ImgSprite from "@/components/ImgSprite";
+import { getSpiritImage, getSpiritStage } from "@/lib/sprites";
 
 export type SpiritCardData = {
   id: string;
@@ -50,7 +50,6 @@ export default function SpiritsFlow({ spirits, kidName }: { spirits: SpiritCardD
       <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {spirits.map((s) => {
           const stage = getSpiritStage(s.mastery_level);
-          const sprite = getSpiritSprite(s.meta_id);
           return (
             <button
               key={s.id}
@@ -62,9 +61,8 @@ export default function SpiritsFlow({ spirits, kidName }: { spirits: SpiritCardD
               title="点开看看它的成长足迹，还能和它互动哦"
             >
               <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
-                <PixelSprite
-                  rows={sprite.rows}
-                  palette={sprite.palette}
+                <ImgSprite
+                  src={getSpiritImage(s.meta_id, s.mastery_level)}
                   size={stage.size}
                   className={`${stage.crown ? "stage-aura-strong" : stage.aura ? "stage-aura" : ""}`}
                 />
@@ -108,14 +106,12 @@ export default function SpiritsFlow({ spirits, kidName }: { spirits: SpiritCardD
           >
             {(() => {
               const stage = getSpiritStage(open.mastery_level);
-              const sprite = getSpiritSprite(open.meta_id);
               return (
                 <>
                   <div className="flex items-start justify-between">
                     <div className="relative flex h-32 w-32 items-center justify-center">
-                      <PixelSprite
-                        rows={sprite.rows}
-                        palette={sprite.palette}
+                      <ImgSprite
+                        src={getSpiritImage(open.meta_id, open.mastery_level)}
                         size={stage.size + 8}
                         className={`${stage.crown ? "stage-aura-strong" : stage.aura ? "stage-aura" : ""}`}
                       />

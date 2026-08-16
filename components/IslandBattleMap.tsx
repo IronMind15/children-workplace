@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import PixelSprite from "@/components/PixelSprite";
-import { getMonsterSprite, getDecorSprite } from "@/lib/sprites";
+import ImgSprite from "@/components/ImgSprite";
+import { getMonsterImage, getDecorSprite } from "@/lib/sprites";
 import { themeOf } from "@/lib/islandTheme";
 
 export type MapMonster = {
@@ -20,7 +21,7 @@ const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(mi
 
 /** 一只在地图上自由溜达的小怪：随机走动 + 蹦跶 + 点击进战斗；神秘小怪带 ✨ 徽章 */
 function WanderingMonster({ monster, index, mystery = false }: { monster: MapMonster; index: number; mystery?: boolean }) {
-  const sprite = getMonsterSprite(monster.id);
+  const image = getMonsterImage(monster.id);
   const [pos, setPos] = useState<Pos>(() => ({
     x: 12 + ((index * 23) % 70),
     y: 30 + ((index * 17) % 40),
@@ -75,9 +76,8 @@ function WanderingMonster({ monster, index, mystery = false }: { monster: MapMon
           className={`block ${flip ? "-scale-x-100" : ""}`}
           style={{ transition: "transform 0.3s" }}
         >
-          <PixelSprite
-            rows={sprite.rows}
-            palette={sprite.palette}
+          <ImgSprite
+            src={image}
             size={72}
             className={`drop-shadow-md ${mystery ? "stage-aura walk-bob" : "walk-bob"}`}
           />
@@ -195,7 +195,7 @@ export default function IslandBattleMap({
 
               {/* Boss 们：守在码头（已净化的灰色石化） */}
               {bosses.map((b, i) => {
-                const sprite = getMonsterSprite(b.id);
+                const image = getMonsterImage(b.id);
                 const inner = (
                   <>
                     <span
@@ -205,9 +205,8 @@ export default function IslandBattleMap({
                     >
                       {b.purified ? `✅ 已净化 · ${b.name}` : `👑 渡海Boss · ${b.name}`}
                     </span>
-                    <PixelSprite
-                      rows={sprite.rows}
-                      palette={sprite.palette}
+                    <ImgSprite
+                      src={image}
                       size={b.purified ? 92 : 108}
                       className={`drop-shadow-lg ${b.purified ? "grayscale opacity-60" : "animate-boss-breathe"}`}
                     />

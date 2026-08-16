@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import PixelSprite from "@/components/PixelSprite";
-import { getSpiritSprite, getCompanionSprite } from "@/lib/sprites";
+import ImgSprite from "@/components/ImgSprite";
+import { getSpiritImage, getCompanionImage } from "@/lib/sprites";
 import EvolutionTree from "@/components/EvolutionTree";
 
 export type ChainNode = {
@@ -102,9 +102,8 @@ export default function EvolutionModal({
             <>
               <h2 className="text-xl font-black text-[#2b3a4a]">净化中……好像有什么在动！</h2>
               <div className="mt-4 flex justify-center">
-                <PixelSprite
-                  rows={getCompanionSprite().rows}
-                  palette={getCompanionSprite().palette}
+                <ImgSprite
+                  src={getCompanionImage()}
                   size={128}
                   className="animate-shake"
                 />
@@ -118,14 +117,13 @@ export default function EvolutionModal({
               <h2 className="text-2xl font-black tracking-widest text-[#e2582e] lg:text-3xl">✦ 进 化 成 功 ✦</h2>
               <div className="mt-3 flex items-center justify-center gap-6">
                 <div className="flex flex-col items-center opacity-50 grayscale">
-                  <PixelSprite rows={getCompanionSprite().rows} palette={getCompanionSprite().palette} size={88} />
+                  <ImgSprite src={getCompanionImage()} size={88} />
                   <span className="mt-1 text-xs font-bold text-[#7a8a9a]">黑暗力量</span>
                 </div>
                 <span className="text-3xl font-black text-[#ffb300]">➜</span>
                 <div className="animate-pop flex flex-col items-center">
-                  <PixelSprite
-                    rows={newNode ? getSpiritSprite(newNode.metaId).rows : getCompanionSprite().rows}
-                    palette={newNode ? getSpiritSprite(newNode.metaId).palette : getCompanionSprite().palette}
+                  <ImgSprite
+                    src={newNode ? getSpiritImage(newNode.metaId) : getCompanionImage()}
                     size={128}
                     className="drop-shadow-[0_0_16px_rgba(255,215,80,0.9)]"
                   />

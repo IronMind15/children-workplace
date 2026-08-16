@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { purifyMonster } from "@/lib/actions";
-import PixelSprite from "@/components/PixelSprite";
+import ImgSprite from "@/components/ImgSprite";
 import EvolutionModal, { type ChainNode, type ChainEdge } from "@/components/EvolutionModal";
-import { getMonsterSprite, getCompanionSprite } from "@/lib/sprites";
+import { getMonsterImage, getCompanionImage } from "@/lib/sprites";
 import { bossIntroGuide, missGuide, type BrainSettings } from "@/lib/brain";
 import type { SolveStep } from "@/lib/types";
 
@@ -42,8 +42,8 @@ export default function BossFlow({
   const total = steps.length;
   const isDiscover = steps[stepIdx]?.type === "discover";
   const hpPercent = Math.round(((total - stepIdx) / total) * 100);
-  const monsterSprite = getMonsterSprite(monsterId);
-  const companion = getCompanionSprite();
+  const monsterImage = getMonsterImage(monsterId);
+  const companion = getCompanionImage();
 
   function flash(e: Effect) {
     setEffect(e);
@@ -82,8 +82,8 @@ export default function BossFlow({
       <div className="mx-auto max-w-4xl px-4 pt-5 lg:px-8">
         {/* ===== Boss 战斗舞台 ===== */}
         <div className="pixel-panel-dark relative h-[320px] overflow-hidden p-0 lg:h-[400px]">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#ffb88c] via-[#ffd9c0] to-[#fff3e8]" />
-          <div className="grass-checker absolute bottom-0 h-[34%] w-full border-t-4 border-[#6db33f]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#ffe8d0] via-[#fff3e0] to-[#fff8ec]" />
+          <div className="grass-checker absolute bottom-0 h-[34%] w-full border-t-4 border-[#a8c05e]" />
 
           {/* Boss：右上（体型更大） */}
           <div className="absolute right-[12%] top-[40%] h-10 w-48 rounded-[50%] bg-black/15 lg:w-56" />
@@ -96,8 +96,8 @@ export default function BossFlow({
                   : "animate-boss-breathe"
             } ${phase === "result" && result?.ok ? "opacity-25 grayscale" : ""}`}
           >
-            <PixelSprite rows={monsterSprite.rows} palette={monsterSprite.palette} size={160} className="animate-slide-in-right lg:hidden" />
-            <PixelSprite rows={monsterSprite.rows} palette={monsterSprite.palette} size={196} className="animate-slide-in-right hidden lg:block" />
+            <ImgSprite src={monsterImage} size={160} className="animate-slide-in-right lg:hidden" />
+            <ImgSprite src={monsterImage} size={196} className="animate-slide-in-right hidden lg:block" />
           </div>
 
           {/* 净化光柱：从我方射向 Boss */}
@@ -132,7 +132,7 @@ export default function BossFlow({
           {/* 伙伴狐狸站台：左下 */}
           <div className="absolute left-[12%] bottom-[14%] h-10 w-44 rounded-[50%] bg-black/15 lg:w-52" />
           <div className={`absolute left-[14%] bottom-[18%] ${shake ? "animate-lunge" : "animate-float"}`}>
-            <PixelSprite rows={companion.rows} palette={companion.palette} size={132} />
+            <ImgSprite src={companion} size={132} />
           </div>
 
           {/* 伙伴信息框：右下 */}

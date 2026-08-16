@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import PixelSprite from "@/components/PixelSprite";
-import { getSpiritSprite, getSpiritStage } from "@/lib/sprites";
+import ImgSprite from "@/components/ImgSprite";
+import { getSpiritImage, getSpiritStage } from "@/lib/sprites";
 
 export type DexSpirit = {
   meta_id: string;
@@ -28,7 +28,6 @@ export default function JournalDex({ spirits }: { spirits: DexSpirit[] }) {
     <>
       <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-5">
         {spirits.map((s) => {
-          const sprite = getSpiritSprite(s.meta_id);
           const stage = getSpiritStage(s.mastery_level);
           return (
             <button
@@ -40,14 +39,13 @@ export default function JournalDex({ spirits }: { spirits: DexSpirit[] }) {
             >
               <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
                 {s.unlocked ? (
-                  <PixelSprite
-                    rows={sprite.rows}
-                    palette={sprite.palette}
+                  <ImgSprite
+                    src={getSpiritImage(s.meta_id, s.mastery_level)}
                     size={stage.size - 8}
                     className={stage.crown ? "stage-aura-strong" : stage.aura ? "stage-aura" : ""}
                   />
                 ) : (
-                  <PixelSprite rows={sprite.rows} palette={sprite.palette} size={stage.size - 8} className="opacity-20 grayscale" />
+                  <ImgSprite src={getSpiritImage(s.meta_id, s.mastery_level)} size={stage.size - 8} className="opacity-20 grayscale" />
                 )}
                 {s.unlocked && stage.crown && <span className="absolute -top-1 left-1/2 -translate-x-1/2 text-lg">👑</span>}
               </div>
@@ -71,15 +69,13 @@ export default function JournalDex({ spirits }: { spirits: DexSpirit[] }) {
             onClick={(e) => e.stopPropagation()}
           >
             {(() => {
-              const sprite = getSpiritSprite(open.meta_id);
               const stage = getSpiritStage(open.mastery_level);
               return (
                 <>
                   <div className="flex items-start justify-between">
                     <div className="relative flex h-28 w-28 items-center justify-center">
-                      <PixelSprite
-                        rows={sprite.rows}
-                        palette={sprite.palette}
+                      <ImgSprite
+                        src={getSpiritImage(open.meta_id, open.mastery_level)}
                         size={stage.size}
                         className={stage.crown ? "stage-aura-strong" : stage.aura ? "stage-aura" : ""}
                       />

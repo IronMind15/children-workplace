@@ -318,3 +318,52 @@ export function getDecorSprite(kind: "tree" | "bush" | "rock" | "flower"): Sprit
       return { rows: FLOWER, palette: { P: "#FF8FB1", Y: "#FFD54F", G: "#57B85F" } };
   }
 }
+
+// ============ 设计稿 PNG 资源映射（新插画风，替代像素字符画） ============
+// 素材来源：UI 设计稿 12 张怪物图（6 小怪 + 6 Boss）+ 2 张精灵展示图（8 个精灵），已抠透明底，放 public/。
+
+/** 6 张小怪（cute chubby demon），按 id 哈希循环复用 */
+const MINION_IMAGES = [
+  "/monsters/cute_1.png",
+  "/monsters/cute_2.png",
+  "/monsters/cute_3.png",
+  "/monsters/cute_4.png",
+  "/monsters/cute_5.png",
+  "/monsters/cute_6.png",
+];
+
+/** 6 张渡海 Boss（massive imposing demon），按 id 哈希循环复用 */
+const BOSS_IMAGES = [
+  "/monsters/boss_1.png",
+  "/monsters/boss_2.png",
+  "/monsters/boss_3.png",
+  "/monsters/boss_4.png",
+  "/monsters/boss_5.png",
+  "/monsters/boss_6.png",
+];
+
+/** 8 个精灵（青色系 4 形态 + 紫色系 4 形态） */
+const SPIRIT_IMAGES: Record<string, string[]> = {
+  blue: ["/sprites/blue_1.png", "/sprites/blue_2.png", "/sprites/blue_3.png", "/sprites/blue_4.png"],
+  purple: ["/sprites/purple_1.png", "/sprites/purple_2.png", "/sprites/purple_3.png", "/sprites/purple_4.png"],
+};
+
+/** 怪物 PNG 资源路径：小怪/神秘小怪循环 6 张 cute 图，Boss 循环 6 张 boss 图 */
+export function getMonsterImage(monsterId: string): string {
+  const h = hashStr(monsterId);
+  if (monsterId.startsWith("boss-")) return BOSS_IMAGES[h % BOSS_IMAGES.length];
+  return MINION_IMAGES[h % MINION_IMAGES.length];
+}
+
+/** 精灵 PNG 资源路径：元认知序号奇偶分色系，熟练度等级（1-4）分形态 */
+export function getSpiritImage(metaId: string, level = 1): string {
+  const n = parseInt(metaId.slice(3), 10) || 1;
+  const color = n % 2 === 0 ? "purple" : "blue";
+  const arr = SPIRIT_IMAGES[color] ?? SPIRIT_IMAGES.blue;
+  return arr[Math.min(Math.max(level, 1), arr.length) - 1];
+}
+
+/** 伙伴狐狸（Boss 战陪伴孩子的精灵）：固定用青色第 2 形态 */
+export function getCompanionImage(): string {
+  return "/sprites/blue_2.png";
+}

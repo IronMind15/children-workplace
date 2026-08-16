@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trainWin } from "@/lib/actions";
-import PixelSprite from "@/components/PixelSprite";
-import { getMonsterSprite, getSpiritSprite, getSpiritStage } from "@/lib/sprites";
+import ImgSprite from "@/components/ImgSprite";
+import { getMonsterImage, getSpiritImage, getSpiritStage } from "@/lib/sprites";
 import { battleIntroGuide, missGuide, winGuide, type BrainSettings } from "@/lib/brain";
 import type { SolveStep } from "@/lib/types";
 
@@ -76,8 +76,8 @@ export default function BattleFlow({
   const total = steps.length;
   const hpPercent = Math.round(((total - stepIdx) / total) * 100);
   const correctMetaName = spirits.find((s) => s.meta_id === correctMeta)?.meta_name;
-  const monsterSprite = getMonsterSprite(monsterId);
-  const spiritSprite = picked ? getSpiritSprite(picked.meta_id) : null;
+  const monsterImage = getMonsterImage(monsterId);
+  const spiritImage = picked ? getSpiritImage(picked.meta_id) : null;
 
   // 当前招式需要的本领：单题 = 主精灵；联手题 = 主精灵 + 帮手精灵
   const currentStep = steps[stepIdx];
@@ -144,8 +144,8 @@ export default function BattleFlow({
         {/* ===== 战斗舞台（宝可梦式） ===== */}
         <div className="pixel-panel-dark relative h-[320px] overflow-hidden p-0 lg:h-[400px]">
           {/* 天空与地面 */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#8fd3f4] via-[#c7ecff] to-[#e8f7ff]" />
-          <div className="grass-checker absolute bottom-0 h-[34%] w-full border-t-4 border-[#6db33f]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#fdf6e0] via-[#fdfceb] to-[#f8f2dd]" />
+          <div className="grass-checker absolute bottom-0 h-[34%] w-full border-t-4 border-[#a8c05e]" />
           {/* 像素云 */}
           <div className="absolute left-[6%] top-5 flex items-end gap-1 opacity-90">
             <div className="h-4 w-8 rounded-sm bg-white" />
@@ -160,8 +160,8 @@ export default function BattleFlow({
           {/* 敌方：右上站台 */}
           <div className="absolute right-[14%] top-[38%] h-9 w-40 rounded-[50%] bg-black/15 lg:w-48" />
           <div className={`absolute right-[16%] top-[14%] ${shake ? "animate-shake" : phase === "result" ? "opacity-30 grayscale" : "animate-float"}`}>
-            <PixelSprite rows={monsterSprite.rows} palette={monsterSprite.palette} size={140} className="animate-slide-in-right lg:hidden" />
-            <PixelSprite rows={monsterSprite.rows} palette={monsterSprite.palette} size={168} className="animate-slide-in-right hidden lg:block" />
+            <ImgSprite src={monsterImage} size={140} className="animate-slide-in-right lg:hidden" />
+            <ImgSprite src={monsterImage} size={168} className="animate-slide-in-right hidden lg:block" />
           </div>
 
           {/* 敌方 HP 框：左上 */}
@@ -171,14 +171,14 @@ export default function BattleFlow({
 
           {/* 我方站台：左下 */}
           <div className="absolute left-[12%] bottom-[14%] h-10 w-44 rounded-[50%] bg-black/15 lg:w-52" />
-          {picked && spiritSprite ? (
+          {picked && spiritImage ? (
             <div className={`absolute left-[10%] bottom-[16%] flex items-end gap-1 lg:left-[14%] lg:bottom-[18%] ${shake ? "animate-lunge" : ""}`}>
               <div className="animate-pop">
-                <PixelSprite rows={spiritSprite.rows} palette={spiritSprite.palette} size={132} />
+                <ImgSprite src={spiritImage} size={132} />
               </div>
               {helpers.map((h, i) => (
                 <div key={h.meta_id} className="animate-pop" style={{ marginBottom: 10 + i * 22 }}>
-                  <PixelSprite rows={getSpiritSprite(h.meta_id).rows} palette={getSpiritSprite(h.meta_id).palette} size={96} />
+                  <ImgSprite src={getSpiritImage(h.meta_id)} size={96} />
                 </div>
               ))}
             </div>
@@ -320,7 +320,7 @@ export default function BattleFlow({
               <div className="grid grid-cols-2 gap-3">
                 {spirits.map((s) => (
                   <button key={s.meta_id} onClick={() => pickSpirit(s)} className="pixel-btn pixel-btn-white flex items-center gap-2 p-2.5 text-left">
-                    <PixelSprite rows={getSpiritSprite(s.meta_id).rows} palette={getSpiritSprite(s.meta_id).palette} size={44} />
+                    <ImgSprite src={getSpiritImage(s.meta_id)} size={44} />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-black">{s.nickname}</span>
                       <span className="block truncate text-xs font-semibold text-[#7a8a9a]">{s.meta_name}</span>
@@ -340,7 +340,7 @@ export default function BattleFlow({
                     .filter((s) => s.meta_id !== picked?.meta_id)
                     .map((s) => (
                       <button key={s.meta_id} onClick={() => pickHelper(s)} className="pixel-btn pixel-btn-white flex items-center gap-2 p-2 text-left">
-                        <PixelSprite rows={getSpiritSprite(s.meta_id).rows} palette={getSpiritSprite(s.meta_id).palette} size={40} />
+                        <ImgSprite src={getSpiritImage(s.meta_id)} size={40} />
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-black">{s.nickname}</span>
                           <span className="block truncate text-xs font-semibold text-[#7a8a9a]">{s.meta_name}</span>
