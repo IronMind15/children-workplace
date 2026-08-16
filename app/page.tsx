@@ -132,6 +132,13 @@ export default function Home() {
             >
               ✨ 火花 {sparks.total}
             </Link>
+            <Link
+              href="/parent"
+              className="pixel-btn pixel-btn-white px-3 py-2 text-sm"
+              title="家长窗口：查看学习进度、错题和每日总结"
+            >
+              👨‍👩‍👧 家长
+            </Link>
             <SettingsEntry />
             <span className="pixel-panel flex h-12 w-12 items-center justify-center text-2xl">{avatar}</span>
           </div>

@@ -9,5 +9,5 @@ export default function BrainPage() {
   seedIfEmpty();
   const brain = getBrainSettings();
   const ai = getAiConfig();
-  return <BrainEditor initial={brain} ai={{ configured: !!ai, model: ai?.model ?? "deepseek-chat" }} />;
+  return <BrainEditor initial={brain} ai={{ configured: !!ai, model: ai?.model ?? "deepseek-v4-flash" }} />;
 }

@@ -17,7 +17,7 @@ export default function AiSettingsPanel({
 }) {
   const router = useRouter();
   const [apiKey, setApiKey] = useState("");
-  const [selected, setSelected] = useState(model || "deepseek-chat");
+  const [selected, setSelected] = useState(model || "deepseek-v4-flash");
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -61,8 +61,8 @@ export default function AiSettingsPanel({
       {/* 模型选择：仅 DeepSeek 两款 */}
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {[
-          { id: "deepseek-chat", label: "deepseek-chat", desc: "又快又聪明，推荐" },
-          { id: "deepseek-reasoner", label: "deepseek-reasoner", desc: "会一步步思考，更慢更深" },
+          { id: "deepseek-v4-flash", label: "deepseek-v4-flash", desc: "又快又省，日常推荐" },
+          { id: "deepseek-v4-pro", label: "deepseek-v4-pro", desc: "更强推理，难题更深入" },
         ].map((m) => (
           <button
             key={m.id}
@@ -84,6 +84,7 @@ export default function AiSettingsPanel({
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
           type="password"
+          autoComplete="new-password"
           placeholder={configured ? "已配置（输入新 Key 可覆盖）" : "sk-…（在 platform.deepseek.com 获取）"}
           className="input mt-1 w-full rounded-input border-2 border-black/15 px-3 py-2 text-sm"
         />

@@ -1,10 +1,10 @@
 "use server";
 
 import { seedIfEmpty } from "./seed";
-import { setExplorerName, setBrainSettings, setExplorerIsland, getIslands, getExplorer } from "./repo";
+import { setExplorerName, setBrainSettings, setExplorerIsland, getIslands, getExplorer, getMeta } from "./repo";
 import { trainWin as doTrainWin, purify as doPurify, addSpark, getSparkStats, clearSparks, resetAllProgress, getDifficultyLevel, adjustDifficultyBias, recordMistake as doRecordMistake, resolveMistakes as doResolveMistakes } from "./game";
 import { getQuestionById, getTipById } from "./askBank";
-import { askAi, saveAiConfig, clearAiConfig, explainWrong } from "./ai";
+import { askAi, saveAiConfig, clearAiConfig, explainWrong, feynmanChat } from "./ai";
 import { revalidatePath } from "next/cache";
 import type { BrainSettings } from "./brain";
 
@@ -80,7 +80,7 @@ export async function askFree(question: string) {
   return { ...r, answer: ai };
 }
 
-/** AI 设置：保存 / 清除 DeepSeek 配置（仅存本地；模型限定 deepseek-chat / deepseek-reasoner） */
+/** AI 设置：保存 / 清除 DeepSeek 配置（仅存本地；模型限定 deepseek-v4-flash / deepseek-v4-pro） */
 export async function saveAiSettings(apiKey: string, model: string) {
   if (!apiKey.trim()) return;
   saveAiConfig(apiKey.trim(), model);
@@ -143,4 +143,12 @@ export async function resolveMistake(metaId: string) {
 export async function explainMistake(question: string, correctAnswer: string, userAnswer: string, metaName: string) {
   const kidName = getExplorer()?.name.split(" ")[0] ?? "小朋友";
   return explainWrong(question, correctAnswer, userAnswer, metaName, kidName);
+}
+
+/** 费曼小课堂：AI 扮演「不懂的学生」，孩子来教。history 为空时 AI 抛第一个问题 */
+export async function feynmanTeach(metaId: string, history: { role: "kid" | "ai"; content: string }[]) {
+  const meta = getMeta(metaId);
+  if (!meta) return null;
+  const kidName = getExplorer()?.name.split(" ")[0] ?? "小朋友";
+  return feynmanChat(meta.name, kidName, history);
 }

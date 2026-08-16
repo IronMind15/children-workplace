@@ -1,7 +1,7 @@
 import { seedIfEmpty } from "@/lib/seed";
 import { getSparkStats } from "@/lib/game";
 import { QUESTIONS, AI_TIPS, RECOMMEND_BY_META } from "@/lib/askBank";
-import { getMonstersByIsland, getExplorer, getInternalizedMetas, getIslands } from "@/lib/repo";
+import { getMonstersByIsland, getExplorer, getInternalizedMetas, getIslands, getMeta } from "@/lib/repo";
 import { getAiConfig } from "@/lib/ai";
 import { redirect } from "next/navigation";
 import AskFlow from "@/components/AskFlow";
@@ -52,6 +52,10 @@ export default function Ask() {
         todayCount={stats.todayCount}
         rewards={rewards}
         aiConfigured={!!ai}
+        recentMetas={getInternalizedMetas()
+          .slice(-3)
+          .reverse()
+          .map((m) => ({ id: m.id, name: getMeta(m.id)?.name ?? m.id }))}
       />
       <BottomNav />
       <TestTools />

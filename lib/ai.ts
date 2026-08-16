@@ -2,15 +2,15 @@ import db from "./db";
 
 /**
  * AI 伙伴接入层（限定 DeepSeek）：
- * - 只支持 DeepSeek 官方接口（base URL 固定），模型二选一：deepseek-chat / deepseek-reasoner
+ * - 只支持 DeepSeek 官方接口（base URL 固定），模型二选一：deepseek-v4-flash / deepseek-v4-pro
  * - API key 存本地 SQLite（demo 单机），不上传任何服务器
  * - 未配置 key 时好奇心营地自动回退到内置题库
  */
 
 export const DEEPSEEK_BASE_URL = "https://api.deepseek.com";
 export const DEEPSEEK_MODELS = [
-  { id: "deepseek-chat", label: "deepseek-chat", desc: "又快又聪明，推荐日常使用" },
-  { id: "deepseek-reasoner", label: "deepseek-reasoner", desc: "会一步步思考，回答更慢更深入" },
+  { id: "deepseek-v4-flash", label: "deepseek-v4-flash", desc: "又快又省，日常推荐" },
+  { id: "deepseek-v4-pro", label: "deepseek-v4-pro", desc: "更强推理，难题更深入" },
 ] as const;
 
 export type AiConfig = { baseUrl: string; apiKey: string; model: string };
@@ -23,12 +23,12 @@ export function getAiConfig(): AiConfig | null {
   return {
     baseUrl: DEEPSEEK_BASE_URL, // 固定 DeepSeek 官方接口
     apiKey: row.api_key,
-    model: DEEPSEEK_MODELS.some((m) => m.id === row.model) ? row.model : "deepseek-chat",
+    model: DEEPSEEK_MODELS.some((m) => m.id === row.model) ? row.model : "deepseek-v4-flash",
   };
 }
 
 export function saveAiConfig(apiKey: string, model: string): void {
-  const safeModel = DEEPSEEK_MODELS.some((m) => m.id === model) ? model : "deepseek-chat";
+  const safeModel = DEEPSEEK_MODELS.some((m) => m.id === model) ? model : "deepseek-v4-flash";
   db.prepare(
     "INSERT OR REPLACE INTO ai_config (id, base_url, api_key, model, updated_at) VALUES (1, ?, ?, ?, ?)"
   ).run(DEEPSEEK_BASE_URL, apiKey.trim(), safeModel, new Date().toISOString());
@@ -113,6 +113,53 @@ export async function explainWrong(
         ],
       }),
       signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const text = data.choices?.[0]?.message?.content?.trim();
+    return text || null;
+  } catch {
+    return null;
+  }
+}
+
+// ============ 费曼学习：AI 扮演「不懂的学生」============
+
+const FEYNMAN_SYSTEM = `你正在和一位 6-10 岁的小朋友玩「费曼小课堂」。你扮演一个对某个数学知识点「似懂非懂」的小同学，TA 是教你数学的小老师。
+规则：
+1. 语气天真可爱，像小朋友之间聊天，多用「哇」「原来」「那我再问问」
+2. 第一次开口时，表现出对这个知识点「会一点但没完全懂」的困惑，抛出一个具体的小问题请教小老师
+3. 小老师讲解后，你要认真回应：讲对了就开心地说「哇，原来是这样，我懂啦！」并用自己的话复述一遍；还有疑问就继续追问一个点
+4. 每次回应控制在 80 字以内
+5. 不要一次问太多，一步一步来，让小老师有成就感`;
+
+/** 费曼对话：history 为空时 AI 抛出第一个问题，否则根据对话历史回应。失败/未配置返回 null */
+export async function feynmanChat(
+  metaName: string,
+  kidName: string,
+  history: { role: "kid" | "ai"; content: string }[]
+): Promise<string | null> {
+  const cfg = getAiConfig();
+  if (!cfg) return null;
+  try {
+    const messages: { role: string; content: string }[] = [
+      { role: "system", content: FEYNMAN_SYSTEM },
+    ];
+    if (history.length === 0) {
+      messages.push({
+        role: "user",
+        content: `小老师叫${kidName}，想教我「${metaName}」。请你先针对「${metaName}」提出一个你不太懂的小问题吧。`,
+      });
+    } else {
+      for (const h of history) {
+        messages.push({ role: h.role === "kid" ? "user" : "assistant", content: h.content });
+      }
+    }
+    const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify({ model: cfg.model, max_tokens: 300, messages }),
+      signal: AbortSignal.timeout(20000),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };

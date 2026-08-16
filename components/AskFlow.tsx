@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { askQuestion, askFree } from "@/lib/actions";
+import FeynmanChat from "@/components/FeynmanChat";
 
 type Q = { id: string; emoji: string; label: string; category: string; badge?: string };
 type Reward = { name: string; required: number };
@@ -25,12 +26,14 @@ export default function AskFlow({
   todayCount,
   rewards,
   aiConfigured,
+  recentMetas,
 }: {
   questions: Q[];
   sparks: number;
   todayCount: number;
   rewards: Reward[];
   aiConfigured: boolean;
+  recentMetas: { id: string; name: string }[];
 }) {
   const [total, setTotal] = useState(sparks);
   const [today, setToday] = useState(todayCount);
@@ -219,6 +222,13 @@ export default function AskFlow({
         <p className="mt-2 text-[10px] font-bold text-[#7a8a9a]">
           每次提问 +1 ✨火花（推荐问题和小贴士也一样），保持爱提问的好习惯！
         </p>
+
+        {/* 费曼小课堂：当小老师，教 AI 学数学 */}
+        {recentMetas.length > 0 && (
+          <div className="mt-6">
+            <FeynmanChat metas={recentMetas} />
+          </div>
+        )}
       </div>
     </div>
   );
