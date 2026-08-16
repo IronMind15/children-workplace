@@ -171,6 +171,26 @@ export default function BossFlow({
             <p className="mt-1 text-xs font-bold text-[#7a8a9a]">一起净化它，进化出新精灵！</p>
           </div>
 
+          {/* 小狐狸助手：选错时从左侧探出讲解 */}
+          {explain && (
+            <div className="animate-fox-in absolute left-0 top-[52%] z-30 flex items-end">
+              <ImgSprite src={companion} size={84} className="-ml-3 shrink-0 drop-shadow-lg" />
+              <div className="relative ml-1 max-w-[270px] rounded-2xl rounded-bl-none border-2 border-[#f79228] bg-white/95 p-3 shadow-xl">
+                <p className="text-xs font-black text-[#e2582e]">🦊 差一点点就对啦！</p>
+                <p className="mt-0.5 text-[10px] font-bold text-[#7a8a9a]">
+                  你选了「{explain.userAnswer}」，正确答案是「{explain.correctAnswer}」
+                </p>
+                <p className="mt-1.5 text-xs font-bold leading-relaxed text-[#2b3a4a]">{explain.text}</p>
+                <button
+                  onClick={() => setExplain(null)}
+                  className="mt-2 w-full rounded-xl bg-[#f79228] py-2 text-xs font-black text-white transition-colors hover:bg-[#d97a12]"
+                >
+                  💪 我看懂啦，再试一次
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* 特效 */}
           {effect && (
             <div
@@ -235,29 +255,14 @@ export default function BossFlow({
               </>
             )}
 
-            {phase === "solve" && (
-              explain ? (
-                <div className="rounded-xl border-4 border-[#ffb300] bg-[#fff8e1] p-4">
-                  <p className="text-sm font-black text-[#e2582e]">🤔 差一点点就对啦！</p>
-                  <p className="mt-1 text-xs font-bold text-[#7a8a9a]">
-                    你选了「{explain.userAnswer}」，正确答案是「{explain.correctAnswer}」
-                  </p>
-                  <div className="mt-2 rounded-lg bg-white p-3 text-sm font-bold leading-relaxed text-[#2b3a4a]">
-                    {explain.text}
-                  </div>
-                  <button onClick={() => setExplain(null)} className="pixel-btn pixel-btn-green mt-3 w-full py-3 text-lg">
-                    💪 我看懂啦，再试一次
+            {phase === "solve" && !explain && (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+                {steps[stepIdx].options.map((o) => (
+                  <button key={o.label} onClick={() => answer(o)} className="pixel-btn pixel-btn-green py-4 text-2xl">
+                    {o.label}
                   </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-                  {steps[stepIdx].options.map((o) => (
-                    <button key={o.label} onClick={() => answer(o)} className="pixel-btn pixel-btn-green py-4 text-2xl">
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
-              )
+                ))}
+              </div>
             )}
 
             {phase === "result" && !result?.ok && (

@@ -223,6 +223,14 @@ body {
 }
 .animate-slide-in-right { animation: slideInRight 0.6s ease-out both; }
 
+/* 小狐狸助手：从左侧探出（带弹性） */
+@keyframes foxIn {
+  0% { transform: translateX(-100%); opacity: 0; }
+  70% { transform: translateX(6px); opacity: 1; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+.animate-fox-in { animation: foxIn 0.5s cubic-bezier(0.34, 1.4, 0.64, 1) both; }
+
 /* 我方精灵出招：向前扑一下 */
 @keyframes lunge {
   0%, 100% { transform: translate(0, 0); }
