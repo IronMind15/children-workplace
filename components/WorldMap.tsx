@@ -23,7 +23,7 @@ export type IslandBattleData = {
   bosses: MapBoss[];
 };
 
-/** 海面条纹背景样式（统一海域，不按单岛主题） */
+/** 海面条纹背景样式（统一青绿海域，对齐设计稿，不按单岛主题） */
 const seaStyle = (a: string, b: string): React.CSSProperties => ({
   backgroundImage: `repeating-linear-gradient(180deg, ${a} 0 26px, ${b} 26px 52px)`,
 });
@@ -106,7 +106,7 @@ export default function WorldMap({
       <div className="pixel-panel relative overflow-hidden p-2">
       <div
         className="relative h-[60vh] min-h-[480px] w-full overflow-hidden rounded-md"
-        style={seaStyle("#bfe9ff", "#a9dcff")}
+        style={seaStyle("#90d8d8", "#78d8d8")}
       >
         {/* 进化连线层 */}
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">

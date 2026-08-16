@@ -64,11 +64,11 @@ export const ISLAND_LABELS: Record<string, string> = {
 const CLASSIC_THEMES: Record<string, IslandTheme> = {
   计数岛: {
     label: "翠绿草原",
-    sea: ["#8ed6f0", "#7ec4e0"],
-    grass: ["#8fd14f", "#7fbf3f"],
+    sea: ["#90d8d8", "#78d8d8"],
+    grass: ["#d4e790", "#c0d878"],
     path: ["#e8c170", "#d9ad55"],
     pathBorder: "#c9a458",
-    beach: "#f7e6c4",
+    beach: "#f0a878",
     decors: [
       { kind: "tree", x: 4, y: 10, size: 88 },
       { kind: "tree", x: 84, y: 8, size: 80 },
@@ -88,11 +88,11 @@ const CLASSIC_THEMES: Record<string, IslandTheme> = {
   },
   位值岛: {
     label: "水晶洞穴",
-    sea: ["#7fb3e8", "#6ba3dc"],
-    grass: ["#a3e0e8", "#8fd0da"],
+    sea: ["#7fd4d4", "#6cc8c8"],
+    grass: ["#c8dc84", "#b4c86c"],
     path: ["#b8c4d9", "#a5b3cc"],
     pathBorder: "#7d8ba8",
-    beach: "#dbe9f7",
+    beach: "#f0a878",
     decors: [
       { kind: "rock", x: 6, y: 12, size: 76 },
       { kind: "rock", x: 86, y: 14, size: 84 },
@@ -111,11 +111,11 @@ const CLASSIC_THEMES: Record<string, IslandTheme> = {
   },
   加法岛: {
     label: "苹果果园",
-    sea: ["#7fd4c9", "#6bc0b5"],
-    grass: ["#a8de70", "#98cf5e"],
+    sea: ["#6cc8c8", "#5eb8b8"],
+    grass: ["#c0d878", "#a8c05e"],
     path: ["#d9a05f", "#c98f4e"],
     pathBorder: "#a8743a",
-    beach: "#ffe0b2",
+    beach: "#f0a878",
     decors: [
       { kind: "tree", x: 6, y: 8, size: 92 },
       { kind: "tree", x: 48, y: 6, size: 76 },
@@ -135,11 +135,11 @@ const CLASSIC_THEMES: Record<string, IslandTheme> = {
   },
   减法岛: {
     label: "金沙落日",
-    sea: ["#f4a259", "#e88f42"],
-    grass: ["#ecc86e", "#e0b955"],
+    sea: ["#90d8d8", "#78d8d8"],
+    grass: ["#d4e790", "#c0d878"],
     path: ["#c99a4e", "#b98a3e"],
     pathBorder: "#96702e",
-    beach: "#f5deb3",
+    beach: "#f0a878",
     decors: [
       { kind: "rock", x: 4, y: 12, size: 72 },
       { kind: "rock", x: 88, y: 10, size: 80 },
@@ -157,11 +157,11 @@ const CLASSIC_THEMES: Record<string, IslandTheme> = {
   },
   乘法岛: {
     label: "星光花园",
-    sea: ["#a99bd9", "#9789cc"],
-    grass: ["#f2b8d0", "#e8a5c2"],
+    sea: ["#7fd4d4", "#6cc8c8"],
+    grass: ["#c8dc84", "#b4c86c"],
     path: ["#d9a0c0", "#c98fb2"],
     pathBorder: "#a8738f",
-    beach: "#ffd6e8",
+    beach: "#f0a878",
     decors: [
       { kind: "tree", x: 8, y: 10, size: 84 },
       { kind: "tree", x: 86, y: 8, size: 78 },
@@ -181,11 +181,11 @@ const CLASSIC_THEMES: Record<string, IslandTheme> = {
   },
   集合岛: {
     label: "圈圈群岛",
-    sea: ["#8fd0e8", "#7cc0dc"],
-    grass: ["#c9b6e8", "#b8a3dd"],
+    sea: ["#6cc8c8", "#5eb8b8"],
+    grass: ["#c0d878", "#a8c05e"],
     path: ["#b8a0c8", "#a78fb8"],
     pathBorder: "#8a7198",
-    beach: "#efe6fa",
+    beach: "#f0a878",
     decors: [
       { kind: "tree", x: 8, y: 10, size: 80 },
       { kind: "bush", x: 84, y: 14, size: 58 },
@@ -207,11 +207,11 @@ const CLASSIC_THEMES: Record<string, IslandTheme> = {
 const DOMAIN_THEMES: Record<string, IslandTheme> = {
   数与运算: {
     label: "运算群岛",
-    sea: ["#7fd0e8", "#6bbdd6"],
-    grass: ["#b3e0a0", "#a2d18c"],
+    sea: ["#90d8d8", "#78d8d8"],
+    grass: ["#d4e790", "#c0d878"],
     path: ["#e0c58a", "#d0b276"],
     pathBorder: "#b3945c",
-    beach: "#f7ecd0",
+    beach: "#f0a878",
     decors: [
       { kind: "tree", x: 8, y: 10, size: 84 },
       { kind: "tree", x: 88, y: 14, size: 76 },
@@ -229,11 +229,11 @@ const DOMAIN_THEMES: Record<string, IslandTheme> = {
   },
   "数的关系": {
     label: "关系海峡",
-    sea: ["#9db8e8", "#8aa8dd"],
-    grass: ["#c5cbe8", "#b4bce0"],
+    sea: ["#7fd4d4", "#6cc8c8"],
+    grass: ["#c8dc84", "#b4c86c"],
     path: ["#aab4d0", "#98a3c2"],
     pathBorder: "#7d88a8",
-    beach: "#e3e9f7",
+    beach: "#f0a878",
     decors: [
       { kind: "rock", x: 6, y: 12, size: 72 },
       { kind: "rock", x: 84, y: 12, size: 78 },
@@ -249,11 +249,11 @@ const DOMAIN_THEMES: Record<string, IslandTheme> = {
   },
   代数初步: {
     label: "符号谜海",
-    sea: ["#b39dd9", "#a18bcc"],
-    grass: ["#d7c9ec", "#c9b8e4"],
+    sea: ["#6cc8c8", "#5eb8b8"],
+    grass: ["#c0d878", "#a8c05e"],
     path: ["#b8a5d4", "#a795c6"],
     pathBorder: "#8471a8",
-    beach: "#efe6fa",
+    beach: "#f0a878",
     decors: [
       { kind: "tree", x: 10, y: 8, size: 80 },
       { kind: "bush", x: 80, y: 12, size: 58 },
@@ -270,11 +270,11 @@ const DOMAIN_THEMES: Record<string, IslandTheme> = {
   },
   图形与几何: {
     label: "几何列岛",
-    sea: ["#7fc4e8", "#6db2dc"],
-    grass: ["#a8d8e8", "#96ccdf"],
+    sea: ["#90d8d8", "#78d8d8"],
+    grass: ["#d4e790", "#c0d878"],
     path: ["#c0c8d8", "#adb6cc"],
     pathBorder: "#8892ab",
-    beach: "#e0f0f7",
+    beach: "#f0a878",
     decors: [
       { kind: "rock", x: 8, y: 12, size: 74 },
       { kind: "rock", x: 86, y: 10, size: 80 },
@@ -291,11 +291,11 @@ const DOMAIN_THEMES: Record<string, IslandTheme> = {
   },
   量与测量: {
     label: "度量洋流",
-    sea: ["#7ed9c0", "#6cc8b0"],
-    grass: ["#b8e8c8", "#a6dcb8"],
+    sea: ["#7fd4d4", "#6cc8c8"],
+    grass: ["#c8dc84", "#b4c86c"],
     path: ["#e0d08a", "#d0c076"],
     pathBorder: "#b3a45c",
-    beach: "#f7f0d0",
+    beach: "#f0a878",
     decors: [
       { kind: "tree", x: 6, y: 10, size: 82 },
       { kind: "tree", x: 88, y: 12, size: 74 },
@@ -311,11 +311,11 @@ const DOMAIN_THEMES: Record<string, IslandTheme> = {
   },
   统计与概率: {
     label: "统计群岛",
-    sea: ["#f2a0c8", "#e88cb8"],
-    grass: ["#f7c8dd", "#f0b5cf"],
+    sea: ["#6cc8c8", "#5eb8b8"],
+    grass: ["#c0d878", "#a8c05e"],
     path: ["#d8a8c0", "#c898b2"],
     pathBorder: "#a87893",
-    beach: "#ffe6f0",
+    beach: "#f0a878",
     decors: [
       { kind: "bush", x: 10, y: 12, size: 58 },
       { kind: "bush", x: 82, y: 14, size: 56 },
@@ -332,11 +332,11 @@ const DOMAIN_THEMES: Record<string, IslandTheme> = {
   },
   数学广角: {
     label: "彩蛋海域",
-    sea: ["#9dd9e8", "#8ac8dc"],
-    grass: ["#c9e8f0", "#b8dce8"],
+    sea: ["#90d8d8", "#78d8d8"],
+    grass: ["#d4e790", "#c0d878"],
     path: ["#a8c8d8", "#98b8cc"],
     pathBorder: "#7898ab",
-    beach: "#e6f5fa",
+    beach: "#f0a878",
     decors: [
       { kind: "rock", x: 8, y: 12, size: 70 },
       { kind: "bush", x: 84, y: 14, size: 56 },
