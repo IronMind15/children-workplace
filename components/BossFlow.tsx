@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { purifyMonster } from "@/lib/actions";
+import { purifyMonster, logMistake, explainMistake, resolveMistake } from "@/lib/actions";
 import ImgSprite from "@/components/ImgSprite";
 import EvolutionModal, { type ChainNode, type ChainEdge } from "@/components/EvolutionModal";
 import { getMonsterImage, getCompanionImage } from "@/lib/sprites";
-import { bossIntroGuide, missGuide, type BrainSettings } from "@/lib/brain";
+import { bossIntroGuide, type BrainSettings } from "@/lib/brain";
 import type { SolveStep } from "@/lib/types";
 
 type PurifyResult = { ok: boolean; targetMeta?: string; nextIsland?: string; reason?: string };
@@ -22,6 +22,8 @@ export default function BossFlow({
   brain,
   nodes,
   edges,
+  targetMeta,
+  metaName,
 }: {
   monsterId: string;
   name: string;
@@ -30,6 +32,8 @@ export default function BossFlow({
   brain: BrainSettings;
   nodes: ChainNode[];
   edges: ChainEdge[];
+  targetMeta?: string;
+  metaName: string;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<"intro" | "solve" | "purifying" | "result">("intro");
@@ -38,6 +42,9 @@ export default function BossFlow({
   const [result, setResult] = useState<PurifyResult | null>(null);
   const [effect, setEffect] = useState<Effect>(null);
   const [shake, setShake] = useState(false);
+  const [hp, setHp] = useState(100);
+  const [explain, setExplain] = useState<{ text: string; userAnswer: string; correctAnswer: string } | null>(null);
+  const [wrongOnThisStep, setWrongOnThisStep] = useState(false);
 
   const total = steps.length;
   const isDiscover = steps[stepIdx]?.type === "discover";
@@ -52,6 +59,10 @@ export default function BossFlow({
 
   function answer(opt: { label: string; correct?: boolean }) {
     if (opt.correct) {
+      if (wrongOnThisStep) {
+        if (targetMeta) resolveMistake(targetMeta);
+        setWrongOnThisStep(false);
+      }
       setShake(true);
       setTimeout(() => setShake(false), 450);
       if (isDiscover) {
@@ -73,7 +84,17 @@ export default function BossFlow({
       }
     } else {
       setMistakes((m) => m + 1);
-      flash({ kind: "miss", text: missGuide(brain), key: Date.now() });
+      setHp((h) => Math.max(0, h - 20));
+      setWrongOnThisStep(true);
+      setShake(true);
+      setTimeout(() => setShake(false), 450);
+      const correctLabel = steps[stepIdx].options.find((o) => o.correct)?.label ?? "";
+      if (targetMeta) logMistake(targetMeta, steps[stepIdx].prompt, opt.label, correctLabel);
+      const base = steps[stepIdx].explain ?? "再想想，Boss 的弱点就藏在这道题里哦～";
+      setExplain({ text: base, userAnswer: opt.label, correctAnswer: correctLabel });
+      explainMistake(steps[stepIdx].prompt, correctLabel, opt.label, metaName).then((ai) => {
+        if (ai) setExplain((e) => (e ? { ...e, text: ai } : e));
+      });
     }
   }
 
@@ -140,6 +161,12 @@ export default function BossFlow({
             <div className="flex items-center justify-between">
               <span className="text-sm font-black text-[#2b3a4a]">🦊 伙伴</span>
               <span className="rounded bg-[#e8edf2] px-1.5 py-0.5 text-[10px] font-bold text-[#7a8a9a]">并肩作战</span>
+            </div>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <span className="rounded-sm bg-[#ffb300] px-1 text-[10px] font-black italic text-white">HP</span>
+              <div className="h-3 flex-1 overflow-hidden rounded-sm border-2 border-[#2b3a4a] bg-[#d3d1c7]">
+                <div className="h-full transition-all duration-500" style={{ width: `${hp}%`, background: hp > 50 ? "#4cd964" : hp > 25 ? "#ffb300" : "#ff5252" }} />
+              </div>
             </div>
             <p className="mt-1 text-xs font-bold text-[#7a8a9a]">一起净化它，进化出新精灵！</p>
           </div>
@@ -209,13 +236,28 @@ export default function BossFlow({
             )}
 
             {phase === "solve" && (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-                {steps[stepIdx].options.map((o) => (
-                  <button key={o.label} onClick={() => answer(o)} className="pixel-btn pixel-btn-green py-4 text-2xl">
-                    {o.label}
+              explain ? (
+                <div className="rounded-xl border-4 border-[#ffb300] bg-[#fff8e1] p-4">
+                  <p className="text-sm font-black text-[#e2582e]">🤔 差一点点就对啦！</p>
+                  <p className="mt-1 text-xs font-bold text-[#7a8a9a]">
+                    你选了「{explain.userAnswer}」，正确答案是「{explain.correctAnswer}」
+                  </p>
+                  <div className="mt-2 rounded-lg bg-white p-3 text-sm font-bold leading-relaxed text-[#2b3a4a]">
+                    {explain.text}
+                  </div>
+                  <button onClick={() => setExplain(null)} className="pixel-btn pixel-btn-green mt-3 w-full py-3 text-lg">
+                    💪 我看懂啦，再试一次
                   </button>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+                  {steps[stepIdx].options.map((o) => (
+                    <button key={o.label} onClick={() => answer(o)} className="pixel-btn pixel-btn-green py-4 text-2xl">
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              )
             )}
 
             {phase === "result" && !result?.ok && (

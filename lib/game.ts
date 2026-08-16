@@ -158,3 +158,16 @@ export function purify(monsterId: string): { ok: boolean; targetMeta?: string; n
   }
   return { ok: true, targetMeta: monster.target_meta, nextIsland };
 }
+
+// ============ 错题集 ============
+
+/** 记录一次答错（选错时调用，写入错题集） */
+export function recordMistake(metaId: string, question: string, userAnswer: string, correctAnswer: string): void {
+  db.prepare("INSERT INTO mistake (meta_id, question, user_answer, correct_answer, created_at) VALUES (?, ?, ?, ?, ?)")
+    .run(metaId, question, userAnswer, correctAnswer, new Date().toISOString());
+}
+
+/** 重做答对后，把该知识点的未掌握错题标记为已掌握 */
+export function resolveMistakes(metaId: string): void {
+  db.prepare("UPDATE mistake SET resolved = 1 WHERE meta_id = ? AND resolved = 0").run(metaId);
+}

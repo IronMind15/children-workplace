@@ -68,6 +68,7 @@ function countStep(): SolveStep {
     type: "solve",
     prompt: `数一数，一共有几个${t.name}？ ${t.emoji.repeat(Math.min(n, 12))}${n > 12 ? "…" : ""}`,
     options: numOptions(n),
+    explain: `数数要一个一个数、不重复也不漏。${t.emoji} 从 1 开始数：${Array.from({ length: Math.min(n, 8) }, (_, i) => i + 1).join("、")}${n > 8 ? "……" : ""}，数到最后一个就是 ${n} 个${t.name}。`,
   };
 }
 
@@ -84,7 +85,7 @@ function addStep(): SolveStep {
   const a = rnd(1, dStep(9, 4));
   const b = rnd(1, dStep(9, 4));
   const story = ADD_STORIES[rnd(0, ADD_STORIES.length - 1)];
-  return { type: "solve", prompt: story(a, b, t), options: numOptions(a + b) };
+  return { type: "solve", prompt: story(a, b, t), options: numOptions(a + b), explain: `加法是「合并求总数」。把 ${a} 个${t.name}和 ${b} 个${t.name}合在一起，可以接着 ${a} 往后数 ${b} 个，数到 ${a + b}，所以 ${a} + ${b} = ${a + b}。` };
 }
 
 // ---- 减法（MK-04）：拿走/求剩余 ----
@@ -100,7 +101,7 @@ function subStep(): SolveStep {
   const a = rnd(dStep(5, 3), dStep(18, 6));
   const b = rnd(1, a - 2);
   const story = SUB_STORIES[rnd(0, SUB_STORIES.length - 1)];
-  return { type: "solve", prompt: story(a, b, t), options: numOptions(a - b) };
+  return { type: "solve", prompt: story(a, b, t), options: numOptions(a - b), explain: `减法是「拿走求剩余」。有 ${a} 个${t.name}，拿走 ${b} 个，就从 ${a} 往前数 ${b} 个，剩下 ${a - b} 个，所以 ${a} - ${b} = ${a - b}。` };
 }
 
 // ---- 乘法（MK-05）：连加打包 ----
@@ -116,7 +117,7 @@ function mulStep(): SolveStep {
   const a = rnd(2, dStep(9, 3));
   const b = rnd(2, dStep(9, 3));
   const story = MUL_STORIES[rnd(0, MUL_STORIES.length - 1)];
-  return { type: "solve", prompt: story(a, b, t), options: numOptions(a * b) };
+  return { type: "solve", prompt: story(a, b, t), options: numOptions(a * b), explain: `乘法是「几个几相加」。${a} × ${b} 表示 ${a} 个 ${b} 加起来，也就是 ${a} 个 ${b} = ${a * b}。可以背乘法口诀，或把 ${b} 连加 ${a} 次得到 ${a * b}。` };
 }
 
 // ---- 位值（MK-02）：十位 / 个位 ----
@@ -135,21 +136,21 @@ const PLACE_STORIES: (() => SolveStep)[] = [
     const t = rnd(2, dStep(9, 3));
     const o = rnd(1, 9);
     const n = t * 10 + o;
-    return { type: "solve", prompt: `${n} 里的 ${t} 在十位，它表示多少？`, options: placeOptions(t * 10) };
+    return { type: "solve", prompt: `${n} 里的 ${t} 在十位，它表示多少？`, options: placeOptions(t * 10), explain: `十位上的数字表示「几个十」。${n} 里的 ${t} 在十位，表示 ${t} 个十，也就是 ${t * 10}。` };
   },
   () => {
     const t = rnd(1, dStep(4, 2));
     const o = rnd(1, 9);
-    return { type: "solve", prompt: `${t} 个十和 ${o} 个一，合起来是几？`, options: placeOptions(t * 10 + o) };
+    return { type: "solve", prompt: `${t} 个十和 ${o} 个一，合起来是几？`, options: placeOptions(t * 10 + o), explain: `十位表示几个十、个位表示几个一。${t} 个十是 ${t * 10}，再加 ${o} 个一，合起来就是 ${t * 10 + o}。` };
   },
   () => {
     const t = rnd(1, dStep(4, 2));
     const o = rnd(1, 9);
-    return { type: "solve", prompt: `${t * 10 + o} 里面有 1 个十和（ ）个一？把数字拆开看看！`, options: numOptions(o) };
+    return { type: "solve", prompt: `${t * 10 + o} 里面有 1 个十和（ ）个一？把数字拆开看看！`, options: numOptions(o), explain: `${t * 10 + o} 拆成十位和个位：十位是 ${t}（表示 ${t} 个十），个位是 ${o}（表示 ${o} 个一），所以个位是 ${o}。` };
   },
   () => {
     const t = rnd(2, dStep(9, 3));
-    return { type: "solve", prompt: `${t} 个十是多少？`, options: placeOptions(t * 10) };
+    return { type: "solve", prompt: `${t} 个十是多少？`, options: placeOptions(t * 10), explain: `十位是几就表示几个十。${t} 个十就是 ${t} 个 10 加起来，等于 ${t * 10}。` };
   },
 ];
 
@@ -168,7 +169,7 @@ function divStep(): SolveStep {
     `${total} ÷ ${b} = ?`,
     `${total} 块饼干，每 ${b} 块装一袋，能装几袋？`,
   ];
-  return { type: "solve", prompt: stories[rnd(0, 3)], options: numOptions(c) };
+  return { type: "solve", prompt: stories[rnd(0, 3)], options: numOptions(c), explain: `除法是「平均分」。${total} 平均分成 ${b} 份，每份就是 ${c} 个，因为 ${b} × ${c} = ${total}，所以 ${total} ÷ ${b} = ${c}。` };
 }
 
 // ---- 分数（MK-07）：部分与整体 ----
@@ -179,6 +180,7 @@ function fracStep(): SolveStep {
     type: "solve",
     prompt: `🍕 蛋糕平均切成 ${n} 块，吃掉 ${k} 块，吃了几分之几？`,
     options: choiceOptions(`${k}/${n}`, [`${n}/${k}`, `${k}/${n + 1}`]),
+    explain: `分数表示「整体平均分成几份，取了几份」。蛋糕切成 ${n} 份，${n} 写在下面做分母；吃掉 ${k} 份，${k} 写在上面做分子，所以是 ${k}/${n}。`,
   };
 }
 
@@ -192,6 +194,7 @@ function decimalStep(): SolveStep {
     type: "solve",
     prompt: `🪙 ${y} 元 ${j} 角是几元？（用小数表示）`,
     options: choiceOptions(ans, wrongs),
+    explain: `1 元 = 10 角。用小数表示元，元写在小数点左边、角写在小数点右边：${y} 元 ${j} 角就是 ${y}.${j} 元。`,
   };
 }
 
@@ -202,6 +205,7 @@ function percentStep(): SolveStep {
     type: "solve",
     prompt: `种了 100 棵树苗，成活了 ${n} 棵，成活率是百分之几？`,
     options: choiceOptions(`${n}%`, [`${n / 10}%`, `${n * 10}%`]),
+    explain: `百分数就是「每 100 份里占几份」。100 棵里活了 ${n} 棵，就是 100 份里的 ${n} 份，写作 ${n}%。`,
   };
 }
 
@@ -213,7 +217,7 @@ function negativeStep(): SolveStep {
     `🏔️ 海平面以上 ${b} 米记作 +${b} 米，潜水员下潜 ${b} 米记作多少米？`,
     `📉 收入 ${b} 元记作 +${b} 元，花掉 ${b} 元记作几元？`,
   ];
-  return { type: "solve", prompt: stories[rnd(0, 2)], options: choiceOptions(`-${b}`, [`${b}`, `+${b}`]) };
+  return { type: "solve", prompt: stories[rnd(0, 2)], options: choiceOptions(`-${b}`, [`${b}`, `+${b}`]), explain: `负数表示「和正数相反的量」。零上、海平面以上、收入用正数；零下、下潜、花掉这些相反的，就用负数 -${b} 来表示。` };
 }
 
 // ---- 比（MK-11）----
@@ -230,6 +234,7 @@ function ratioStep(): SolveStep {
     type: "solve",
     prompt: `⚖️ ${a} 个苹果和 ${b} 个橘子，苹果与橘子的比是？`,
     options: choiceOptions(ans, [w1, w2]),
+    explain: `比表示「两个数量的倍数关系」。苹果 ${a} 个、橘子 ${b} 个，先写成 ${a}:${b}，再同时除以它们的公因数，约成最简单的整数比 ${ans}。`,
   };
 }
 
@@ -242,6 +247,7 @@ function proportionStep(): SolveStep {
     type: "solve",
     prompt: `🎯 ${k} 支铅笔 ${k * p} 元，买 ${n} 支同样的铅笔要几元？`,
     options: numOptions(n * p),
+    explain: `比例是「同倍变化」。先算 1 支铅笔的价钱：${k * p} ÷ ${k} = ${p} 元；买 ${n} 支就是 ${p} × ${n} = ${n * p} 元。`,
   };
 }
 
@@ -249,13 +255,13 @@ function proportionStep(): SolveStep {
 function literalStep(): SolveStep {
   const n = rnd(2, dStep(9, 3));
   const cases = [
-    [`🔤 比 x 多 ${n} 的数，怎么表示？`, `x+${n}`, [`${n}x`, `x-${n}`]],
-    [`🔤 x 的 ${n} 倍，怎么表示？`, `${n}x`, [`x+${n}`, `x/${n}`]],
-    [`🔤 比 x 少 ${n} 的数，怎么表示？`, `x-${n}`, [`x+${n}`, `${n}x`]],
-    [`🔤 3 个 x 相加，怎么写更简便？`, `3x`, [`x³`, `x+3`]],
-  ] as [string, string, string[]][];
-  const [prompt, ans, wrongs] = cases[rnd(0, 3)];
-  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]) };
+    [`🔤 比 x 多 ${n} 的数，怎么表示？`, `x+${n}`, [`${n}x`, `x-${n}`], `x 是一个还不知道的数，用字母表示。比 x 多 ${n}，就是在 x 后面加 ${n}，写作 x+${n}。`],
+    [`🔤 x 的 ${n} 倍，怎么表示？`, `${n}x`, [`x+${n}`, `x/${n}`], `x 的 ${n} 倍就是把 x 乘 ${n}，乘号可以省略，写作 ${n}x。`],
+    [`🔤 比 x 少 ${n} 的数，怎么表示？`, `x-${n}`, [`x+${n}`, `${n}x`], `比 x 少 ${n}，就是从 x 里减去 ${n}，写作 x-${n}。`],
+    [`🔤 3 个 x 相加，怎么写更简便？`, `3x`, [`x³`, `x+3`], `3 个 x 相加就是 x+x+x，可以简写成 3x（乘号省略，数字写在字母前面）。`],
+  ] as [string, string, string[], string][];
+  const [prompt, ans, wrongs, explain] = cases[rnd(0, 3)];
+  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]), explain };
 }
 
 // ---- 方程（MK-14）----
@@ -266,92 +272,93 @@ function equationStep(): SolveStep {
     type: "solve",
     prompt: `🧩 x + ${a} = ${x + a}，x 是几？`,
     options: numOptions(x),
+    explain: `方程是「藏起来的数」。x + ${a} = ${x + a}，x 就是 ${x + a} 减去 ${a}，等于 ${x}。`,
   };
 }
 
 // ---- 图形认识（MK-15）----
 function shapeStep(): SolveStep {
   const cases = [
-    ["下面哪个图形有 3 条边？", "三角形", ["正方形", "圆形"]],
-    ["下面哪个图形摸起来没有角？", "圆形", ["三角形", "正方形"]],
-    ["正方体有几个面？", "6 个", ["4 个", "8 个"]],
-    ["下面哪个图形有 4 条一样长的边？", "正方形", ["长方形", "三角形"]],
-  ] as [string, string, string[]][];
-  const [prompt, ans, wrongs] = cases[rnd(0, 3)];
-  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]) };
+    ["下面哪个图形有 3 条边？", "三角形", ["正方形", "圆形"], "三角形有 3 条边、3 个角；正方形有 4 条边；圆形没有边。所以 3 条边的是三角形。"],
+    ["下面哪个图形摸起来没有角？", "圆形", ["三角形", "正方形"], "圆形是圆圆的、没有尖角；三角形和正方形都有尖尖的角。所以摸起来没角的是圆形。"],
+    ["正方体有几个面？", "6 个", ["4 个", "8 个"], "正方体有 6 个面：上、下、前、后、左、右，各 1 个，一共 6 个。"],
+    ["下面哪个图形有 4 条一样长的边？", "正方形", ["长方形", "三角形"], "正方形 4 条边都一样长；长方形只是「对边」一样长；三角形只有 3 条边。所以是正方形。"],
+  ] as [string, string, string[], string][];
+  const [prompt, ans, wrongs, explain] = cases[rnd(0, 3)];
+  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]), explain };
 }
 
 // ---- 角（MK-16）----
 function angleStep(): SolveStep {
   const cases = [
-    ["📐 直角是多少度？", "90°", ["45°", "180°"]],
-    ["📐 比直角小的角叫什么？", "锐角", ["钝角", "平角"]],
-    ["📐 比直角大、比平角小的角叫什么？", "钝角", ["锐角", "直角"]],
-    ["📐 一个平角等于几个直角？", "2 个", ["3 个", "4 个"]],
-  ] as [string, string, string[]][];
-  const [prompt, ans, wrongs] = cases[rnd(0, 3)];
-  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]) };
+    ["📐 直角是多少度？", "90°", ["45°", "180°"], "直角是 90°。45° 是直角的一半，180° 是平角（等于两个直角）。"],
+    ["📐 比直角小的角叫什么？", "锐角", ["钝角", "平角"], "锐角比直角小（小于 90°）；钝角比直角大；平角是 180°。所以比直角小的是锐角。"],
+    ["📐 比直角大、比平角小的角叫什么？", "钝角", ["锐角", "直角"], "钝角比直角大（大于 90°）但比平角小（小于 180°）。"],
+    ["📐 一个平角等于几个直角？", "2 个", ["3 个", "4 个"], "平角是 180°，直角是 90°，180 ÷ 90 = 2，所以一个平角等于 2 个直角。"],
+  ] as [string, string, string[], string][];
+  const [prompt, ans, wrongs, explain] = cases[rnd(0, 3)];
+  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]), explain };
 }
 
 // ---- 周长（MK-17）----
 function perimeterStep(): SolveStep {
   if (Math.random() < 0.5) {
     const s = rnd(2, dStep(9, 3));
-    return { type: "solve", prompt: `📏 边长 ${s} 厘米的正方形，周长是多少厘米？`, options: numOptions(4 * s) };
+    return { type: "solve", prompt: `📏 边长 ${s} 厘米的正方形，周长是多少厘米？`, options: numOptions(4 * s), explain: `周长是图形一圈的总长度。正方形 4 条边一样长，周长 = 4 × ${s} = ${4 * s} 厘米。` };
   }
   const l = rnd(3, dStep(9, 3));
   const w = rnd(2, l - 1);
-  return { type: "solve", prompt: `📏 长 ${l} 厘米、宽 ${w} 厘米的长方形，周长是多少厘米？`, options: numOptions(2 * (l + w)) };
+  return { type: "solve", prompt: `📏 长 ${l} 厘米、宽 ${w} 厘米的长方形，周长是多少厘米？`, options: numOptions(2 * (l + w)), explain: `周长是图形一圈的总长度。长方形有 2 条长、2 条宽，周长 = (${l} + ${w}) × 2 = ${2 * (l + w)} 厘米。` };
 }
 
 // ---- 面积（MK-18）----
 function areaStep(): SolveStep {
   const l = rnd(2, dStep(9, 3));
   const w = rnd(2, dStep(9, 3));
-  return { type: "solve", prompt: `🟩 长 ${l} 厘米、宽 ${w} 厘米的长方形，面积是多少平方厘米？`, options: numOptions(l * w) };
+  return { type: "solve", prompt: `🟩 长 ${l} 厘米、宽 ${w} 厘米的长方形，面积是多少平方厘米？`, options: numOptions(l * w), explain: `面积是图形「铺满」的大小。长方形面积 = 长 × 宽 = ${l} × ${w} = ${l * w} 平方厘米。` };
 }
 
 // ---- 体积（MK-19）----
 function volumeStep(): SolveStep {
   const e = rnd(2, dStep(4, 1));
-  return { type: "solve", prompt: `🧊 棱长 ${e} 厘米的正方体，体积是多少立方厘米？`, options: numOptions(e * e * e) };
+  return { type: "solve", prompt: `🧊 棱长 ${e} 厘米的正方体，体积是多少立方厘米？`, options: numOptions(e * e * e), explain: `体积是立体图形「装」的大小。正方体体积 = 棱长 × 棱长 × 棱长 = ${e} × ${e} × ${e} = ${e * e * e} 立方厘米。` };
 }
 
 // ---- 图形运动（MK-20）----
 function motionStep(): SolveStep {
   const cases = [
-    ["🔄 电梯上上下下地移动，是哪种运动？", "平移", ["旋转", "对称"]],
-    ["🔄 风车迎风转动，是哪种运动？", "旋转", ["平移", "对称"]],
-    ["🔄 蝴蝶左右两边翅膀形状一样，这是？", "对称", ["平移", "旋转"]],
-    ["🔄 照镜子时身体和镜中影像是？", "对称", ["平移", "旋转"]],
-  ] as [string, string, string[]][];
-  const [prompt, ans, wrongs] = cases[rnd(0, 3)];
-  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]) };
+    ["🔄 电梯上上下下地移动，是哪种运动？", "平移", ["旋转", "对称"], "电梯直直地上上下下，位置变了但形状、方向都不变，这叫平移。"],
+    ["🔄 风车迎风转动，是哪种运动？", "旋转", ["平移", "对称"], "风车绕着一个中心点转圈，这叫旋转。"],
+    ["🔄 蝴蝶左右两边翅膀形状一样，这是？", "对称", ["平移", "旋转"], "对称是左右两边完全一样，像照镜子一样，蝴蝶的翅膀就是这样。"],
+    ["🔄 照镜子时身体和镜中影像是？", "对称", ["平移", "旋转"], "照镜子时，镜子里外的形状左右对称、完全一样。"],
+  ] as [string, string, string[], string][];
+  const [prompt, ans, wrongs, explain] = cases[rnd(0, 3)];
+  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]), explain };
 }
 
 // ---- 位置与方向（MK-21）----
 function directionStep(): SolveStep {
   const cases = [
-    ["🧭 面向北站立，你的右手边是哪个方向？", "东", ["西", "南"]],
-    ["🧭 太阳每天从哪个方向升起？", "东", ["西", "北"]],
-    ["🧭 面向北站立，你的背后是哪个方向？", "南", ["东", "西"]],
-    ["🧭 下午放学时太阳在哪边落下？", "西", ["东", "南"]],
-  ] as [string, string, string[]][];
-  const [prompt, ans, wrongs] = cases[rnd(0, 3)];
-  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]) };
+    ["🧭 面向北站立，你的右手边是哪个方向？", "东", ["西", "南"], "面朝北时，右手边是东、左手边是西、背后是南。"],
+    ["🧭 太阳每天从哪个方向升起？", "东", ["西", "北"], "太阳每天从东方升起、从西方落下。"],
+    ["🧭 面向北站立，你的背后是哪个方向？", "南", ["东", "西"], "面朝北时，背后是南、右手边是东、左手边是西。"],
+    ["🧭 下午放学时太阳在哪边落下？", "西", ["东", "南"], "太阳从东边升起、西边落下，下午放学时太阳在西边。"],
+  ] as [string, string, string[], string][];
+  const [prompt, ans, wrongs, explain] = cases[rnd(0, 3)];
+  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]), explain };
 }
 
 // ---- 单位换算（MK-22）----
 function unitStep(): SolveStep {
   const pool = [
-    () => { const m = rnd(2, dStep(9, 3)); return { p: `${m} 米等于多少厘米？`, a: m * 100 }; },
-    () => { const m = rnd(2, dStep(9, 3)); return { p: `${m} 千克等于多少克？`, a: m * 1000 }; },
-    () => { const y = rnd(2, dStep(9, 3)); return { p: `${y} 元等于多少角？`, a: y * 10 }; },
-    () => { const cm = rnd(2, dStep(9, 3)) * 10; return { p: `${cm} 厘米等于多少分米？`, a: cm / 10 }; },
-    () => { const m = rnd(2, dStep(9, 3)); return { p: `${m} 千米等于多少米？`, a: m * 1000 }; },
+    () => { const m = rnd(2, dStep(9, 3)); return { p: `${m} 米等于多少厘米？`, a: m * 100, e: `1 米 = 100 厘米，${m} 米 = ${m} × 100 = ${m * 100} 厘米。` }; },
+    () => { const m = rnd(2, dStep(9, 3)); return { p: `${m} 千克等于多少克？`, a: m * 1000, e: `1 千克 = 1000 克，${m} 千克 = ${m} × 1000 = ${m * 1000} 克。` }; },
+    () => { const y = rnd(2, dStep(9, 3)); return { p: `${y} 元等于多少角？`, a: y * 10, e: `1 元 = 10 角，${y} 元 = ${y} × 10 = ${y * 10} 角。` }; },
+    () => { const cm = rnd(2, dStep(9, 3)) * 10; return { p: `${cm} 厘米等于多少分米？`, a: cm / 10, e: `1 分米 = 10 厘米，${cm} 厘米 = ${cm} ÷ 10 = ${cm / 10} 分米。` }; },
+    () => { const m = rnd(2, dStep(9, 3)); return { p: `${m} 千米等于多少米？`, a: m * 1000, e: `1 千米 = 1000 米，${m} 千米 = ${m} × 1000 = ${m * 1000} 米。` }; },
   ];
-  const { p, a } = pool[rnd(0, pool.length - 1)]();
-  return { type: "solve", prompt: `📦 ${p}`, options: numOptions(a) };
+  const { p, a, e } = pool[rnd(0, pool.length - 1)]();
+  return { type: "solve", prompt: `📦 ${p}`, options: numOptions(a), explain: e };
 }
 
 // ---- 时间（MK-23）----
@@ -359,38 +366,38 @@ function timeStep(): SolveStep {
   if (Math.random() < 0.5) {
     const h1 = rnd(1, 8);
     const h2 = h1 + rnd(1, 4);
-    return { type: "solve", prompt: `⏰ 从 ${h1} 时到 ${h2} 时，经过了几小时？`, options: numOptions(h2 - h1) };
+    return { type: "solve", prompt: `⏰ 从 ${h1} 时到 ${h2} 时，经过了几小时？`, options: numOptions(h2 - h1), explain: `经过的时间用「后面的时间 - 前面的时间」：${h2} - ${h1} = ${h2 - h1} 小时。` };
   }
   const cases = [
-    ["⏰ 1 时等于多少分？", "60", ["100", "30"]],
-    ["⏰ 1 分等于多少秒？", "60", ["100", "30"]],
-    ["⏰ 分针走一圈是几分钟？", "60", ["30", "12"]],
-  ] as [string, string, string[]][];
-  const [prompt, ans, wrongs] = cases[rnd(0, 2)];
-  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]) };
+    ["⏰ 1 时等于多少分？", "60", ["100", "30"], "1 时 = 60 分。时针走一大格是 1 小时，分针正好走一整圈 60 分。"],
+    ["⏰ 1 分等于多少秒？", "60", ["100", "30"], "1 分 = 60 秒。秒针走一整圈正好是 60 秒。"],
+    ["⏰ 分针走一圈是几分钟？", "60", ["30", "12"], "分针走一圈是 60 分钟，也就是 1 小时。"],
+  ] as [string, string, string[], string][];
+  const [prompt, ans, wrongs, explain] = cases[rnd(0, 2)];
+  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]), explain };
 }
 
 // ---- 分类整理（MK-24）----
 function classifyStep(): SolveStep {
   const cases = [
-    ["🗂️ 苹果、香蕉、白菜，哪个和其他两个不是一类？", "白菜", ["苹果", "香蕉"]],
-    ["🗂️ 小狗、小猫、桌子，哪个和其他两个不是一类？", "桌子", ["小狗", "小猫"]],
-    ["🗂️ 红球、蓝球、红正方体，哪个和其他两个不是一类？", "红正方体", ["红球", "蓝球"]],
-    ["🗂️ 铅笔、尺子、西瓜，哪个和其他两个不是一类？", "西瓜", ["铅笔", "尺子"]],
-  ] as [string, string, string[]][];
-  const [prompt, ans, wrongs] = cases[rnd(0, 3)];
-  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]) };
+    ["🗂️ 苹果、香蕉、白菜，哪个和其他两个不是一类？", "白菜", ["苹果", "香蕉"], "苹果和香蕉都是水果，白菜是蔬菜，所以白菜不是一类。"],
+    ["🗂️ 小狗、小猫、桌子，哪个和其他两个不是一类？", "桌子", ["小狗", "小猫"], "小狗和小猫都是动物，桌子是家具，所以桌子不是一类。"],
+    ["🗂️ 红球、蓝球、红正方体，哪个和其他两个不是一类？", "红正方体", ["红球", "蓝球"], "红球和蓝球都是球，红正方体不是球，所以它不同类。"],
+    ["🗂️ 铅笔、尺子、西瓜，哪个和其他两个不是一类？", "西瓜", ["铅笔", "尺子"], "铅笔和尺子都是文具，西瓜是水果，所以西瓜不同类。"],
+  ] as [string, string, string[], string][];
+  const [prompt, ans, wrongs, explain] = cases[rnd(0, 3)];
+  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]), explain };
 }
 
 // ---- 统计图（MK-25）----
 function chartStep(): SolveStep {
   const cases = [
-    ["📊 想一眼看出谁多谁少，用哪种统计图最合适？", "条形统计图", ["统计表", "扇形统计图"]],
-    ["📊 想看出数量随着时间变多还是变少，用哪种最合适？", "折线统计图", ["条形统计图", "统计表"]],
-    ["📊 想看出各部分占整体的百分比，用哪种最合适？", "扇形统计图", ["条形统计图", "折线统计图"]],
-  ] as [string, string, string[]][];
-  const [prompt, ans, wrongs] = cases[rnd(0, 2)];
-  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]) };
+    ["📊 想一眼看出谁多谁少，用哪种统计图最合适？", "条形统计图", ["统计表", "扇形统计图"], "条形统计图用高低不同的柱子，一眼就能比出谁多谁少。"],
+    ["📊 想看出数量随着时间变多还是变少，用哪种最合适？", "折线统计图", ["条形统计图", "统计表"], "折线统计图能看出数量随着时间的变化趋势（变多还是变少）。"],
+    ["📊 想看出各部分占整体的百分比，用哪种最合适？", "扇形统计图", ["条形统计图", "折线统计图"], "扇形统计图把整体画成一个圆，能直观看出各部分占整体的百分比。"],
+  ] as [string, string, string[], string][];
+  const [prompt, ans, wrongs, explain] = cases[rnd(0, 2)];
+  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]), explain };
 }
 
 // ---- 平均数（MK-26）----
@@ -403,6 +410,7 @@ function averageStep(): SolveStep {
     type: "solve",
     prompt: `🧮 ${n} 个小朋友分别有 ${nums.join("、")} 颗糖，平均每人几颗？`,
     options: numOptions(sum / n),
+    explain: `平均数 = 总和 ÷ 个数。先把糖合起来：${nums.join(" + ")} = ${sum}，再平均分给 ${n} 个人：${sum} ÷ ${n} = ${sum / n} 颗。`,
   };
 }
 
@@ -414,6 +422,7 @@ function chanceStep(): SolveStep {
     type: "solve",
     prompt: `🎲 袋子里有 ${r} 个红球和 ${w} 个白球，更容易摸到哪种球？`,
     options: choiceOptions("红球", ["白球", "一样容易"]),
+    explain: `哪种球多，摸到它的可能性就越大。红球有 ${r} 个、白球只有 ${w} 个，红球多，所以更容易摸到红球。`,
   };
 }
 
@@ -429,6 +438,7 @@ function setStep(): SolveStep {
       type: "solve",
       prompt: `🌀 班里有 ${a} 人喜欢苹果、${b} 人喜欢香蕉，其中 ${c} 人两种都喜欢。喜欢苹果或香蕉的一共几人？（重叠的人只算一次）`,
       options: numOptions(both),
+      explain: `重叠的人只能算一次。${a} + ${b} = ${a + b}，但其中 ${c} 人被数了两次，要减去一次：${a} + ${b} - ${c} = ${both}。`,
     };
   }
   if (roll === 1) {
@@ -436,6 +446,7 @@ function setStep(): SolveStep {
       type: "solve",
       prompt: `🌀 参加跳绳的有 ${a} 人、参加跑步的有 ${b} 人，两项都参加的有 ${c} 人。至少参加一项的一共几人？`,
       options: numOptions(both),
+      explain: `两项都参加的人重叠了，只能算一次。${a} + ${b} = ${a + b}，减去重复的 ${c} 人：${a} + ${b} - ${c} = ${both}。`,
     };
   }
   if (roll === 2) {
@@ -443,12 +454,14 @@ function setStep(): SolveStep {
       type: "solve",
       prompt: `🌀 既喜欢吃苹果又喜欢吃香蕉的小朋友，应该把他的名字贴在 Venn 图的哪里？`,
       options: choiceOptions("两个圈重叠的地方", ["只贴苹果圈", "只贴香蕉圈"]),
+      explain: `既喜欢苹果又喜欢香蕉的人，同时属于两个圈，应该把他的名字贴在两个圈重叠（交叉）的地方。`,
     };
   }
   return {
     type: "solve",
     prompt: `🌀 图书角有 ${a} 本故事书、${b} 本科学书，其中 ${c} 本两类都有。故事书或科学书一共有几本？`,
     options: numOptions(both),
+    explain: `两类都有的书重叠了，只能算一次。${a} + ${b} = ${a + b}，减去重复的 ${c} 本：${a} + ${b} - ${c} = ${both}。`,
   };
 }
 
@@ -485,7 +498,7 @@ const GENERATORS: Record<string, () => SolveStep> = {
 
 // ---- 混合题（需要两只精灵联手）----
 function comboStep(metas: [string, string], prompt: string, ans: number): SolveStep {
-  return { type: "solve", prompt, options: numOptions(ans), requires: [...metas] };
+  return { type: "solve", prompt, options: numOptions(ans), requires: [...metas], explain: `这是一道需要两个本领联手的题。跟着题目一步一步算，先算第一步、再算第二步，最后答案是 ${ans}。` };
 }
 
 const COMBOS: Record<string, () => SolveStep> = {

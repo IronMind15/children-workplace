@@ -12,7 +12,7 @@ export const db = new DatabaseSync(path.join(dataDir, "app.db"));
 db.exec("PRAGMA busy_timeout = 5000;");
 
 db.exec(`
-  PRAGMA journal_mode = WAL;
+  PRAGMA journal_mode = DELETE;
 
   CREATE TABLE IF NOT EXISTS meta_cognition (
     id TEXT PRIMARY KEY,
@@ -98,6 +98,16 @@ db.exec(`
     api_key TEXT NOT NULL,
     model TEXT NOT NULL DEFAULT 'gpt-4o-mini',
     updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS mistake (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    meta_id TEXT NOT NULL,
+    question TEXT NOT NULL,
+    user_answer TEXT NOT NULL,
+    correct_answer TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    resolved INTEGER NOT NULL DEFAULT 0
   );
 `);
 

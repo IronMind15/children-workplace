@@ -1,5 +1,5 @@
 import db from "./db";
-import type { MetaCognition, Monster, Spirit, Explorer, InternalizedMeta, GrowthLog, EvolutionEdge } from "./types";
+import type { MetaCognition, Monster, Spirit, Explorer, InternalizedMeta, GrowthLog, EvolutionEdge, Mistake } from "./types";
 import { parseBrainSettings, type BrainSettings } from "./brain";
 
 // ============ 探险家 ============
@@ -153,4 +153,15 @@ export function getIslands(): IslandInfo[] {
 // ============ 成长日志 ============
 export function getGrowthLogs(limit = 50): GrowthLog[] {
   return db.prepare("SELECT * FROM growth_log ORDER BY id DESC LIMIT ?").all(limit) as GrowthLog[];
+}
+
+// ============ 错题集 ============
+export function getMistakes(limit = 200): Mistake[] {
+  return db.prepare("SELECT * FROM mistake ORDER BY id DESC LIMIT ?").all(limit) as Mistake[];
+}
+
+/** 未掌握的错题数（用于展示「错题本里有几道题待复习」） */
+export function getUnresolvedMistakeCount(): number {
+  const r = db.prepare("SELECT COUNT(*) AS c FROM mistake WHERE resolved = 0").get() as { c: number };
+  return r.c;
 }

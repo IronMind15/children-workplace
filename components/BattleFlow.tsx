@@ -3,10 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { trainWin } from "@/lib/actions";
+import { trainWin, logMistake, explainMistake, resolveMistake } from "@/lib/actions";
 import ImgSprite from "@/components/ImgSprite";
 import { getMonsterImage, getSpiritImage, getSpiritStage } from "@/lib/sprites";
-import { battleIntroGuide, missGuide, winGuide, type BrainSettings } from "@/lib/brain";
+import { battleIntroGuide, winGuide, type BrainSettings } from "@/lib/brain";
 import type { SolveStep } from "@/lib/types";
 
 type SpiritOption = { meta_id: string; emoji: string; nickname: string; meta_name: string };
@@ -72,6 +72,9 @@ export default function BattleFlow({
   const [stars, setStars] = useState(0);
   const [shake, setShake] = useState(false);
   const [levelUp, setLevelUp] = useState<{ level: number } | null>(null);
+  const [hp, setHp] = useState(100);
+  const [explain, setExplain] = useState<{ text: string; userAnswer: string; correctAnswer: string } | null>(null);
+  const [wrongOnThisStep, setWrongOnThisStep] = useState(false);
 
   const total = steps.length;
   const hpPercent = Math.round(((total - stepIdx) / total) * 100);
@@ -118,6 +121,11 @@ export default function BattleFlow({
 
   function answer(opt: { label: string; correct?: boolean }) {
     if (opt.correct) {
+      // 重做答对：把该知识点的未掌握错题标记为已掌握
+      if (wrongOnThisStep) {
+        resolveMistake(correctMeta);
+        setWrongOnThisStep(false);
+      }
       const nextCombo = combo + 1;
       setCombo(nextCombo);
       hit();
@@ -134,7 +142,18 @@ export default function BattleFlow({
       }
     } else {
       setMistakes((m) => m + 1);
-      flash({ kind: "miss", text: missGuide(brain, correctMetaName), key: Date.now() });
+      setHp((h) => Math.max(0, h - 20));
+      setWrongOnThisStep(true);
+      hit();
+      // 记录错题
+      const correctLabel = currentStep.options.find((o) => o.correct)?.label ?? "";
+      logMistake(correctMeta, currentStep.prompt, opt.label, correctLabel);
+      // 弹讲解：内置讲解保底，配了 AI 则异步替换为更个性化的讲解
+      const base = currentStep.explain ?? "再仔细看看题目，答案就藏在里面哦～";
+      setExplain({ text: base, userAnswer: opt.label, correctAnswer: correctLabel });
+      explainMistake(currentStep.prompt, correctLabel, opt.label, correctMetaName ?? "").then((ai) => {
+        if (ai) setExplain((e) => (e ? { ...e, text: ai } : e));
+      });
     }
   }
 
@@ -194,8 +213,8 @@ export default function BattleFlow({
               <HpBox
                 name={`${picked.emoji} ${picked.nickname}${helpers.length > 0 ? ` +${helpers.length} 帮手` : ""}`}
                 tag={helpers.length > 0 ? "联手出击" : `连击×${combo}`}
-                hp={Math.min(100, (combo / total) * 100)}
-                color="#ffb300"
+                hp={hp}
+                color={hp > 50 ? "#4cd964" : hp > 25 ? "#ffb300" : "#ff5252"}
                 right
               />
             ) : (
@@ -352,13 +371,28 @@ export default function BattleFlow({
             )}
 
             {phase === "solve" && !missingMeta && (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-                {steps[stepIdx].options.map((o) => (
-                  <button key={o.label} onClick={() => answer(o)} className="pixel-btn pixel-btn-green py-4 text-2xl">
-                    {o.label}
+              explain ? (
+                <div className="rounded-xl border-4 border-[#ffb300] bg-[#fff8e1] p-4">
+                  <p className="text-sm font-black text-[#e2582e]">🤔 差一点点就对啦！</p>
+                  <p className="mt-1 text-xs font-bold text-[#7a8a9a]">
+                    你选了「{explain.userAnswer}」，正确答案是「{explain.correctAnswer}」
+                  </p>
+                  <div className="mt-2 rounded-lg bg-white p-3 text-sm font-bold leading-relaxed text-[#2b3a4a]">
+                    {explain.text}
+                  </div>
+                  <button onClick={() => setExplain(null)} className="pixel-btn pixel-btn-green mt-3 w-full py-3 text-lg">
+                    💪 我看懂啦，再试一次
                   </button>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+                  {steps[stepIdx].options.map((o) => (
+                    <button key={o.label} onClick={() => answer(o)} className="pixel-btn pixel-btn-green py-4 text-2xl">
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+              )
             )}
 
             {phase === "result" && (

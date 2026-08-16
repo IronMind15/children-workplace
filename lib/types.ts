@@ -61,10 +61,22 @@ export type GrowthLog = {
   created_at: string;
 };
 
+// 错题记录（选错时写入，重做答对后 resolved=1）
+export type Mistake = {
+  id: number;
+  meta_id: string;
+  question: string;
+  user_answer: string;
+  correct_answer: string;
+  created_at: string;
+  resolved: number;
+};
+
 // 解题步骤（steps 的 JSON 反序列化结构）
 export type SolveStep = {
   type: "discover" | "solve";   // discover = 发现新元认知；solve = 解题
   prompt: string;
   options: { label: string; correct?: boolean }[];
   requires?: string[];          // 该题需要的元认知（多只精灵联手）；缺省 = 战斗的 correct_meta
+  explain?: string;             // 内置讲解文案（选错时弹出，结合具体题目数字演示正确思路）
 };

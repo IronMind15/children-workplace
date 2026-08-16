@@ -2,9 +2,9 @@
 
 import { seedIfEmpty } from "./seed";
 import { setExplorerName, setBrainSettings, setExplorerIsland, getIslands, getExplorer } from "./repo";
-import { trainWin as doTrainWin, purify as doPurify, addSpark, getSparkStats, clearSparks, resetAllProgress, getDifficultyLevel, adjustDifficultyBias } from "./game";
+import { trainWin as doTrainWin, purify as doPurify, addSpark, getSparkStats, clearSparks, resetAllProgress, getDifficultyLevel, adjustDifficultyBias, recordMistake as doRecordMistake, resolveMistakes as doResolveMistakes } from "./game";
 import { getQuestionById, getTipById } from "./askBank";
-import { askAi, saveAiConfig, clearAiConfig } from "./ai";
+import { askAi, saveAiConfig, clearAiConfig, explainWrong } from "./ai";
 import { revalidatePath } from "next/cache";
 import type { BrainSettings } from "./brain";
 
@@ -123,4 +123,24 @@ export async function adjustDifficulty(delta: number) {
   adjustDifficultyBias(delta);
   revalidatePath("/");
   revalidatePath("/battle");
+}
+
+/** 记录答错（写入错题集） */
+export async function logMistake(metaId: string, question: string, userAnswer: string, correctAnswer: string) {
+  seedIfEmpty();
+  doRecordMistake(metaId, question, userAnswer, correctAnswer);
+  revalidatePath("/");
+}
+
+/** 重做答对后，标记该知识点的未掌握错题为已掌握 */
+export async function resolveMistake(metaId: string) {
+  seedIfEmpty();
+  doResolveMistakes(metaId);
+  revalidatePath("/");
+}
+
+/** AI 讲解错题（配了 AI 时返回讲解，否则 null，前端回退内置讲解） */
+export async function explainMistake(question: string, correctAnswer: string, userAnswer: string, metaName: string) {
+  const kidName = getExplorer()?.name.split(" ")[0] ?? "小朋友";
+  return explainWrong(question, correctAnswer, userAnswer, metaName, kidName);
 }

@@ -1,5 +1,5 @@
 import { seedIfEmpty } from "@/lib/seed";
-import { getMonster, getBrainSettings, getMetas, getEvolutionEdges, getSpirit, isInternalized, getBossByTarget } from "@/lib/repo";
+import { getMonster, getBrainSettings, getMetas, getEvolutionEdges, getSpirit, isInternalized, getBossByTarget, getMeta } from "@/lib/repo";
 import { notFound } from "next/navigation";
 import BossFlow from "@/components/BossFlow";
 import type { ChainNode, ChainEdge } from "@/components/EvolutionModal";
@@ -48,6 +48,8 @@ export default async function Boss({ params }: { params: Promise<{ id: string }>
       brain={getBrainSettings()}
       nodes={nodes}
       edges={edges}
+      targetMeta={monster.target_meta ?? undefined}
+      metaName={monster.target_meta ? (getMeta(monster.target_meta)?.name ?? monster.name) : monster.name}
     />
   );
 }

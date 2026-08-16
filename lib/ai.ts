@@ -75,3 +75,50 @@ export async function askAi(question: string, kidName: string): Promise<string |
     return null;
   }
 }
+
+const EXPLAIN_PROMPT = `你是知识岛上的小狐狸伙伴，正在给一个 6-10 岁的小朋友讲解他答错的题。
+规则：
+1. 先温柔地鼓励（比如「差一点点就对啦」），绝不批评
+2. 用最简单的话讲清楚「正确应该怎么想」
+3. 一定结合题目里的具体数字一步步演示
+4. 控制在 100 字以内
+5. 结尾鼓励他再试一次`;
+
+/** 用 AI 生成错题讲解；失败/未配置返回 null，由调用方回退内置讲解 */
+export async function explainWrong(
+  question: string,
+  correctAnswer: string,
+  userAnswer: string,
+  metaName: string,
+  kidName: string
+): Promise<string | null> {
+  const cfg = getAiConfig();
+  if (!cfg) return null;
+  try {
+    const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${cfg.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        max_tokens: 300,
+        messages: [
+          { role: "system", content: EXPLAIN_PROMPT },
+          {
+            role: "user",
+            content: `（小朋友叫${kidName}）这道「${metaName}」题：${question}。小朋友选了「${userAnswer}」，正确答案是「${correctAnswer}」。请给他讲讲为什么。`,
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const text = data.choices?.[0]?.message?.content?.trim();
+    return text || null;
+  } catch {
+    return null;
+  }
+}
