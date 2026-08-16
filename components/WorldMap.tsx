@@ -48,9 +48,17 @@ export default function WorldMap({
   initialIsland: string;
 }) {
   const [focused, setFocused] = useState<string | null>(null);
+  const [lockedHint, setLockedHint] = useState<string | null>(null);
   const coordOf = (metaId: string) => nodes.find((n) => n.metaId === metaId);
 
   function enter(island: string) {
+    const node = nodes.find((n) => n.island === island);
+    // 未点亮的岛（上游 Boss 未净化）不可进入，避免卡关
+    if (node && !node.unlocked) {
+      setLockedHint(island);
+      return;
+    }
+    setLockedHint(null);
     setFocused(island);
     // 同步服务端 current_island（净化/解锁逻辑依赖它），server action 自带 revalidate
     travelToIsland(island);
@@ -89,7 +97,13 @@ export default function WorldMap({
   // ===== 世界海图 =====
   const unlockedCount = nodes.filter((n) => n.unlocked).length;
   return (
-    <div className="pixel-panel relative overflow-hidden p-2">
+    <div>
+      {lockedHint && (
+        <div className="mb-2 flex items-center gap-2 rounded-md border-2 border-[#8a97a5] bg-[#e8edf2] px-3 py-1.5 text-sm font-bold text-[#7a8a9a]">
+          🔒 {lockedHint} 还在迷雾中，先净化上游 Boss 才能登岛
+        </div>
+      )}
+      <div className="pixel-panel relative overflow-hidden p-2">
       <div
         className="relative h-[60vh] min-h-[480px] w-full overflow-hidden rounded-md"
         style={seaStyle("#bfe9ff", "#a9dcff")}
@@ -174,6 +188,7 @@ export default function WorldMap({
         <span className="hidden text-xs font-semibold text-[#7a8a9a] lg:block">
           点一座岛放大进入，白虚线是本领进化路线
         </span>
+      </div>
       </div>
     </div>
   );
