@@ -1,0 +1,379 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { trainWin } from "@/lib/actions";
+import PixelSprite from "@/components/PixelSprite";
+import { getMonsterSprite, getSpiritSprite, getSpiritStage } from "@/lib/sprites";
+import { battleIntroGuide, missGuide, winGuide, type BrainSettings } from "@/lib/brain";
+import type { SolveStep } from "@/lib/types";
+
+type SpiritOption = { meta_id: string; emoji: string; nickname: string; meta_name: string };
+type Effect = { kind: "crit" | "miss" | "combo"; text: string; key: number } | null;
+
+const hpColor = (p: number) => (p > 50 ? "#4cd964" : p > 25 ? "#ffd54f" : "#ff5252");
+
+/** 宝可梦式 HP 信息框 */
+function HpBox({
+  name,
+  tag,
+  hp,
+  color = "#4cd964",
+  right = false,
+}: {
+  name: string;
+  tag?: string;
+  hp: number;
+  color?: string;
+  right?: boolean;
+}) {
+  return (
+    <div className="pixel-panel w-52 p-2.5 lg:w-60">
+      <div className={`flex items-center justify-between ${right ? "flex-row-reverse" : ""}`}>
+        <span className="text-sm font-black text-[#2b3a4a]">{name}</span>
+        {tag && <span className="rounded bg-[#e8edf2] px-1.5 py-0.5 text-[10px] font-bold text-[#7a8a9a]">{tag}</span>}
+      </div>
+      <div className="mt-1.5 flex items-center gap-1.5">
+        <span className="rounded-sm bg-[#ffb300] px-1 text-[10px] font-black italic text-white">HP</span>
+        <div className="h-3 flex-1 overflow-hidden rounded-sm border-2 border-[#2b3a4a] bg-[#d3d1c7]">
+          <div className="h-full transition-all duration-500" style={{ width: `${hp}%`, background: color }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function BattleFlow({
+  monsterId,
+  name,
+  question,
+  correctMeta,
+  steps,
+  spirits,
+  brain,
+}: {
+  monsterId: string;
+  name: string;
+  question: string;
+  correctMeta: string;
+  steps: SolveStep[];
+  spirits: SpiritOption[];
+  brain: BrainSettings;
+}) {
+  const router = useRouter();
+  const [phase, setPhase] = useState<"intro" | "pick" | "solve" | "result">("intro");
+  const [picked, setPicked] = useState<SpiritOption | null>(null);
+  const [helpers, setHelpers] = useState<SpiritOption[]>([]);
+  const [effect, setEffect] = useState<Effect>(null);
+  const [combo, setCombo] = useState(0);
+  const [stepIdx, setStepIdx] = useState(0);
+  const [mistakes, setMistakes] = useState(0);
+  const [stars, setStars] = useState(0);
+  const [shake, setShake] = useState(false);
+  const [levelUp, setLevelUp] = useState<{ level: number } | null>(null);
+
+  const total = steps.length;
+  const hpPercent = Math.round(((total - stepIdx) / total) * 100);
+  const correctMetaName = spirits.find((s) => s.meta_id === correctMeta)?.meta_name;
+  const monsterSprite = getMonsterSprite(monsterId);
+  const spiritSprite = picked ? getSpiritSprite(picked.meta_id) : null;
+
+  // 当前招式需要的本领：单题 = 主精灵；联手题 = 主精灵 + 帮手精灵
+  const currentStep = steps[stepIdx];
+  const requiredMetas = currentStep?.requires ?? [correctMeta];
+  const missingMeta =
+    requiredMetas.find((m) => m !== correctMeta && !helpers.some((h) => h.meta_id === m)) ?? null;
+
+  function flash(e: Effect) {
+    setEffect(e);
+    setTimeout(() => setEffect((cur) => (cur && cur.key === e?.key ? null : cur)), 900);
+  }
+
+  function hit() {
+    setShake(true);
+    setTimeout(() => setShake(false), 500);
+  }
+
+  function pickSpirit(s: SpiritOption) {
+    if (s.meta_id === correctMeta) {
+      setPicked(s);
+      hit();
+      flash({ kind: "crit", text: "属性克制！", key: Date.now() });
+      setTimeout(() => setPhase("solve"), 650);
+    } else {
+      flash({ kind: "miss", text: "效果不佳…", key: Date.now() });
+    }
+  }
+
+  function pickHelper(s: SpiritOption) {
+    if (s.meta_id === missingMeta) {
+      setHelpers((hs) => [...hs, s]);
+      hit();
+      flash({ kind: "crit", text: "帮手登场！", key: Date.now() });
+    } else {
+      flash({ kind: "miss", text: "这位帮手帮不上…", key: Date.now() });
+    }
+  }
+
+  function answer(opt: { label: string; correct?: boolean }) {
+    if (opt.correct) {
+      const nextCombo = combo + 1;
+      setCombo(nextCombo);
+      hit();
+      flash({ kind: "combo", text: `连击 ×${nextCombo}`, key: Date.now() });
+      if (stepIdx + 1 < total) {
+        setTimeout(() => setStepIdx((i) => i + 1), 500);
+      } else {
+        const s = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
+        setStars(s);
+        trainWin(correctMeta, s).then((r) => {
+          if (r.leveledUp) setLevelUp({ level: r.level });
+        });
+        setTimeout(() => setPhase("result"), 700);
+      }
+    } else {
+      setMistakes((m) => m + 1);
+      flash({ kind: "miss", text: missGuide(brain, correctMetaName), key: Date.now() });
+    }
+  }
+
+  return (
+    <div className="sky-bg min-h-screen pb-10">
+      <div className="mx-auto max-w-4xl px-4 pt-5 lg:px-8">
+        {/* ===== 战斗舞台（宝可梦式） ===== */}
+        <div className="pixel-panel-dark relative h-[320px] overflow-hidden p-0 lg:h-[400px]">
+          {/* 天空与地面 */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#8fd3f4] via-[#c7ecff] to-[#e8f7ff]" />
+          <div className="grass-checker absolute bottom-0 h-[34%] w-full border-t-4 border-[#6db33f]" />
+          {/* 像素云 */}
+          <div className="absolute left-[6%] top-5 flex items-end gap-1 opacity-90">
+            <div className="h-4 w-8 rounded-sm bg-white" />
+            <div className="h-6 w-10 rounded-sm bg-white" />
+            <div className="h-4 w-8 rounded-sm bg-white" />
+          </div>
+          <div className="absolute right-[8%] top-9 flex items-end gap-1 opacity-75">
+            <div className="h-4 w-7 rounded-sm bg-white" />
+            <div className="h-6 w-9 rounded-sm bg-white" />
+          </div>
+
+          {/* 敌方：右上站台 */}
+          <div className="absolute right-[14%] top-[38%] h-9 w-40 rounded-[50%] bg-black/15 lg:w-48" />
+          <div className={`absolute right-[16%] top-[14%] ${shake ? "animate-shake" : phase === "result" ? "opacity-30 grayscale" : "animate-float"}`}>
+            <PixelSprite rows={monsterSprite.rows} palette={monsterSprite.palette} size={140} className="animate-slide-in-right lg:hidden" />
+            <PixelSprite rows={monsterSprite.rows} palette={monsterSprite.palette} size={168} className="animate-slide-in-right hidden lg:block" />
+          </div>
+
+          {/* 敌方 HP 框：左上 */}
+          <div className="absolute left-4 top-4">
+            <HpBox name={name} tag={`野生的`} hp={phase === "result" ? 0 : hpPercent} color={hpColor(hpPercent)} />
+          </div>
+
+          {/* 我方站台：左下 */}
+          <div className="absolute left-[12%] bottom-[14%] h-10 w-44 rounded-[50%] bg-black/15 lg:w-52" />
+          {picked && spiritSprite ? (
+            <div className={`absolute left-[10%] bottom-[16%] flex items-end gap-1 lg:left-[14%] lg:bottom-[18%] ${shake ? "animate-lunge" : ""}`}>
+              <div className="animate-pop">
+                <PixelSprite rows={spiritSprite.rows} palette={spiritSprite.palette} size={132} />
+              </div>
+              {helpers.map((h, i) => (
+                <div key={h.meta_id} className="animate-pop" style={{ marginBottom: 10 + i * 22 }}>
+                  <PixelSprite rows={getSpiritSprite(h.meta_id).rows} palette={getSpiritSprite(h.meta_id).palette} size={96} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="absolute left-[14%] bottom-[22%] flex h-[132px] w-[132px] items-center justify-center rounded-full border-4 border-dashed border-white/70 text-4xl font-black text-white/80">
+              ?
+            </div>
+          )}
+
+          {/* 我方信息框：右下 */}
+          <div className="absolute bottom-4 right-4">
+            {picked ? (
+              <HpBox
+                name={`${picked.emoji} ${picked.nickname}${helpers.length > 0 ? ` +${helpers.length} 帮手` : ""}`}
+                tag={helpers.length > 0 ? "联手出击" : `连击×${combo}`}
+                hp={Math.min(100, (combo / total) * 100)}
+                color="#ffb300"
+                right
+              />
+            ) : (
+              <div className="pixel-panel w-52 p-2.5 lg:w-60">
+                <span className="text-sm font-black text-[#7a8a9a]">还没派出精灵…</span>
+              </div>
+            )}
+          </div>
+
+          {/* 战斗特效飘字 */}
+          {effect && (
+            <div
+              key={effect.key}
+              className={`pointer-events-none absolute inset-x-0 top-[45%] text-center ${effect.kind === "crit" || effect.kind === "combo" ? "animate-crit" : "animate-miss"}`}
+            >
+              <span
+                className={`text-3xl font-black drop-shadow-[0_2px_0_rgba(0,0,0,0.25)] lg:text-4xl ${
+                  effect.kind === "combo" ? "text-[#ff8c00]" : effect.kind === "crit" ? "text-[#185fa5]" : "text-[#5f5e5a]"
+                }`}
+              >
+                {effect.text}
+              </span>
+            </div>
+          )}
+
+          {/* 胜利星星 */}
+          {phase === "result" && (
+            <div className="animate-pop pointer-events-none absolute inset-x-0 top-[30%] text-center text-5xl">
+              {"⭐".repeat(stars)}
+            </div>
+          )}
+
+          {/* 精灵进化（熟练度升级）庆祝 */}
+          {phase === "result" && levelUp && picked && (
+            <div className="pointer-events-none absolute inset-x-0 top-[8%] text-center">
+              <div className="animate-pop inline-block rounded-xl border-4 border-[#ffb300] bg-[#fff8e1] px-4 py-2 shadow-[0_6px_0_rgba(43,58,74,0.25)]">
+                <span className="text-lg font-black text-[#2b3a4a]">
+                  ✨ {picked.nickname} 进化了！{getSpiritStage(levelUp.level).title} Lv.{levelUp.level}
+                </span>
+                {getSpiritStage(levelUp.level).crown && <span className="ml-1">👑</span>}
+              </div>
+              <div className="mt-1">
+                <span className="animate-twinkle inline-block text-xl">✨</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ===== 对话框 + 行动区（宝可梦式） ===== */}
+        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_400px]">
+          {/* 对话框 */}
+          <div className="pixel-panel-dark relative min-h-[120px] p-4 lg:min-h-[150px]">
+            <p className="text-lg font-bold leading-relaxed text-white">
+              {phase === "intro" && (
+                <>
+                  野生的 <span className="text-[#ffd54f]">{name}</span> 跳了出来！
+                  <br />
+                  <span className="text-base font-semibold text-white/85">{question}</span>
+                </>
+              )}
+              {phase === "pick" && (
+                <>
+                  派谁出战？先看看第一道题：
+                  <br />
+                  <span className="mt-1 inline-block rounded-lg bg-white/10 px-3 py-1.5 text-base font-bold text-[#ffd54f]">
+                    {steps[0]?.prompt}
+                  </span>
+                  <br />
+                  <span className="text-xs font-semibold text-white/60">想一想：这题要用哪个本领？</span>
+                </>
+              )}
+              {phase === "solve" && (
+                <>
+                  <span className="text-[#ffd54f]">{picked?.nickname}</span>
+                  {helpers.length > 0 && <span className="text-[#ff8fb1]"> + {helpers.map((h) => h.nickname).join(" + ")}</span>}
+                  准备出招！
+                  <br />
+                  <span className="text-base font-semibold text-white/90">{steps[stepIdx].prompt}</span>
+                  <br />
+                  <span className="text-xs font-semibold text-white/60">
+                    拆招 {stepIdx + 1} / {total}
+                    {missingMeta && " · ⚡ 还需要帮手！"}
+                  </span>
+                </>
+              )}
+              {phase === "result" && (
+                <>
+                  打赢啦！<span className="text-[#ffd54f]">{name}</span> 被驯服了，
+                  {"⭐".repeat(stars)}
+                  <br />
+                  <span className="text-base font-semibold text-white/85">{winGuide(brain)}</span>
+                </>
+              )}
+            </p>
+            {(phase === "intro" || phase === "pick") && (
+              <span className="animate-arrow absolute bottom-2 right-3 text-xl text-white">▼</span>
+            )}
+          </div>
+
+          {/* 行动区 */}
+          <div className="flex flex-col gap-3">
+            {phase === "intro" && (
+              <>
+                <div className="mb-1 rounded-xl border-2 border-[#ffb300] bg-[#fff8e1] px-3 py-2 text-sm font-bold text-[#2b3a4a]">
+                  🦊 {battleIntroGuide(brain)}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => setPhase("pick")} className="pixel-btn pixel-btn-blue py-3 text-lg">
+                    ⚔️ 派精灵
+                  </button>
+                  <button onClick={() => router.push("/")} className="pixel-btn pixel-btn-white py-3 text-lg">
+                    🏃 先溜走
+                  </button>
+                </div>
+                <Link href={`/battle/${monsterId}?r=${Date.now()}`} className="pixel-btn pixel-btn-white py-2 text-sm">
+                  🎲 换一批新题目
+                </Link>
+              </>
+            )}
+
+            {phase === "pick" && (
+              <div className="grid grid-cols-2 gap-3">
+                {spirits.map((s) => (
+                  <button key={s.meta_id} onClick={() => pickSpirit(s)} className="pixel-btn pixel-btn-white flex items-center gap-2 p-2.5 text-left">
+                    <PixelSprite rows={getSpiritSprite(s.meta_id).rows} palette={getSpiritSprite(s.meta_id).palette} size={44} />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-black">{s.nickname}</span>
+                      <span className="block truncate text-xs font-semibold text-[#7a8a9a]">{s.meta_name}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {phase === "solve" && missingMeta && (
+              <div>
+                <div className="mb-2 rounded-xl border-2 border-[#ff8fb1] bg-[#fff0f5] px-3 py-2 text-sm font-bold text-[#2b3a4a]">
+                  ⚡ 联合出招！这题还需要「{spirits.find((s) => s.meta_id === missingMeta)?.meta_name}」帮忙，挑一个帮手：
+                </div>
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+                  {spirits
+                    .filter((s) => s.meta_id !== picked?.meta_id)
+                    .map((s) => (
+                      <button key={s.meta_id} onClick={() => pickHelper(s)} className="pixel-btn pixel-btn-white flex items-center gap-2 p-2 text-left">
+                        <PixelSprite rows={getSpiritSprite(s.meta_id).rows} palette={getSpiritSprite(s.meta_id).palette} size={40} />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-black">{s.nickname}</span>
+                          <span className="block truncate text-xs font-semibold text-[#7a8a9a]">{s.meta_name}</span>
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {phase === "solve" && !missingMeta && (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+                {steps[stepIdx].options.map((o) => (
+                  <button key={o.label} onClick={() => answer(o)} className="pixel-btn pixel-btn-green py-4 text-2xl">
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {phase === "result" && (
+              <div className="flex flex-col gap-3">
+                <button onClick={() => router.push("/")} className="pixel-btn pixel-btn-green py-4 text-xl">
+                  🏝️ 继续探索
+                </button>
+                <Link href={`/battle/${monsterId}?r=${Date.now()}`} className="pixel-btn pixel-btn-white py-2.5 text-sm">
+                  🔁 再来一场（新题目）
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

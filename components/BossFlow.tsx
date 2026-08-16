@@ -1,0 +1,242 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { purifyMonster } from "@/lib/actions";
+import PixelSprite from "@/components/PixelSprite";
+import EvolutionModal, { type ChainNode, type ChainEdge } from "@/components/EvolutionModal";
+import { getMonsterSprite, getCompanionSprite } from "@/lib/sprites";
+import { bossIntroGuide, missGuide, type BrainSettings } from "@/lib/brain";
+import type { SolveStep } from "@/lib/types";
+
+type PurifyResult = { ok: boolean; targetMeta?: string; nextIsland?: string; reason?: string };
+type Effect = { kind: "crit" | "miss" | "evolve"; text: string; key: number } | null;
+
+const hpColor = (p: number) => (p > 50 ? "#4cd964" : p > 25 ? "#ffd54f" : "#ff5252");
+
+export default function BossFlow({
+  monsterId,
+  name,
+  question,
+  steps,
+  brain,
+  nodes,
+  edges,
+}: {
+  monsterId: string;
+  name: string;
+  question: string;
+  steps: SolveStep[];
+  brain: BrainSettings;
+  nodes: ChainNode[];
+  edges: ChainEdge[];
+}) {
+  const router = useRouter();
+  const [phase, setPhase] = useState<"intro" | "solve" | "purifying" | "result">("intro");
+  const [stepIdx, setStepIdx] = useState(0);
+  const [mistakes, setMistakes] = useState(0);
+  const [result, setResult] = useState<PurifyResult | null>(null);
+  const [effect, setEffect] = useState<Effect>(null);
+  const [shake, setShake] = useState(false);
+
+  const total = steps.length;
+  const isDiscover = steps[stepIdx]?.type === "discover";
+  const hpPercent = Math.round(((total - stepIdx) / total) * 100);
+  const monsterSprite = getMonsterSprite(monsterId);
+  const companion = getCompanionSprite();
+
+  function flash(e: Effect) {
+    setEffect(e);
+    setTimeout(() => setEffect((cur) => (cur && cur.key === e?.key ? null : cur)), 900);
+  }
+
+  function answer(opt: { label: string; correct?: boolean }) {
+    if (opt.correct) {
+      setShake(true);
+      setTimeout(() => setShake(false), 450);
+      if (isDiscover) {
+        flash({ kind: "evolve", text: "✨ 发现新本领！", key: Date.now() });
+      } else {
+        flash({ kind: "crit", text: "击破！", key: Date.now() });
+      }
+      if (stepIdx + 1 < total) {
+        setTimeout(() => setStepIdx((i) => i + 1), 550);
+      } else {
+        // 净化演出：光柱射向 Boss → 消散 → 结算
+        setPhase("purifying");
+        setTimeout(() => {
+          purifyMonster(monsterId).then((r) => {
+            setResult(r);
+            setPhase("result");
+          });
+        }, 1800);
+      }
+    } else {
+      setMistakes((m) => m + 1);
+      flash({ kind: "miss", text: missGuide(brain), key: Date.now() });
+    }
+  }
+
+  return (
+    <div className="sky-bg min-h-screen pb-10">
+      <div className="mx-auto max-w-4xl px-4 pt-5 lg:px-8">
+        {/* ===== Boss 战斗舞台 ===== */}
+        <div className="pixel-panel-dark relative h-[320px] overflow-hidden p-0 lg:h-[400px]">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#ffb88c] via-[#ffd9c0] to-[#fff3e8]" />
+          <div className="grass-checker absolute bottom-0 h-[34%] w-full border-t-4 border-[#6db33f]" />
+
+          {/* Boss：右上（体型更大） */}
+          <div className="absolute right-[12%] top-[40%] h-10 w-48 rounded-[50%] bg-black/15 lg:w-56" />
+          <div
+            className={`absolute right-[13%] top-[10%] ${
+              phase === "purifying" || (phase === "result" && result?.ok)
+                ? "animate-purified"
+                : shake
+                  ? "animate-shake"
+                  : "animate-boss-breathe"
+            } ${phase === "result" && result?.ok ? "opacity-25 grayscale" : ""}`}
+          >
+            <PixelSprite rows={monsterSprite.rows} palette={monsterSprite.palette} size={160} className="animate-slide-in-right lg:hidden" />
+            <PixelSprite rows={monsterSprite.rows} palette={monsterSprite.palette} size={196} className="animate-slide-in-right hidden lg:block" />
+          </div>
+
+          {/* 净化光柱：从我方射向 Boss */}
+          {phase === "purifying" && (
+            <>
+              <div className="purify-beam pointer-events-none absolute left-[22%] top-[46%] h-5 w-[46%] -rotate-12 rounded-full" />
+              <div className="pointer-events-none absolute inset-0 animate-evo-flash bg-white/70" />
+              <div className="pointer-events-none absolute inset-x-0 top-[16%] text-center">
+                <span className="text-2xl font-black text-white drop-shadow-[0_2px_0_rgba(0,0,0,0.3)] lg:text-3xl">
+                  ✨ 净化之光 ✨
+                </span>
+              </div>
+            </>
+          )}
+
+          {/* Boss HP 框：左上 */}
+          <div className="absolute left-4 top-4">
+            <div className="pixel-panel w-56 p-2.5 lg:w-64">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-black text-[#2b3a4a]">👑 {name}</span>
+                <span className="rounded bg-[#ffe0b2] px-1.5 py-0.5 text-[10px] font-bold text-[#e2582e]">渡海Boss</span>
+              </div>
+              <div className="mt-1.5 flex items-center gap-1.5">
+                <span className="rounded-sm bg-[#ffb300] px-1 text-[10px] font-black italic text-white">HP</span>
+                <div className="h-3 flex-1 overflow-hidden rounded-sm border-2 border-[#2b3a4a] bg-[#d3d1c7]">
+                  <div className="h-full transition-all duration-500" style={{ width: `${phase === "result" && result?.ok ? 0 : hpPercent}%`, background: hpColor(hpPercent) }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 伙伴狐狸站台：左下 */}
+          <div className="absolute left-[12%] bottom-[14%] h-10 w-44 rounded-[50%] bg-black/15 lg:w-52" />
+          <div className={`absolute left-[14%] bottom-[18%] ${shake ? "animate-lunge" : "animate-float"}`}>
+            <PixelSprite rows={companion.rows} palette={companion.palette} size={132} />
+          </div>
+
+          {/* 伙伴信息框：右下 */}
+          <div className="pixel-panel absolute bottom-4 right-4 w-52 p-2.5 lg:w-60">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-black text-[#2b3a4a]">🦊 伙伴</span>
+              <span className="rounded bg-[#e8edf2] px-1.5 py-0.5 text-[10px] font-bold text-[#7a8a9a]">并肩作战</span>
+            </div>
+            <p className="mt-1 text-xs font-bold text-[#7a8a9a]">一起净化它，进化出新精灵！</p>
+          </div>
+
+          {/* 特效 */}
+          {effect && (
+            <div
+              key={effect.key}
+              className={`pointer-events-none absolute inset-x-0 top-[42%] text-center ${effect.kind === "miss" ? "animate-miss" : "animate-crit"}`}
+            >
+              <span
+                className={`text-3xl font-black drop-shadow-[0_2px_0_rgba(0,0,0,0.25)] lg:text-4xl ${
+                  effect.kind === "evolve" ? "text-[#3fb984]" : effect.kind === "crit" ? "text-[#e2582e]" : "text-[#5f5e5a]"
+                }`}
+              >
+                {effect.text}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* ===== 对话框 + 行动区 ===== */}
+        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_400px]">
+          <div className="pixel-panel-dark relative min-h-[120px] p-4 lg:min-h-[150px]">
+            <p className="text-lg font-bold leading-relaxed text-white">
+              {phase === "intro" && (
+                <>
+                  强大的 <span className="text-[#ffd54f]">渡海 Boss · {name}</span> 挡住了去路！
+                  <br />
+                  <span className="text-base font-semibold text-white/85">{question}</span>
+                </>
+              )}
+              {phase === "solve" && (
+                <>
+                  {isDiscover && <span className="mr-2 rounded bg-[#3fb984] px-2 py-0.5 text-sm font-black">✨ 发现新本领</span>}
+                  <span className="text-base font-semibold text-white/90">{steps[stepIdx].prompt}</span>
+                  <br />
+                  <span className="text-xs font-semibold text-white/60">
+                    第 {stepIdx + 1} / {total} 步
+                  </span>
+                </>
+              )}
+              {phase === "purifying" && (
+                <span className="text-lg font-black text-[#ffd54f]">伙伴发出了净化之光……Boss 正在消散！</span>
+              )}
+              {phase === "result" && !result?.ok && <>{result?.reason ?? "出了点小问题"}</>}
+              {phase === "result" && result?.ok && <>净化成功！进化仪式开始了……</>}
+            </p>
+            {phase === "intro" && <span className="animate-arrow absolute bottom-2 right-3 text-xl text-white">▼</span>}
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {phase === "intro" && (
+              <>
+                <div className="mb-1 rounded-xl border-2 border-[#ffb300] bg-[#fff8e1] px-3 py-2 text-sm font-bold text-[#2b3a4a]">
+                  🦊 {bossIntroGuide(brain)}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => setPhase("solve")} className="pixel-btn py-3 text-lg">
+                    ⚡ 挑战 Boss
+                  </button>
+                  <button onClick={() => router.push("/")} className="pixel-btn pixel-btn-white py-3 text-lg">
+                    🏃 回岛上
+                  </button>
+                </div>
+              </>
+            )}
+
+            {phase === "solve" && (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+                {steps[stepIdx].options.map((o) => (
+                  <button key={o.label} onClick={() => answer(o)} className="pixel-btn pixel-btn-green py-4 text-2xl">
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {phase === "result" && !result?.ok && (
+              <button onClick={() => router.push("/")} className="pixel-btn pixel-btn-white py-4 text-xl">
+                🏝️ 回地图
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ===== 酷炫进化弹窗 ===== */}
+      <EvolutionModal
+        open={phase === "result" && !!result?.ok}
+        nodes={nodes}
+        edges={edges}
+        highlight={result?.targetMeta ?? null}
+        celebrate
+        ctaLabel={`🚀 去新岛探索`}
+        onCta={() => router.push("/")}
+      />
+    </div>
+  );
+}

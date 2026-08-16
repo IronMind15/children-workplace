@@ -1,0 +1,277 @@
+@import "tailwindcss";
+
+@theme {
+  /* ===== 知识岛 · 海岛冒险主题 ===== */
+  --color-primary: #2e7dd1;        /* 海洋蓝 */
+  --color-primary-dark: #1f5f9e;
+  --color-primary-soft: #dcecf9;
+  --color-accent: #ff7f50;         /* 珊瑚橙 */
+  --color-accent-soft: #ffe4d6;
+  --color-mint: #3fb984;           /* 海草绿 */
+  --color-mint-soft: #d9f2e5;
+  --color-sky: #6ec6ff;
+  --color-sky-soft: #e3f3ff;
+  --color-cream: #eef6fc;
+  --color-ink: #2b3a4a;
+  --color-ink-soft: #7a8a9a;
+  --color-island: #8fd14f;         /* 岛屿草地绿 */
+  --color-island-deep: #6db33f;    /* 岛屿深绿 */
+  --color-beach: #f7e6c4;          /* 沙滩 */
+  --color-sea: #2e7dd1;            /* 海洋（同 primary） */
+  --color-sea-deep: #1b5e9e;       /* 深海 */
+
+  --radius-btn: 24px;
+  --radius-card: 20px;
+  --radius-input: 16px;
+  --shadow-card: 0 4px 16px rgba(43, 58, 74, 0.08);
+  --shadow-float: 0 12px 32px rgba(30, 80, 130, 0.18);
+}
+
+body {
+  color: var(--color-ink);
+  font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui,
+    -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ===== 场景氛围 ===== */
+.sky-bg {
+  background: linear-gradient(180deg, #b8e2ff 0%, #dff1ff 40%, #eef6fc 70%);
+}
+.sea-bg {
+  background: linear-gradient(180deg, #6db9ef 0%, #3d93dd 40%, #2e7dd1 100%);
+}
+
+/* 岛屿：浮在海上的草地岛 */
+.island {
+  background: linear-gradient(180deg, #a5e06a 0%, #8fd14f 55%, #7ac74f 100%);
+  border: 6px solid var(--color-beach);
+  border-radius: 48px;
+  box-shadow: var(--shadow-float);
+}
+
+/* 怪物/精灵的悬浮 */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float { animation: float 3s ease-in-out infinite; }
+.animate-float-slow { animation: float 4.5s ease-in-out infinite; }
+
+/* 太阳光晕 */
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 30px 10px rgba(255, 200, 60, 0.5); }
+  50% { box-shadow: 0 0 50px 20px rgba(255, 200, 60, 0.75); }
+}
+.sun { animation: glow 3s ease-in-out infinite; }
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+.animate-breathe { animation: breathe 2.4s ease-in-out infinite; }
+
+@keyframes pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-pop { animation: pop 0.35s ease-out both; }
+
+/* 波浪 */
+@keyframes waveMove {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.wave-track { animation: waveMove 8s linear infinite; }
+
+@keyframes blink {
+  0%, 80%, 100% { opacity: 0.2; }
+  40% { opacity: 1; }
+}
+.typing-dot { animation: blink 1.2s infinite; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+/* ===== 战斗特效 ===== */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10px); }
+  40% { transform: translateX(10px); }
+  60% { transform: translateX(-7px); }
+  80% { transform: translateX(7px); }
+}
+.animate-shake { animation: shake 0.45s ease; }
+
+@keyframes critPop {
+  0% { transform: scale(0.3); opacity: 0; }
+  35% { transform: scale(1.35); opacity: 1; }
+  70% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.85); opacity: 0; }
+}
+.animate-crit { animation: critPop 0.9s ease-out forwards; }
+
+@keyframes missPop {
+  0% { transform: translateY(0); opacity: 0; }
+  30% { transform: translateY(-10px); opacity: 1; }
+  100% { transform: translateY(-18px); opacity: 0; }
+}
+.animate-miss { animation: missPop 0.9s ease-out forwards; }
+
+@keyframes hpBar {
+  from { width: var(--hp-from, 100%); }
+  to { width: var(--hp-to, 0%); }
+}
+.animate-hp { animation: hpBar 0.4s ease forwards; }
+
+/* ============================================================
+   像素游戏风（保卫萝卜 / 宝可梦 参考改版）
+   ============================================================ */
+
+/* 像素面板：白底厚描边 + 硬阴影 */
+.pixel-panel {
+  background: #fff;
+  border: 4px solid #2b3a4a;
+  border-radius: 8px;
+  box-shadow: 0 6px 0 rgba(43, 58, 74, 0.25);
+}
+.pixel-panel-dark {
+  background: #22303f;
+  color: #fff;
+  border: 4px solid #101822;
+  border-radius: 8px;
+  box-shadow: 0 6px 0 rgba(16, 24, 34, 0.45);
+}
+
+/* 像素按钮：按下有"咔哒"下沉感 */
+.pixel-btn {
+  border: 4px solid #2b3a4a;
+  border-radius: 8px;
+  box-shadow: 0 5px 0 #2b3a4a;
+  font-weight: 800;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
+  user-select: none;
+  cursor: pointer;
+  background: #ffd54f;
+  color: #2b3a4a;
+}
+.pixel-btn:hover { filter: brightness(1.06); }
+.pixel-btn:active {
+  transform: translateY(5px);
+  box-shadow: 0 0 0 #2b3a4a;
+}
+.pixel-btn-blue { background: #6ec6ff; }
+.pixel-btn-green { background: #8fd14f; }
+.pixel-btn-pink { background: #ff8fb1; }
+.pixel-btn-white { background: #fff; }
+
+/* 草地 / 泥土 / 海面：双色棋盘格拼接 */
+.grass-checker {
+  background: repeating-conic-gradient(#9adb5c 0% 25%, #8fd14f 0% 50%) 0 0 / 56px 56px;
+}
+.dirt-checker {
+  background: repeating-conic-gradient(#e8c97e 0% 25%, #dfbe6b 0% 50%) 0 0 / 40px 40px;
+}
+.sea-stripes {
+  background: repeating-linear-gradient(90deg, #2e7dd1 0 48px, #3d8ae0 48px 96px);
+}
+
+/* 走路蹦跶（steps 让动作一帧一帧，更像像素游戏） */
+@keyframes bobPixel {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+.walk-bob { animation: bobPixel 0.55s steps(2, jump-none) infinite; }
+
+/* Boss 呼吸 */
+@keyframes bossBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+.animate-boss-breathe { animation: bossBreathe 2s ease-in-out infinite; }
+
+/* 进化：旋转光芒 */
+@keyframes spinRays {
+  to { transform: rotate(360deg); }
+}
+.evo-rays {
+  background: conic-gradient(
+    repeating: #ffe27a 0deg 12deg,
+    rgba(255, 226, 122, 0) 12deg 26deg
+  );
+  animation: spinRays 9s linear infinite;
+}
+
+/* 进化：白闪 */
+@keyframes evoFlash {
+  0% { opacity: 0; }
+  25% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.animate-evo-flash { animation: evoFlash 0.9s ease-out forwards; }
+
+/* 星星闪烁 */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.6) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.15) rotate(20deg); }
+}
+.animate-twinkle { animation: twinkle 1.6s ease-in-out infinite; }
+
+/* 出场滑入 */
+@keyframes slideInRight {
+  from { transform: translateX(140px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.animate-slide-in-right { animation: slideInRight 0.6s ease-out both; }
+
+/* 我方精灵出招：向前扑一下 */
+@keyframes lunge {
+  0%, 100% { transform: translate(0, 0); }
+  40% { transform: translate(26px, -14px); }
+}
+.animate-lunge { animation: lunge 0.4s ease-out; }
+
+/* 对话框继续箭头 */
+@keyframes arrowBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+.animate-arrow { animation: arrowBounce 0.8s steps(2, jump-none) infinite; }
+
+/* 高亮节点脉冲 */
+@keyframes nodePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+.animate-node-pulse { animation: nodePulse 1.2s ease-in-out infinite; }
+
+/* ===== Boss 净化演出 ===== */
+/* 净化光柱：从我方射向 Boss，先变长再消散 */
+@keyframes beamGrow {
+  0% { transform: scaleX(0); opacity: 0; }
+  30% { transform: scaleX(1); opacity: 1; }
+  75% { transform: scaleX(1); opacity: 1; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+.purify-beam {
+  transform-origin: left center;
+  background: linear-gradient(90deg, #ffffff 0%, #ffe27a 55%, #fff8e1 100%);
+  box-shadow: 0 0 24px 8px rgba(255, 226, 122, 0.8);
+  animation: beamGrow 1.7s ease-out forwards;
+}
+/* Boss 被净化：褪色、变透明、缓缓升起 */
+@keyframes purifyAway {
+  to { opacity: 0.12; filter: grayscale(1) brightness(1.6); transform: translateY(-16px); }
+}
+.animate-purified { animation: purifyAway 1.7s ease-in forwards; }
+
+/* ===== 好奇心火花 ===== */
+/* +1 火花飘字 */
+@keyframes sparkFloat {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  25% { transform: translateY(-12px) scale(1.2); opacity: 1; }
+  100% { transform: translateY(-48px) scale(1); opacity: 0; }
+}
+.animate-spark { animation: sparkFloat 1.4s ease-out forwards; }
+
+/* 精灵进化阶段光环（成长体/完全体） */
+.stage-aura { filter: drop-shadow(0 0 10px rgba(255, 215, 80, 0.95)); }
+.stage-aura-strong { filter: drop-shadow(0 0 16px rgba(255, 179, 0, 1)); }
