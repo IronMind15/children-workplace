@@ -25,6 +25,7 @@ export default function BossFlow({
   targetMeta,
   metaName,
   returnIsland,
+  bgUrl,
   embedded = false,
 }: {
   monsterId: string;
@@ -38,6 +39,8 @@ export default function BossFlow({
   metaName: string;
   /** 退出时返回该岛（聚焦态），而非 L1 世界地图 */
   returnIsland?: string;
+  /** v1.2.10 Boss 战斗背景图（统一 boss.png） */
+  bgUrl: string;
   /** v1.2.3 嵌入主界面左侧：去掉 min-h-screen，避免超高 */
   embedded?: boolean;
 }) {
@@ -125,10 +128,14 @@ export default function BossFlow({
   return (
     <div className={embedded ? "pb-6" : "sky-bg min-h-screen pb-10"}>
       <div className="mx-auto max-w-4xl px-4 pt-5 lg:px-8">
-        {/* ===== Boss 战斗舞台 ===== */}
+        {/* ===== Boss 战斗舞台（v1.2.10 背景图替代渐变） ===== */}
         <div className="card-dark relative h-[320px] overflow-hidden p-0 lg:h-[400px]">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#ffe8d0] via-[#fff3e0] to-[#fff8ec]" />
-          <div className="grass-checker absolute bottom-0 h-[34%] w-full border-t-4 border-[#a8c05e]" />
+          {/* Boss 战斗背景图（统一 boss.png） */}
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${bgUrl})` }}
+          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/10" />
 
           {/* Boss：右上（体型更大） */}
           <div className="absolute right-[12%] top-[40%] h-10 w-48 rounded-[50%] bg-black/15 lg:w-56" />

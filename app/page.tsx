@@ -25,6 +25,7 @@ import { getAiConfig } from "@/lib/ai";
 import { generateSteps, guardSteps } from "@/lib/questions";
 import { pickGuardStyle } from "@/lib/guardStyles";
 import { getGuardsByIsland } from "@/lib/repo";
+import { getMinionBattleBg, GUARD_BATTLE_BG, BOSS_BATTLE_BG } from "@/lib/battleArt";
 import { redirect } from "next/navigation";
 import TopShell from "@/components/TopShell";
 import SettingsEntry from "@/components/SettingsEntry";
@@ -201,6 +202,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
     spirits: { meta_id: string; emoji: string; nickname: string; meta_name: string }[];
     /** 守卫外观样式索引（1~6），守卫战渲染对应形象用；非守卫忽略 */
     guardStyleIndex?: number;
+    /** v1.2.10 战斗背景图（群岛小怪按 page / 守卫统一） */
+    battleBg: string;
   } | undefined;
   let bossData: {
     monsterId: string;
@@ -210,6 +213,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
     targetMeta?: string;
     metaName: string;
     returnIsland: string;
+    battleBg: string;
   } | undefined;
 
   if (sp.battle) {
@@ -246,6 +250,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
         spirits: spiritsAll,
         // 守卫战：算好该守卫的外观样式索引（与岛上一致：按群岛页号 + 岛内守卫序号链式避重复）
         guardStyleIndex: mode === "guard" ? computeGuardStyleIndex(m.id, m.island) : undefined,
+        // v1.2.10 战斗背景：守卫统一 guard_bg，小怪按群岛 page 选 arch_XX_bg
+        battleBg: mode === "guard" ? GUARD_BATTLE_BG : getMinionBattleBg(pageOf(m.island)),
       };
       view = { kind: "battle", monsterId: m.id };
     }
@@ -260,6 +266,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
         targetMeta: m.target_meta ?? undefined,
         metaName: m.target_meta ? (getMeta(m.target_meta)?.name ?? m.name) : m.name,
         returnIsland: m.island,
+        // v1.2.10 Boss 战斗背景统一 boss.png
+        battleBg: BOSS_BATTLE_BG,
       };
       view = { kind: "boss", monsterId: m.id };
     }

@@ -80,6 +80,7 @@ export default function HomeClient({
     returnIsland: string;
     spirits: { meta_id: string; emoji: string; nickname: string; meta_name: string }[];
     guardStyleIndex?: number;
+    battleBg: string;
   };
   bossData?: {
     monsterId: string;
@@ -89,6 +90,7 @@ export default function HomeClient({
     targetMeta?: string;
     metaName: string;
     returnIsland: string;
+    battleBg: string;
   };
   brain: BrainSettings;
   chainNodes: ChainNode[];
@@ -173,6 +175,7 @@ export default function HomeClient({
           propertyName={battleData.propertyName}
           returnIsland={battleData.returnIsland}
           guardStyleIndex={battleData.guardStyleIndex}
+          bgUrl={battleData.battleBg}
           embedded
         />
       </div>
@@ -191,6 +194,7 @@ export default function HomeClient({
           targetMeta={bossData.targetMeta}
           metaName={bossData.metaName}
           returnIsland={bossData.returnIsland}
+          bgUrl={bossData.battleBg}
           embedded
         />
       </div>

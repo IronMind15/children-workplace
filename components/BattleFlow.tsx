@@ -56,6 +56,7 @@ export default function BattleFlow({
   propertyName,
   returnIsland,
   guardStyleIndex,
+  bgUrl,
   embedded = false,
 }: {
   monsterId: string;
@@ -71,6 +72,8 @@ export default function BattleFlow({
   returnIsland?: string;
   /** 守卫战：外观样式索引（1~6，与群岛地图上该守卫一致）；不传则按 id 哈希 */
   guardStyleIndex?: number;
+  /** v1.2.10 战斗背景图 URL（群岛小怪按 page / 守卫统一） */
+  bgUrl: string;
   /** v1.2.3 嵌入主界面左侧：去掉 min-h-screen / 外层衬底，避免超高 */
   embedded?: boolean;
 }) {
@@ -204,21 +207,15 @@ export default function BattleFlow({
   return (
     <div className={embedded ? "pb-6" : "sky-bg min-h-screen pb-10"}>
       <div className="mx-auto max-w-4xl px-4 pt-5 lg:px-8">
-        {/* ===== 战斗舞台（宝可梦式） ===== */}
+        {/* ===== 战斗舞台（v1.2.10 背景图替代渐变） ===== */}
         <div className="card-dark relative h-[320px] overflow-hidden p-0 lg:h-[400px]">
-          {/* 天空与地面 */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#fdf6e0] via-[#fdfceb] to-[#f8f2dd]" />
-          <div className="grass-checker absolute bottom-0 h-[34%] w-full border-t-4 border-[#a8c05e]" />
-          {/* 像素云 */}
-          <div className="absolute left-[6%] top-5 flex items-end gap-1 opacity-90">
-            <div className="h-4 w-8 rounded-sm bg-white" />
-            <div className="h-6 w-10 rounded-sm bg-white" />
-            <div className="h-4 w-8 rounded-sm bg-white" />
-          </div>
-          <div className="absolute right-[8%] top-9 flex items-end gap-1 opacity-75">
-            <div className="h-4 w-7 rounded-sm bg-white" />
-            <div className="h-6 w-9 rounded-sm bg-white" />
-          </div>
+          {/* 战斗背景图（按群岛 page 选 simple-1~7 / 守卫统一） */}
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${bgUrl})` }}
+          />
+          {/* 顶部暗化（让 HP 框更清晰） */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-black/10" />
 
           {/* 敌方：右上站台 */}
           <div className="absolute right-[14%] top-[38%] h-9 w-40 rounded-[50%] bg-black/15 lg:w-48" />
