@@ -205,9 +205,10 @@ export default function HomeClient({
   }
 
   // 整体 grid：最小化时左侧 1fr（占满），展开时 3fr 1fr
+  // min-h：让两栏至少占满「视口 - 顶栏 - 上下边距」，保证地图/背景有足够高度
   const gridClass = askMinimized
-    ? "grid-cols-[1fr] gap-3"
-    : "grid-cols-[3fr_1fr] gap-3";
+    ? "grid-cols-[1fr] gap-3 min-h-[calc(100vh-150px)]"
+    : "grid-cols-[3fr_1fr] gap-3 min-h-[calc(100vh-150px)]";
 
   // 锁岛提示
   const lockedBanner = lockedHint && (
@@ -220,7 +221,7 @@ export default function HomeClient({
     <div className="px-3 lg:px-6 xl:max-w-[1700px] xl:mx-auto">
       {lockedBanner}
       <div className={`grid grid-rows-1 items-stretch ${gridClass}`}>
-        <div className="min-h-0">{leftContent}</div>
+        <div className="min-h-0 h-full">{leftContent}</div>
         {!askMinimized && (
           <div className="min-h-0 h-full">
             <AskPanel
@@ -234,18 +235,19 @@ export default function HomeClient({
             />
           </div>
         )}
-        {askMinimized && (
-          <AskPanel
-            questions={questions}
-            sparks={sparks}
-            todayCount={todayCount}
-            rewards={rewards}
-            aiConfigured={aiConfigured}
-            recentMetas={recentMetas}
-            onMinimizeChange={setAskMinimized}
-          />
-        )}
       </div>
+      {/* 浮标态（fixed 定位）放 grid 外，避免参与 grid 布局导致左栏高度塌缩 */}
+      {askMinimized && (
+        <AskPanel
+          questions={questions}
+          sparks={sparks}
+          todayCount={todayCount}
+          rewards={rewards}
+          aiConfigured={aiConfigured}
+          recentMetas={recentMetas}
+          onMinimizeChange={setAskMinimized}
+        />
+      )}
     </div>
   );
 }

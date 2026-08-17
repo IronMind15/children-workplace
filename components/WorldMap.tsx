@@ -131,10 +131,10 @@ export default function WorldMap({
             ▶
           </button>
 
-          {/* 群岛背景 */}
+          {/* 群岛背景：minHeight 兜底保证最小高度（父链塌缩时背景仍可见） */}
           <div
             className="relative h-full w-full overflow-hidden rounded-xl bg-cover bg-center"
-            style={{ backgroundImage: `url(${bg})` }}
+            style={{ backgroundImage: `url(${bg})`, minHeight: "520px" }}
           >
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/5" />
 
