@@ -12,7 +12,7 @@
 - [ ] 复习入口：在 AskPanel / 首页增加「今日待复习」快捷入口
 
 ### 小探险家角色配置（v1.2.14 资源已入 `public/explorers/`）
-- [ ] Onboarding 引导页：首次使用填写基本信息（昵称/年级/学习偏好）+ 选择男女探险家头像
+- [ ] Onboarding 引导页改造：`app/onboarding/page.tsx` 当前使用 emoji 头像，需替换为 `public/explorers/` 的 boy_1~3 / girl_1~3 图片，并增加性别分组选择
 - [ ] `explorer` 表扩展：`gender`、`avatar_id` 字段；`getExplorer()` 返回头像路径
 - [ ] 化身替换：WorldMap / IslandBattleMap / BattleFlow / BossFlow 中的玩家占位从 emoji 改为探险家图片
 - [ ] 个人资料页 `/profile`：展示大头像、等级头衔、火花进度、已净化 Boss 数
@@ -39,6 +39,7 @@
 
 ## 已完成（最近）
 
+- [x] v1.2.16 单岛场景背景替换：19 张 2.5D 顶视图岛屿背景入 `public/islands/battle_bg_01~19.png`；`lib/islandArt.ts` 按 29 岛 MK 顺序循环分配；`IslandBattleMap` 清理像素风 emoji/路牌
 - [x] v1.2.15 精灵资源全量替换：28 张新图入 `public/spirits/`，`lib/sprites.ts` 改为 page + stage 软连接；新增 `getSimpleSpiritImage` 简版优化列表性能
 - [x] v1.2.14 标签去框 + 2~3 字短文本改中底板 + 小探险家头像/等级配置入代码库
 - [x] v1.2.13 标签全量按键底板 + 字号放大（儿童友好）
