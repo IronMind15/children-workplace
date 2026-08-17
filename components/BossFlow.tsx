@@ -25,6 +25,7 @@ export default function BossFlow({
   targetMeta,
   metaName,
   returnIsland,
+  embedded = false,
 }: {
   monsterId: string;
   name: string;
@@ -37,9 +38,11 @@ export default function BossFlow({
   metaName: string;
   /** 退出时返回该岛（聚焦态），而非 L1 世界地图 */
   returnIsland?: string;
+  /** v1.2.3 嵌入主界面左侧：去掉 min-h-screen，避免超高 */
+  embedded?: boolean;
 }) {
   const router = useRouter();
-  const goBack = () => router.push(returnIsland ? `/?focus=${encodeURIComponent(returnIsland)}` : "/");
+  const goBack = () => router.push(returnIsland ? `/?island=${encodeURIComponent(returnIsland)}` : "/");
   const [phase, setPhase] = useState<"intro" | "solve" | "purifying" | "result">("intro");
   const [stepIdx, setStepIdx] = useState(0);
   const [mistakes, setMistakes] = useState(0);
@@ -120,7 +123,7 @@ export default function BossFlow({
   }
 
   return (
-    <div className="sky-bg min-h-screen pb-10">
+    <div className={embedded ? "pb-6" : "sky-bg min-h-screen pb-10"}>
       <div className="mx-auto max-w-4xl px-4 pt-5 lg:px-8">
         {/* ===== Boss 战斗舞台 ===== */}
         <div className="card-dark relative h-[320px] overflow-hidden p-0 lg:h-[400px]">

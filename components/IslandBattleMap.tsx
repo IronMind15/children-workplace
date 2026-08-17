@@ -20,7 +20,7 @@ type Pos = { x: number; y: number };
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
 /** 一只在地图上自由溜达的小怪：随机走动 + 蹦跶 + 点击进战斗；神秘小怪带 ✨ 徽章 */
-function WanderingMonster({ monster, index, mystery = false }: { monster: MapMonster; index: number; mystery?: boolean }) {
+function WanderingMonster({ monster, index, mystery = false, onPick }: { monster: MapMonster; index: number; mystery?: boolean; onPick?: (id: string) => void }) {
   const image = getMonsterImage(monster.id);
   const [pos, setPos] = useState<Pos>(() => ({
     x: 12 + ((index * 23) % 70),
@@ -51,17 +51,8 @@ function WanderingMonster({ monster, index, mystery = false }: { monster: MapMon
     };
   }, []);
 
-  return (
-    <Link
-      href={`/battle/${monster.id}`}
-      className="group absolute z-10 flex flex-col items-center"
-      style={{
-        left: `${pos.x}%`,
-        top: `${pos.y}%`,
-        transition: "left 2.2s linear, top 2.2s linear",
-      }}
-      title={monster.question}
-    >
+  const inner = (
+    <>
       {/* 名牌 */}
       <span
         className={`mb-1 whitespace-nowrap rounded-md border-2 border-[#2b3a4a] px-2 py-0.5 text-xs font-bold shadow-[0_2px_0_rgba(43,58,74,0.4)] transition group-hover:bg-[#ffd54f] ${
@@ -90,19 +81,47 @@ function WanderingMonster({ monster, index, mystery = false }: { monster: MapMon
       <span className="pointer-events-none mt-1 hidden rounded-md bg-[#22303f] px-2 py-0.5 text-xs font-bold text-white group-hover:block">
         ⚔️ 点击战斗
       </span>
+    </>
+  );
+
+  if (onPick) {
+    return (
+      <button
+        type="button"
+        onClick={() => onPick(monster.id)}
+        className="group absolute z-10 flex flex-col items-center"
+        style={{
+          left: `${pos.x}%`,
+          top: `${pos.y}%`,
+          transition: "left 2.2s linear, top 2.2s linear",
+        }}
+        title={monster.question}
+      >
+        {inner}
+      </button>
+    );
+  }
+
+  return (
+    <Link
+      href={`/battle/${monster.id}`}
+      className="group absolute z-10 flex flex-col items-center"
+      style={{
+        left: `${pos.x}%`,
+        top: `${pos.y}%`,
+        transition: "left 2.2s linear, top 2.2s linear",
+      }}
+      title={monster.question}
+    >
+      {inner}
     </Link>
   );
 }
 
 /** 知识守卫：本岛觉醒的考验者（金纹徽章样式，不占怪物图资源），点击进守卫战 */
-function GuardMonster({ monster, index }: { monster: MapMonster; index: number }) {
-  return (
-    <Link
-      href={`/battle/${monster.id}`}
-      className="group absolute z-10 flex flex-col items-center"
-      style={{ left: `${10 + (index * 17) % 72}%`, top: `${18 + (index * 13) % 52}%` }}
-      title={monster.question}
-    >
+function GuardMonster({ monster, index, onPick }: { monster: MapMonster; index: number; onPick?: (id: string) => void }) {
+  const inner = (
+    <>
       <span className="mb-1 whitespace-nowrap rounded-md border-2 border-[#8a6a3e] bg-[#ffd54f] px-2 py-0.5 text-xs font-black text-[#2b3a4a] shadow-[0_2px_0_rgba(43,58,74,0.4)] transition group-hover:bg-[#ffecb3]">
         ✦ {monster.name}
       </span>
@@ -112,6 +131,29 @@ function GuardMonster({ monster, index }: { monster: MapMonster; index: number }
       <span className="pointer-events-none mt-1 hidden rounded-md bg-[#22303f] px-2 py-0.5 text-xs font-bold text-white group-hover:block">
         ⚔️ 觉醒挑战
       </span>
+    </>
+  );
+  if (onPick) {
+    return (
+      <button
+        type="button"
+        onClick={() => onPick(monster.id)}
+        className="group absolute z-10 flex flex-col items-center"
+        style={{ left: `${10 + (index * 17) % 72}%`, top: `${18 + (index * 13) % 52}%` }}
+        title={monster.question}
+      >
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <Link
+      href={`/battle/${monster.id}`}
+      className="group absolute z-10 flex flex-col items-center"
+      style={{ left: `${10 + (index * 17) % 72}%`, top: `${18 + (index * 13) % 52}%` }}
+      title={monster.question}
+    >
+      {inner}
     </Link>
   );
 }
@@ -133,6 +175,8 @@ export default function IslandBattleMap({
   hiddenMonsters = [],
   bosses,
   islandLevel = 1,
+  onPickMonster,
+  onPickBoss,
 }: {
   island: string;
   minions: MapMonster[];
@@ -140,6 +184,10 @@ export default function IslandBattleMap({
   hiddenMonsters?: MapMonster[];
   bosses: MapBoss[];
   islandLevel?: number;
+  /** 点击小怪/守卫/神秘小怪时的回调（v1.2.3 嵌入模式），不传则跳 /battle/ID */
+  onPickMonster?: (monsterId: string) => void;
+  /** 点击 Boss 时的回调，不传则跳 /boss/ID */
+  onPickBoss?: (bossId: string) => void;
 }) {
   const theme = themeOf(island);
   const bg = getIslandBg(island);
@@ -183,17 +231,17 @@ export default function IslandBattleMap({
 
           {/* 溜达的小怪 */}
           {minions.map((m, i) => (
-            <WanderingMonster key={m.id} monster={m} index={i} />
+            <WanderingMonster key={m.id} monster={m} index={i} onPick={onPickMonster} />
           ))}
 
           {/* 知识守卫（觉醒载体） */}
           {guards.map((m, i) => (
-            <GuardMonster key={m.id} monster={m} index={i} />
+            <GuardMonster key={m.id} monster={m} index={i} onPick={onPickMonster} />
           ))}
 
           {/* 神秘小怪（好奇心火花解锁） */}
           {hiddenMonsters.map((m, i) => (
-            <WanderingMonster key={m.id} monster={m} index={i + 3} mystery />
+            <WanderingMonster key={m.id} monster={m} index={i + 3} mystery onPick={onPickMonster} />
           ))}
 
           {/* Boss 们（已净化灰化） */}
@@ -228,6 +276,17 @@ export default function IslandBattleMap({
                   <div key={b.id} className="group absolute z-10 flex flex-col items-center" style={posStyle} title={`${b.name} 已被净化`}>
                     {inner}
                   </div>
+                ) : onPickBoss ? (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => onPickBoss(b.id)}
+                    className="group absolute z-10 flex flex-col items-center"
+                    style={posStyle}
+                    title={b.question}
+                  >
+                    {inner}
+                  </button>
                 ) : (
                   <Link key={b.id} href={`/boss/${b.id}`} className="group absolute z-10 flex flex-col items-center" style={posStyle} title={b.question}>
                     {inner}

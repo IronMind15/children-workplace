@@ -57,6 +57,7 @@ export default function AskPanel({
   rewards,
   aiConfigured,
   recentMetas,
+  onMinimizeChange,
 }: {
   questions: Q[];
   sparks: number;
@@ -64,10 +65,19 @@ export default function AskPanel({
   rewards: Reward[];
   aiConfigured: boolean;
   recentMetas: { id: string; name: string }[];
+  /** 当面板展开/收起时通知外层（用于改变左侧主区域宽度） */
+  onMinimizeChange?: (minimized: boolean) => void;
 }) {
   const [minimized, setMinimized] = useState(false);
   const [pos, setPos] = useState<Pos>({ x: 0, y: 0 }); // 仅在 minimized 时使用
   const [ready, setReady] = useState(false);
+
+  // 通知外层：minimized 状态变化
+  useEffect(() => {
+    if (!ready) return;
+    onMinimizeChange?.(minimized);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minimized, ready]);
 
   // 客户端 hydration 后读取 localStorage
   useEffect(() => {

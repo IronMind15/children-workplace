@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import IslandDrawer, { type DrawerIslandData } from "@/components/IslandDrawer";
 import WorldAtlas from "@/components/WorldAtlas";
 import { getArchipelagoBg, PAGE_COUNT } from "@/lib/archipelagoLayout";
 import { travelToIsland } from "@/lib/actions";
@@ -20,45 +18,33 @@ export type WorldNode = {
 
 export type WorldEdge = { from: string; to: string };
 
-export type IslandBattleData = {
-  minions: DrawerIslandData["minions"];
-  guards: DrawerIslandData["guards"];
-  hiddenMonsters: DrawerIslandData["hiddenMonsters"];
-  bosses: DrawerIslandData["bosses"];
-  islandLevel?: number;
-};
-
 /**
- * 群岛（世界地图 · 按知识主题 7 群岛）
- *  - 7 页分页（1~7），每页独立群岛背景图（public/archipelagos/arch_0N.webp）
- *  - 节点：小圆圈 + 中央点 + 整体亮光 + 岛屿名（未解锁用🔒）
- *  - 主视图移除进化连线（按 2026-08-18 决策③，连线仅保留在全览 WorldAtlas）
- *  - 顶栏：页指示 + 全览按钮
- *  - 主体：群岛背景 + 岛屿节点（按原 x/y 散布其上）
- *  - 底部：横滑关卡卡片（Bug 1 修复：用各岛专属封面，不再复用大群岛背景）
- *  - 点岛 → 聚焦进入单岛战斗（沿用 setFocused 逻辑 + enter() 防卡关）
+ * 群岛（v1.2.3 纯展示版）
+ *  - 7 页分页，每页独立群岛背景图
+ *  - 节点：小圆圈 + 中央点 + 整体亮光 + 岛屿名（未解锁=🔒）
+ *  - 主视图移除进化连线（决策③）
+ *  - 点岛 → 调 onPickIsland(islandName) 回调（由 HomeClient 决定切到单岛/战斗视图）
+ *  - 不再有内部 focused 状态、IslandDrawer
  */
 export default function WorldMap({
   nodes,
   edges,
-  islandData,
   avatar,
   initialIsland,
   pageLabels,
+  onPickIsland,
+  onLocked,
 }: {
   nodes: WorldNode[];
   edges: WorldEdge[];
-  islandData: Record<string, IslandBattleData>;
   avatar: string;
   initialIsland: string;
-  /** 来自 worldLayout.getWorldPages 的页标签，7 项 */
   pageLabels: string[];
+  onPickIsland: (island: string) => void;
+  onLocked?: (island: string) => void;
 }) {
   const [page, setPage] = useState(0);
-  const [focused, setFocused] = useState<string | null>(null);
   const [atlasOpen, setAtlasOpen] = useState(false);
-  const [lockedHint, setLockedHint] = useState<string | null>(null);
-  const searchParams = useSearchParams();
 
   // 默认跳到当前玩家所在群岛（按 pageOf）
   useEffect(() => {
@@ -68,18 +54,11 @@ export default function WorldMap({
     setPage(Math.max(0, cur.page - 1));
   }, [initialIsland, nodes]);
 
-  // 战斗退出回岛：?focus=islandName → 自动 setFocused
-  useEffect(() => {
-    const f = searchParams?.get("focus");
-    if (f) setFocused(f);
-  }, [searchParams]);
-
   const totalPages = pageLabels.length || PAGE_COUNT;
   const safePage = Math.min(page, totalPages - 1);
 
-  /** 当前页节点（按 ISLAND_PAGE_MAP 归页） */
   const currentPageNodes = useMemo(() => {
-    const want = safePage + 1; // 1-based
+    const want = safePage + 1;
     return nodes.filter((n) => n.page === want);
   }, [nodes, safePage]);
 
@@ -89,12 +68,11 @@ export default function WorldMap({
   function enter(island: string) {
     const node = nodes.find((n) => n.island === island);
     if (node && !node.unlocked) {
-      setLockedHint(island);
+      onLocked?.(island);
       return;
     }
-    setLockedHint(null);
-    setFocused(island);
     travelToIsland(island);
+    onPickIsland(island);
   }
 
   // ===== 全览模式 =====
@@ -111,12 +89,6 @@ export default function WorldMap({
 
   return (
     <div className="flex h-full flex-col">
-      {lockedHint && (
-        <div className="mb-2 flex items-center gap-2 rounded-md border-2 border-[#8a97a5] bg-[#e8edf2] px-3 py-1.5 text-base font-bold text-[#7a8a9a]">
-          🔒 {lockedHint} 还在迷雾中，先净化上游 Boss 才能登岛
-        </div>
-      )}
-
       <div className="card relative flex h-full flex-col overflow-hidden border-4 border-[#2b3a4a] p-2">
         {/* 顶栏：页指示 + 全览按钮 */}
         <div className="mb-2 flex items-center justify-between gap-2 border-b-2 border-[#fde9d0] pb-2">
@@ -139,7 +111,7 @@ export default function WorldMap({
         </div>
 
         {/* 主体：群岛背景 + 左右箭头 */}
-        <div className="relative">
+        <div className="relative flex-1">
           {/* 左箭头 */}
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
@@ -159,19 +131,14 @@ export default function WorldMap({
             ▶
           </button>
 
-          {/* 群岛背景（整页一张设计稿：1~7 群岛各自一张）
-              高度自适应：layout 模式下与右栏 AskPanel 等高；无右栏时取较大值 */}
+          {/* 群岛背景 */}
           <div
-            className="relative w-full flex-1 overflow-hidden rounded-xl bg-cover bg-center"
-            style={{
-              backgroundImage: `url(${bg})`,
-              minHeight: "520px",
-            }}
+            className="relative h-full w-full overflow-hidden rounded-xl bg-cover bg-center"
+            style={{ backgroundImage: `url(${bg})` }}
           >
-            {/* 边缘柔化（让节点浮在背景上不显突兀） */}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/5" />
 
-            {/* 岛屿节点：小圆圈 + 中央点 + 整体亮光 + 岛屿名；未解锁=锁 */}
+            {/* 岛屿节点 */}
             {currentPageNodes.map((n) => {
               const locked = !n.unlocked;
               return (
@@ -250,25 +217,6 @@ export default function WorldMap({
           </span>
         </div>
       </div>
-
-      {/* 单岛战斗浮层（点岛触发；群岛背景仍可见） */}
-      {focused && (
-        <IslandDrawer
-          island={focused}
-          data={
-            islandData[focused] ?? {
-              minions: [],
-              guards: [],
-              hiddenMonsters: [],
-              bosses: [],
-            }
-          }
-          onClose={() => {
-            setFocused(null);
-            setLockedHint(null);
-          }}
-        />
-      )}
     </div>
   );
 }

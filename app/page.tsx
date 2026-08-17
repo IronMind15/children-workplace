@@ -5,6 +5,7 @@ import {
   getExplorer,
   getMonsters,
   getInternalizedMetas,
+  getBrainSettings,
   getMetas,
   getEvolutionEdges,
   getSpirit,
@@ -14,41 +15,44 @@ import {
   getAllIslandLevels,
   getConfig,
   getMeta,
+  getMonster,
+  getSpiritsForInternalized,
+  getIslandLevel,
+  getAwakenedPropertyIds,
 } from "@/lib/repo";
-import { getSparkStats, checkAwakenings } from "@/lib/game";
+import { getSparkStats, checkAwakenings, getIslandDifficulty } from "@/lib/game";
 import { getAiConfig } from "@/lib/ai";
+import { generateSteps, guardSteps } from "@/lib/questions";
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import TopShell from "@/components/TopShell";
 import SettingsEntry from "@/components/SettingsEntry";
 import TestTools from "@/components/TestTools";
-import WorldMap from "@/components/WorldMap";
 import AwakeningToast from "@/components/AwakeningToast";
-import EvolutionPathButton from "@/components/EvolutionPathButton";
-import LayoutSwitcher from "@/components/LayoutSwitcher";
-import AskPanel from "@/components/AskPanel";
+import HomeClient, { type View } from "@/components/HomeClient";
 import type { ChainNode, ChainEdge } from "@/components/EvolutionModal";
-import type { WorldNode, IslandBattleData } from "@/components/WorldMap";
+import type { SolveStep } from "@/lib/types";
 
-// 数据全部来自 SQLite（会随游戏进程变化），禁用静态缓存，保证 server action 后页面即时更新
+// 数据全部来自 SQLite（会随游戏进程变化），禁用静态缓存
 export const dynamic = "force-dynamic";
 
-export default function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ battle?: string; boss?: string; island?: string }> }) {
   seedIfEmpty();
   const explorer = getExplorer();
   if (!explorer?.name) redirect("/onboarding");
 
+  const sp = await searchParams;
   const island = explorer.current_island ?? "计数岛";
   const sparks = getSparkStats();
+  const brain = getBrainSettings();
 
-  // 全部元认知 + 世界地图坐标（按进化谱系定位：父岛在下、子岛在上）
+  // 全部元认知 + 世界地图坐标
   const allMetas = getMetas();
   const islands = getIslands();
   const layout = getWorldLayout();
-  const allEdges = getEvolutionEdges(); // 复用：世界图连线 + 谱系树
-  const allMonsters = getMonsters(); // 一次拉全量，分组出小怪/守卫/Boss，避免逐岛查询
+  const allEdges = getEvolutionEdges();
+  const allMonsters = getMonsters();
   const worldEdges = allEdges.map((e) => ({ from: e.from_meta, to: e.to_meta }));
-  const worldNodes: WorldNode[] = allMetas.map((m) => {
+  const worldNodes = allMetas.map((m) => {
     const iname = `${m.name}岛`;
     const c = layout[m.id];
     return {
@@ -57,17 +61,17 @@ export default function Home() {
       x: c?.x ?? 50,
       y: c?.y ?? 50,
       depth: c?.depth ?? 0,
-      page: pageOf(m.id), // 1~7 群岛归属
+      page: pageOf(m.id),
       unlocked: islands.find((i) => i.name === iname)?.unlocked ?? false,
       isCurrent: iname === island,
     };
   });
+  const pageLabels = getWorldPages(layout).map((p) => p.label);
 
-  // 每座岛的战斗数据（小怪 / 守卫 / 神秘小怪 / Boss / 岛等级），供聚焦态渲染
-  // 性能：守卫可见性与岛等级都在循环外一次性拉全量（内存过滤），避免 29 岛 × 2 次 SQLite 查询
-  const awakenings = checkAwakenings(); // 达标守卫（广播 + 岛内现身共用）
+  // 单岛战斗数据
+  const awakenings = checkAwakenings();
   const islandLevels = getAllIslandLevels();
-  const islandData: Record<string, IslandBattleData> = {};
+  const islandData: Record<string, { minions: { id: string; name: string; question: string }[]; guards: { id: string; name: string; question: string }[]; hiddenMonsters: { id: string; name: string; question: string }[]; bosses: { id: string; name: string; question: string; purified: boolean }[]; islandLevel: number }> = {};
   const byIsland = new Map<string, ReturnType<typeof getMonsters>>();
   for (const m of allMonsters) {
     const list = byIsland.get(m.island) ?? [];
@@ -82,7 +86,6 @@ export default function Home() {
     const guards = all
       .filter((m) => m.type === "guard")
       .filter((m) => {
-        // 守卫：达标且未打赢才显示（单精灵守卫在本岛必现，多精灵守卫按 spawn_islands 随机池）
         const info = awakenings.find((g) => g.id === m.id);
         if (!info) return false;
         return info.spawn_mode === "fixed" ? info.island === it.name : info.spawn_islands.includes(it.name);
@@ -110,26 +113,8 @@ export default function Home() {
     islandData[it.name] = { minions, guards, hiddenMonsters, bosses, islandLevel: islandLevels[it.name] ?? 1 };
   }
 
+  // AskPanel 数据
   const metas = getInternalizedMetas();
-  const avatar = explorer.name.split(" ").pop() ?? "🧭";
-
-  // 神秘小怪奖励表（AskPanel 用）
-  const rewards = islands
-    .flatMap((isl) => allMonsters.filter((m) => m.island === isl.name))
-    .filter((m) => m.type === "hidden")
-    .map((m) => {
-      let required = 999;
-      try {
-        required = (JSON.parse(m.options ?? "{}") as { required_sparks?: number }).required_sparks ?? 999;
-      } catch {}
-      return { name: m.name, required };
-    })
-    .sort((a, b) => a.required - b.required);
-
-  // AI 是否已连接（lib/ai.getAiConfig）
-  const aiConfigured = !!getAiConfig();
-
-  // L1 分屏右侧 AI 聊的推荐问题（按闯关进度挑选前 3）
   const masteredIds = new Set(metas.map((m) => m.id));
   const recIds = new Set(metas.flatMap((m) => RECOMMEND_BY_META[m.id] ?? []));
   const askQuestions = [...QUESTIONS, ...AI_TIPS]
@@ -143,9 +128,21 @@ export default function Home() {
       })),
     );
   }
+  const rewards = islands
+    .flatMap((isl) => allMonsters.filter((m) => m.island === isl.name))
+    .filter((m) => m.type === "hidden")
+    .map((m) => {
+      let required = 999;
+      try {
+        required = (JSON.parse(m.options ?? "{}") as { required_sparks?: number }).required_sparks ?? 999;
+      } catch {}
+      return { name: m.name, required };
+    })
+    .sort((a, b) => a.required - b.required);
+  const aiConfigured = !!getAiConfig();
 
-  // 进化路线数据（谱系树）：锁定的本领写清去哪里解锁
-  const nodes: ChainNode[] = allMetas.map((m) => {
+  // 进化链节点（EvolutionModal 用）
+  const chainNodes: ChainNode[] = allMetas.map((m) => {
     const boss = getBossByTarget(m.id);
     return {
       metaId: m.id,
@@ -163,18 +160,99 @@ export default function Home() {
             : "🌀 神秘的待解锁知识",
     };
   });
-  const edges: ChainEdge[] = allEdges.map((e) => ({
+  const chainEdges: ChainEdge[] = allEdges.map((e) => ({
     from: e.from_meta,
     to: e.to_meta,
     operator: e.operator,
   }));
 
+  // ===== 决策 view 状态 =====
+  let view: View = { kind: "map" };
+  const spiritsAll = getSpiritsForInternalized().map((s) => {
+    const meta = getMeta(s.meta_id);
+    return { meta_id: s.meta_id, emoji: s.emoji, nickname: s.nickname ?? "", meta_name: meta?.name ?? "" };
+  });
+  let battleData: {
+    monsterId: string;
+    name: string;
+    question: string;
+    correctMeta: string;
+    steps: SolveStep[];
+    mode: "train" | "guard";
+    propertyName?: string;
+    returnIsland: string;
+    spirits: { meta_id: string; emoji: string; nickname: string; meta_name: string }[];
+  } | undefined;
+  let bossData: {
+    monsterId: string;
+    name: string;
+    question: string;
+    steps: SolveStep[];
+    targetMeta?: string;
+    metaName: string;
+    returnIsland: string;
+  } | undefined;
+
+  if (sp.battle) {
+    const m = getMonster(sp.battle);
+    if (m && ["minion", "hidden", "guard"].includes(m.type) && m.correct_meta && m.steps) {
+      let steps: SolveStep[];
+      let mode: "train" | "guard" = "train";
+      let propertyName: string | undefined;
+      if (m.type === "guard") {
+        mode = "guard";
+        const propertyId = m.id.replace(/^guard-/, "").toUpperCase();
+        const gs = guardSteps(propertyId);
+        steps = gs.length > 0 ? gs : (JSON.parse(m.steps) as SolveStep[]);
+        propertyName = getMeta(m.correct_meta)?.name ?? "";
+      } else if (m.type === "minion") {
+        const metaName = getMeta(m.correct_meta)?.name ?? "";
+        const level = getIslandDifficulty(m.correct_meta);
+        steps = generateSteps(m.correct_meta, undefined, level, {
+          islandLevel: getIslandLevel(`${metaName}岛`),
+          awakened: getAwakenedPropertyIds(),
+        });
+      } else {
+        steps = JSON.parse(m.steps) as SolveStep[];
+      }
+      battleData = {
+        monsterId: m.id,
+        name: m.name,
+        question: m.question,
+        correctMeta: m.correct_meta,
+        steps,
+        mode,
+        propertyName,
+        returnIsland: m.island,
+        spirits: spiritsAll,
+      };
+      view = { kind: "battle", monsterId: m.id };
+    }
+  } else if (sp.boss) {
+    const m = getMonster(sp.boss);
+    if (m && m.type === "boss" && m.steps) {
+      bossData = {
+        monsterId: m.id,
+        name: m.name,
+        question: m.question,
+        steps: JSON.parse(m.steps) as SolveStep[],
+        targetMeta: m.target_meta ?? undefined,
+        metaName: m.target_meta ? (getMeta(m.target_meta)?.name ?? m.name) : m.name,
+        returnIsland: m.island,
+      };
+      view = { kind: "boss", monsterId: m.id };
+    }
+  } else if (sp.island) {
+    if (islandData[sp.island]) {
+      view = { kind: "island", island: sp.island };
+    }
+  }
+
+  const avatar = explorer.name.split(" ").pop() ?? "🧭";
+
   return (
     <div className="sky-bg min-h-screen pb-6 pt-20">
-      {/* 顶栏：TopShell（含 logo 占位 + 主 tab + 火花 + 我的头像菜单） */}
       <TopShell avatar={avatar} sparks={sparks.total} />
-
-      {/* 觉醒广播 Toast：右下角浮动通知（可关闭，8 秒自动收起，不占地图空间） */}
       <AwakeningToast
         awakenings={awakenings.map((g) => ({
           propertyName: g.property_name,
@@ -183,42 +261,31 @@ export default function Home() {
         }))}
         broadcastOn={getConfig("broadcast", "1") === "1"}
       />
-
-      {/* 世界地图：按 layout_mode 切换（auto 单栏/分屏；tabs 单栏；split 双栏） */}
-      <main className="mx-auto mt-3 max-w-[1500px]">
-        <LayoutSwitcher
-          mode={(getConfig("layout_mode", "auto") as "auto" | "tabs" | "split")}
-          map={
-            <WorldMap
-              nodes={worldNodes}
-              edges={worldEdges}
-              islandData={islandData}
-              avatar={avatar}
-              initialIsland={island}
-              pageLabels={getWorldPages(layout).map((p) => p.label)}
-            />
-          }
-          ai={
-            <AskPanel
-              questions={askQuestions}
-              sparks={sparks.total}
-              todayCount={sparks.todayCount}
-              rewards={rewards}
-              aiConfigured={aiConfigured}
-              recentMetas={getInternalizedMetas()
-                .slice(-3)
-                .reverse()
-                .map((m) => ({ id: m.id, name: getMeta(m.id)?.name ?? m.id }))}
-            />
-          }
+      <main className="mt-3">
+        <HomeClient
+          view={view}
+          worldNodes={worldNodes}
+          worldEdges={worldEdges}
+          avatar={avatar}
+          initialIsland={island}
+          pageLabels={pageLabels}
+          islandData={islandData}
+          sparks={sparks.total}
+          todayCount={sparks.todayCount}
+          questions={askQuestions}
+          rewards={rewards}
+          aiConfigured={aiConfigured}
+          recentMetas={getInternalizedMetas().slice(-3).reverse().map((m) => ({ id: m.id, name: getMeta(m.id)?.name ?? m.id }))}
+          battleData={battleData}
+          bossData={bossData}
+          brain={brain}
+          chainNodes={chainNodes}
+          chainEdges={chainEdges}
         />
       </main>
-
-      {/* 设置入口：长按进入家长端·伙伴日记（REQ-PARENT-01 隐藏入口） */}
       <div className="fixed bottom-4 right-4 z-30">
         <SettingsEntry />
       </div>
-
       <TestTools />
     </div>
   );

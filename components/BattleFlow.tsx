@@ -54,6 +54,7 @@ export default function BattleFlow({
   mode = "train",
   propertyName,
   returnIsland,
+  embedded = false,
 }: {
   monsterId: string;
   name: string;
@@ -66,6 +67,8 @@ export default function BattleFlow({
   propertyName?: string;
   /** 退出时返回该岛（聚焦态），而非 L1 世界地图 */
   returnIsland?: string;
+  /** v1.2.3 嵌入主界面左侧：去掉 min-h-screen / 外层衬底，避免超高 */
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<"intro" | "pick" | "solve" | "result">("intro");
@@ -191,7 +194,7 @@ export default function BattleFlow({
   }
 
   return (
-    <div className="sky-bg min-h-screen pb-10">
+    <div className={embedded ? "pb-6" : "sky-bg min-h-screen pb-10"}>
       <div className="mx-auto max-w-4xl px-4 pt-5 lg:px-8">
         {/* ===== 战斗舞台（宝可梦式） ===== */}
         <div className="card-dark relative h-[320px] overflow-hidden p-0 lg:h-[400px]">
@@ -462,12 +465,12 @@ export default function BattleFlow({
                   <button onClick={() => setPhase("pick")} className="btn btn-blue py-3 text-lg">
                     ⚔️ 派精灵
                   </button>
-                  <button onClick={() => router.push(returnIsland ? `/?focus=${encodeURIComponent(returnIsland)}` : "/")} className="btn btn-white py-3 text-lg">
+                  <button onClick={() => router.push(returnIsland ? `/?island=${encodeURIComponent(returnIsland)}` : "/")} className="btn btn-white py-3 text-lg">
                     🏃 先溜走
                   </button>
                 </div>
                 <button
-                  onClick={() => router.push(`/battle/${monsterId}?r=${Date.now()}`)}
+                  onClick={() => router.push(`/?battle=${monsterId}&r=${Date.now()}`)}
                   className="btn btn-white py-2 text-sm"
                 >
                   🎲 换一批新题目
@@ -522,11 +525,11 @@ export default function BattleFlow({
 
             {phase === "result" && (
               <div className="flex flex-col gap-3">
-                <button onClick={() => router.push(returnIsland ? `/?focus=${encodeURIComponent(returnIsland)}` : "/")} className="btn btn-green py-4 text-xl">
+                <button onClick={() => router.push(returnIsland ? `/?island=${encodeURIComponent(returnIsland)}` : "/")} className="btn btn-green py-4 text-xl">
                   🏝️ 回到{returnIsland ?? "海图"}
                 </button>
                 <button
-                  onClick={() => router.push(`/battle/${monsterId}?r=${Date.now()}`)}
+                  onClick={() => router.push(`/?battle=${monsterId}&r=${Date.now()}`)}
                   className="btn btn-white py-2.5 text-sm"
                 >
                   🔁 再来一场（新题目）
