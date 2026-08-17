@@ -65,13 +65,14 @@ export default function WorldMap({
   const unlockedCount = nodes.filter((n) => n.unlocked).length;
   const bg = getArchipelagoBg(safePage + 1);
 
-  function enter(island: string) {
+  async function enter(island: string) {
     const node = nodes.find((n) => n.island === island);
     if (node && !node.unlocked) {
       onLocked?.(island);
       return;
     }
-    travelToIsland(island);
+    // 先落库（server action），再切视图，避免两者竞态互相覆盖
+    await travelToIsland(island);
     onPickIsland(island);
   }
 
