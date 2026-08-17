@@ -33,7 +33,7 @@ export default function JournalDex({ spirits }: { spirits: DexSpirit[] }) {
             <button
               key={s.meta_id}
               onClick={() => setOpenId(s.meta_id)}
-              className={`pixel-panel p-3 text-center transition-transform hover:-translate-y-1 ${
+              className={`card p-3 text-center transition-transform hover:-translate-y-1 ${
                 s.unlocked ? "" : "opacity-80"
               }`}
             >
@@ -65,7 +65,7 @@ export default function JournalDex({ spirits }: { spirits: DexSpirit[] }) {
       {open && open.unlocked && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setOpenId(null)}>
           <div
-            className="pixel-panel animate-pop max-h-[85vh] w-full max-w-lg overflow-y-auto p-5"
+            className="card animate-pop max-h-[85vh] w-full max-w-lg overflow-y-auto p-5"
             onClick={(e) => e.stopPropagation()}
           >
             {(() => {
@@ -81,7 +81,7 @@ export default function JournalDex({ spirits }: { spirits: DexSpirit[] }) {
                       />
                       {stage.crown && <span className="absolute -top-1 left-1/2 -translate-x-1/2 text-2xl">👑</span>}
                     </div>
-                    <button onClick={() => setOpenId(null)} className="pixel-btn pixel-btn-white px-3 py-1 text-sm">
+                    <button onClick={() => setOpenId(null)} className="btn btn-white px-3 py-1 text-sm">
                       × 关闭
                     </button>
                   </div>

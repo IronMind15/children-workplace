@@ -8,7 +8,7 @@ export default function EvolutionPathButton({ nodes, edges }: { nodes: ChainNode
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button onClick={() => setOpen(true)} className="pixel-btn pixel-btn-white px-4 py-2 text-sm">
+      <button onClick={() => setOpen(true)} className="btn btn-white px-4 py-2 text-sm">
         🌟 进化之路
       </button>
       <EvolutionModal open={open} nodes={nodes} edges={edges} onClose={() => setOpen(false)} />

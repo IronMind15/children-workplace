@@ -98,13 +98,13 @@ export default function Journal() {
     <div className="sky-bg min-h-screen pb-6 pt-16">
       <div className="mx-auto max-w-5xl px-4 pt-5 lg:px-8">
         <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="pixel-panel px-4 py-2.5">
+          <div className="card px-4 py-2.5">
             <h1 className="text-xl font-black text-[#2b3a4a] lg:text-2xl">📚 世界图鉴</h1>
             <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">
               岛屿、精灵的档案全在这里；点精灵看它的故事和本领
             </p>
           </div>
-          <Link href="/" className="pixel-btn pixel-btn-white px-4 py-2 text-sm">
+          <Link href="/" className="btn btn-white px-4 py-2 text-sm">
             ← 地图
           </Link>
         </header>
@@ -113,7 +113,7 @@ export default function Journal() {
         <h2 className="mt-5 text-lg font-black text-[#2b3a4a]">🏝️ 岛屿图鉴</h2>
         <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {islands.map((isl, i) => (
-            <div key={isl.name} className={`pixel-panel p-4 ${isl.unlocked ? "" : "opacity-75"}`}>
+            <div key={isl.name} className={`card p-4 ${isl.unlocked ? "" : "opacity-75"}`}>
               <div className="flex items-center justify-between">
                 <span className="text-base font-black text-[#2b3a4a]">
                   {i + 1}. {isl.unlocked ? isl.name : "🔒 ？？？"}
@@ -142,7 +142,7 @@ export default function Journal() {
         <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">
           本领不是排成一条队，而是一棵进化树：每个新本领都从已学会的本领，用「聚合、反转、等分、升维…」15 种进化方式长出来
         </p>
-        <div className="pixel-panel mt-2 max-h-[520px] overflow-auto p-4">
+        <div className="card mt-2 max-h-[520px] overflow-auto p-4">
           <EvolutionTree nodes={treeNodes} edges={treeEdges} />
         </div>
 

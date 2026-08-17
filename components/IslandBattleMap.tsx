@@ -164,7 +164,7 @@ export default function IslandBattleMap({
   const bg = getIslandBg(island);
 
   return (
-    <div className="pixel-panel relative overflow-hidden p-2">
+    <div className="card relative overflow-hidden p-2">
       {/* 岛屿等级徽章（觉醒挂钩：守卫打赢 → 升级 → 解锁进阶练习） */}
       <div className="mb-2 flex items-center justify-between px-1">
         <span className="flex items-center gap-1.5 rounded-md border-2 border-[#ffb300] bg-[#fff8e1] px-2 py-1 text-xs font-black text-[#2b3a4a]">
@@ -294,7 +294,7 @@ export default function IslandBattleMap({
               {/* 空岛提示 */}
               {minions.length === 0 && bosses.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="pixel-panel px-6 py-4 text-center font-bold text-[#2b3a4a]">
+                  <div className="card px-6 py-4 text-center font-bold text-[#2b3a4a]">
                     这座岛风平浪静，去别处逛逛吧！
                   </div>
                 </div>

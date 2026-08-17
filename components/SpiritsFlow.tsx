@@ -71,14 +71,14 @@ export default function SpiritsFlow({
       <div className="mt-5 flex gap-2">
         <button
           onClick={() => setTab("spirits")}
-          className={`pixel-btn px-4 py-2 text-sm ${tab === "spirits" ? "pixel-btn-blue" : "pixel-btn-white"}`}
+          className={`btn px-4 py-2 text-sm ${tab === "spirits" ? "btn-blue" : "btn-white"}`}
         >
           🃏 精灵图鉴（{spirits.length}）
         </button>
         {strategies.length > 0 && (
           <button
             onClick={() => setTab("strategies")}
-            className={`pixel-btn px-4 py-2 text-sm ${tab === "strategies" ? "pixel-btn-blue" : "pixel-btn-white"}`}
+            className={`btn px-4 py-2 text-sm ${tab === "strategies" ? "btn-blue" : "btn-white"}`}
           >
             🌀 连招图鉴（{masteredCount}/{strategies.length}）
           </button>
@@ -96,7 +96,7 @@ export default function SpiritsFlow({
                 setOpenId(s.id);
                 setSpeech(null);
               }}
-              className="pixel-panel p-4 text-center transition-transform hover:-translate-y-1 active:translate-y-0"
+              className="card p-4 text-center transition-transform hover:-translate-y-1 active:translate-y-0"
               title="点开看看它的成长足迹，还能和它互动哦"
             >
               <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
@@ -156,7 +156,7 @@ export default function SpiritsFlow({
             {strategies.map((st) => (
               <div
                 key={st.id}
-                className={`pixel-panel p-4 ${st.mastered ? "" : "opacity-60 grayscale-[40%]"}`}
+                className={`card p-4 ${st.mastered ? "" : "opacity-60 grayscale-[40%]"}`}
                 title={st.mastered ? "已掌握" : "去隐藏挑战里解锁它"}
               >
                 <div className="flex items-center justify-between">
@@ -185,7 +185,7 @@ export default function SpiritsFlow({
           onClick={() => setOpenId(null)}
         >
           <div
-            className="pixel-panel animate-pop max-h-[85vh] w-full max-w-lg overflow-y-auto p-5"
+            className="card animate-pop max-h-[85vh] w-full max-w-lg overflow-y-auto p-5"
             onClick={(e) => e.stopPropagation()}
           >
             {(() => {
@@ -201,7 +201,7 @@ export default function SpiritsFlow({
                       />
                       {stage.crown && <span className="absolute -top-1 left-1/2 -translate-x-1/2 text-2xl">👑</span>}
                     </div>
-                    <button onClick={() => setOpenId(null)} className="pixel-btn pixel-btn-white px-3 py-1 text-sm">
+                    <button onClick={() => setOpenId(null)} className="btn btn-white px-3 py-1 text-sm">
                       × 关闭
                     </button>
                   </div>
@@ -224,7 +224,7 @@ export default function SpiritsFlow({
                   <div className="mt-3 rounded-xl border-2 border-[#ffb300] bg-[#fff8e1] p-3">
                     <div className="flex items-center justify-center gap-2">
                       {INTERACTIONS.map((it) => (
-                        <button key={it.label} onClick={() => interact(it)} className="pixel-btn pixel-btn-white px-3 py-2 text-sm">
+                        <button key={it.label} onClick={() => interact(it)} className="btn btn-white px-3 py-2 text-sm">
                           {it.icon} {it.label}
                         </button>
                       ))}

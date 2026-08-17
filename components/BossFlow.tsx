@@ -119,7 +119,7 @@ export default function BossFlow({
     <div className="sky-bg min-h-screen pb-10">
       <div className="mx-auto max-w-4xl px-4 pt-5 lg:px-8">
         {/* ===== Boss 战斗舞台 ===== */}
-        <div className="pixel-panel-dark relative h-[320px] overflow-hidden p-0 lg:h-[400px]">
+        <div className="card-dark relative h-[320px] overflow-hidden p-0 lg:h-[400px]">
           <div className="absolute inset-0 bg-gradient-to-b from-[#ffe8d0] via-[#fff3e0] to-[#fff8ec]" />
           <div className="grass-checker absolute bottom-0 h-[34%] w-full border-t-4 border-[#a8c05e]" />
 
@@ -153,7 +153,7 @@ export default function BossFlow({
 
           {/* Boss HP 框：左上 */}
           <div className="absolute left-4 top-4">
-            <div className="pixel-panel w-56 p-2.5 lg:w-64">
+            <div className="card w-56 p-2.5 lg:w-64">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-black text-[#2b3a4a]">👑 {name}</span>
                 <span className="rounded bg-[#ffe0b2] px-1.5 py-0.5 text-[10px] font-bold text-[#e2582e]">渡海Boss</span>
@@ -174,7 +174,7 @@ export default function BossFlow({
           </div>
 
           {/* 伙伴信息框：右下 */}
-          <div className="pixel-panel absolute bottom-4 right-4 w-52 p-2.5 lg:w-60">
+          <div className="card absolute bottom-4 right-4 w-52 p-2.5 lg:w-60">
             <div className="flex items-center justify-between">
               <span className="text-sm font-black text-[#2b3a4a]">🦊 伙伴</span>
               <span className="rounded bg-[#e8edf2] px-1.5 py-0.5 text-[10px] font-bold text-[#7a8a9a]">并肩作战</span>
@@ -239,7 +239,7 @@ export default function BossFlow({
 
         {/* ===== 对话框 + 行动区 ===== */}
         <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_400px]">
-          <div className="pixel-panel-dark relative min-h-[120px] p-4 lg:min-h-[150px]">
+          <div className="card-dark relative min-h-[120px] p-4 lg:min-h-[150px]">
             <p className="text-lg font-bold leading-relaxed text-white">
               {phase === "intro" && (
                 <>
@@ -274,10 +274,10 @@ export default function BossFlow({
                   🦊 {bossIntroGuide(brain)}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => setPhase("solve")} className="pixel-btn py-3 text-lg">
+                  <button onClick={() => setPhase("solve")} className="btn py-3 text-lg">
                     ⚡ 挑战 Boss
                   </button>
-                  <button onClick={() => router.push("/")} className="pixel-btn pixel-btn-white py-3 text-lg">
+                  <button onClick={() => router.push("/")} className="btn btn-white py-3 text-lg">
                     🏃 回岛上
                   </button>
                 </div>
@@ -306,7 +306,7 @@ export default function BossFlow({
                 {!stuck && (
                   <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
                     {steps[stepIdx].options.map((o) => (
-                      <button key={o.label} onClick={() => answer(o)} className="pixel-btn pixel-btn-green py-4 text-2xl">
+                      <button key={o.label} onClick={() => answer(o)} className="btn btn-green py-4 text-2xl">
                         {o.label}
                       </button>
                     ))}
@@ -316,7 +316,7 @@ export default function BossFlow({
             )}
 
             {phase === "result" && !result?.ok && (
-              <button onClick={() => router.push("/")} className="pixel-btn pixel-btn-white py-4 text-xl">
+              <button onClick={() => router.push("/")} className="btn btn-white py-4 text-xl">
                 🏝️ 回地图
               </button>
             )}

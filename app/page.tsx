@@ -141,7 +141,7 @@ export default function Home() {
       {/* 顶部 HUD：像素面板 */}
       <div className="mx-auto max-w-6xl px-4 pt-3 lg:px-8">
         <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="pixel-panel px-4 py-2.5">
+          <div className="card px-4 py-2.5">
             <h1 className="text-xl font-black text-[#2b3a4a] lg:text-2xl">🏝️ {island}</h1>
             <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">
               ⭐ 已掌握 {metas.length} 个本领 ·🏝️ 已点亮 {islands.filter((i) => i.unlocked).length} 座岛
@@ -151,20 +151,20 @@ export default function Home() {
             <EvolutionPathButton nodes={nodes} edges={edges} />
             <Link
               href="/ask"
-              className="pixel-btn pixel-btn-pink px-4 py-2 text-sm"
+              className="btn btn-pink px-4 py-2 text-sm"
               title="去好奇心营地提问，赢取火花解锁神秘小怪"
             >
               ✨ 火花 {sparks.total}
             </Link>
             <Link
               href="/parent"
-              className="pixel-btn pixel-btn-white px-3 py-2 text-sm"
+              className="btn btn-white px-3 py-2 text-sm"
               title="家长窗口：查看学习进度、错题和每日总结"
             >
               👨‍👩‍👧 家长
             </Link>
             <SettingsEntry />
-            <span className="pixel-panel flex h-12 w-12 items-center justify-center text-2xl">{avatar}</span>
+            <span className="card flex h-12 w-12 items-center justify-center text-2xl">{avatar}</span>
           </div>
         </header>
       </div>

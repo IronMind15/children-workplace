@@ -86,7 +86,7 @@ export default function EvolutionModal({
         </span>
       ))}
 
-      <div className="pixel-panel relative z-10 max-h-[92vh] w-full max-w-2xl overflow-y-auto p-6 text-center">
+      <div className="card relative z-10 max-h-[92vh] w-full max-w-2xl overflow-y-auto p-6 text-center">
         {/* 右上角关闭 ×（查看模式下随时可关） */}
         {!celebrate && onClose && (
           <button
@@ -152,14 +152,14 @@ export default function EvolutionModal({
             stage === "reveal" && (
               <>
                 {ctaLabel && onCta && (
-                  <button onClick={onCta} className="pixel-btn pixel-btn-green px-6 py-2.5 text-lg">
+                  <button onClick={onCta} className="btn btn-green px-6 py-2.5 text-lg">
                     {ctaLabel}
                   </button>
                 )}
               </>
             )
           ) : (
-            <button onClick={onClose} className="pixel-btn px-6 py-2.5 text-base">
+            <button onClick={onClose} className="btn px-6 py-2.5 text-base">
               知道啦
             </button>
           )}

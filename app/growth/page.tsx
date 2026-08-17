@@ -78,11 +78,11 @@ export default function Growth() {
     <div className="sky-bg min-h-screen pb-6 pt-16">
       <div className="mx-auto max-w-3xl px-4 pt-5 lg:px-8">
         <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="pixel-panel px-4 py-2.5">
+          <div className="card px-4 py-2.5">
             <h1 className="text-xl font-black text-[#2b3a4a] lg:text-2xl">📖 成长足迹</h1>
             <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">{kidName} 的每一次进步都记在这里</p>
           </div>
-          <span className="pixel-panel flex h-12 w-12 items-center justify-center text-2xl">{avatar}</span>
+          <span className="card flex h-12 w-12 items-center justify-center text-2xl">{avatar}</span>
         </header>
 
         {/* 成长统计 */}
@@ -93,7 +93,7 @@ export default function Growth() {
             { icon: "✨", num: purifyCount, label: "净化 Boss" },
             { icon: "💬", num: sparks.total, label: "好奇心火花" },
           ].map((s) => (
-            <div key={s.label} className="pixel-panel p-3 text-center">
+            <div key={s.label} className="card p-3 text-center">
               <div className="text-2xl">{s.icon}</div>
               <div className="mt-0.5 text-2xl font-black text-[#2b3a4a]">{s.num}</div>
               <div className="text-[10px] font-bold text-[#7a8a9a]">{s.label}</div>
@@ -102,7 +102,7 @@ export default function Growth() {
         </div>
 
         {/* 时间线 */}
-        <div className="pixel-panel mt-4 p-4 lg:p-5">
+        <div className="card mt-4 p-4 lg:p-5">
           {entries.length === 0 ? (
             <p className="py-8 text-center text-sm font-bold text-[#7a8a9a]">
               足迹还是空的～去地图打小怪、净化 Boss、向伙伴提问吧！

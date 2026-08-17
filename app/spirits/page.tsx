@@ -61,13 +61,13 @@ export default function Spirits() {
     <div className="sky-bg min-h-screen pb-6 pt-16">
       <div className="mx-auto max-w-5xl px-4 pt-5 lg:px-8">
         <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="pixel-panel px-4 py-2.5">
+          <div className="card px-4 py-2.5">
             <h1 className="text-xl font-black text-[#2b3a4a] lg:text-2xl">🃏 我的精灵</h1>
             <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">
               点击精灵看它的成长足迹，还能摸摸头、击掌、喂食互动哦！
             </p>
           </div>
-          <Link href="/" className="pixel-btn pixel-btn-white px-4 py-2 text-sm">
+          <Link href="/" className="btn btn-white px-4 py-2 text-sm">
             ← 地图
           </Link>
         </header>
@@ -77,7 +77,7 @@ export default function Spirits() {
         </div>
 
         {spirits.length === 0 ? (
-          <div className="pixel-panel mt-6 p-8 text-center">
+          <div className="card mt-6 p-8 text-center">
             <div className="text-5xl">🐣</div>
             <p className="mt-4 font-bold text-[#7a8a9a]">还没有精灵哦，去地图上净化第一只 Boss 吧！</p>
           </div>

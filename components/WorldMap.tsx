@@ -76,7 +76,7 @@ export default function WorldMap({
         <div className="mb-3 flex flex-wrap items-center gap-3">
           <button
             onClick={() => setFocused(null)}
-            className="pixel-btn pixel-btn-white px-3 py-1.5 text-sm shadow-md"
+            className="btn btn-white px-3 py-1.5 text-sm shadow-md"
           >
             🌍 返回世界地图
           </button>
@@ -108,7 +108,7 @@ export default function WorldMap({
           🔒 {lockedHint} 还在迷雾中，先净化上游 Boss 才能登岛
         </div>
       )}
-      <div className="pixel-panel relative overflow-hidden p-2">
+      <div className="card relative overflow-hidden p-2">
       <div
         className="relative h-[60vh] min-h-[480px] w-full overflow-hidden rounded-md"
         style={seaStyle("#90d8d8", "#78d8d8")}

@@ -161,7 +161,7 @@ export default function TestTools() {
         <div className="flex flex-col gap-2">
           <button
             onClick={refresh}
-            className="pixel-btn pixel-btn-white px-3 py-1.5 text-xs shadow-md"
+            className="btn btn-white px-3 py-1.5 text-xs shadow-md"
             title="强制重新拉取服务端数据"
           >
             🔄 刷新数据
@@ -169,7 +169,7 @@ export default function TestTools() {
           <button
             onClick={clear}
             disabled={pending}
-            className="pixel-btn pixel-btn-white px-3 py-1.5 text-xs shadow-md disabled:opacity-60"
+            className="btn btn-white px-3 py-1.5 text-xs shadow-md disabled:opacity-60"
             title="清空好奇心火花（神秘小怪会重新锁上）"
           >
             {pending ? "清理中…" : "♻️ 清空火花"}
@@ -178,7 +178,7 @@ export default function TestTools() {
             <button
               onClick={() => bump(-1)}
               disabled={pending}
-              className="pixel-btn pixel-btn-white px-2 py-1.5 text-xs shadow-md disabled:opacity-60"
+              className="btn btn-white px-2 py-1.5 text-xs shadow-md disabled:opacity-60"
               title="整体难度下调一级（已解锁岛数不变，偏置 -1）"
             >
               ➖
@@ -192,7 +192,7 @@ export default function TestTools() {
             <button
               onClick={() => bump(1)}
               disabled={pending}
-              className="pixel-btn pixel-btn-white px-2 py-1.5 text-xs shadow-md disabled:opacity-60"
+              className="btn btn-white px-2 py-1.5 text-xs shadow-md disabled:opacity-60"
               title="整体难度上调一级（已解锁岛数不变，偏置 +1）"
             >
               ➕
@@ -219,7 +219,7 @@ export default function TestTools() {
                   key={lv}
                   onClick={() => setIslandLv(lv)}
                   disabled={pending}
-                  className="pixel-btn pixel-btn-white px-1.5 py-1 text-xs shadow disabled:opacity-60"
+                  className="btn btn-white px-1.5 py-1 text-xs shadow disabled:opacity-60"
                 >
                   Lv{lv}
                 </button>
@@ -229,7 +229,7 @@ export default function TestTools() {
               <button
                 onClick={() => allIslands(4)}
                 disabled={pending}
-                className="pixel-btn px-1.5 py-1 text-xs text-white shadow disabled:opacity-60"
+                className="btn px-1.5 py-1 text-xs text-white shadow disabled:opacity-60"
                 style={{ background: "#e2582e" }}
               >
                 🚀 全岛拉满
@@ -237,7 +237,7 @@ export default function TestTools() {
               <button
                 onClick={pullSpirits}
                 disabled={pending}
-                className="pixel-btn px-1.5 py-1 text-xs text-white shadow disabled:opacity-60"
+                className="btn px-1.5 py-1 text-xs text-white shadow disabled:opacity-60"
                 style={{ background: "#185fa5" }}
                 title="一键拉满所有精灵等级 → 触发全部觉醒广播"
               >
@@ -271,7 +271,7 @@ export default function TestTools() {
           <button
             onClick={resetAll}
             disabled={pending}
-            className={`pixel-btn px-3 py-1.5 text-xs text-white shadow-md disabled:opacity-60 ${confirming === "reset" ? "animate-pulse" : ""}`}
+            className={`btn px-3 py-1.5 text-xs text-white shadow-md disabled:opacity-60 ${confirming === "reset" ? "animate-pulse" : ""}`}
             style={{ background: confirming === "reset" ? "#c62828" : "#e2582e" }}
             title="岛屿/Boss/精灵/火花全部归零，回到计数岛"
           >
@@ -280,7 +280,7 @@ export default function TestTools() {
           <button
             onClick={unlockAll}
             disabled={pending}
-            className={`pixel-btn px-3 py-1.5 text-xs text-white shadow-md disabled:opacity-60 ${confirming === "unlock" ? "animate-pulse" : ""}`}
+            className={`btn px-3 py-1.5 text-xs text-white shadow-md disabled:opacity-60 ${confirming === "unlock" ? "animate-pulse" : ""}`}
             style={{ background: confirming === "unlock" ? "#185fa5" : "#1d9e75" }}
             title="不动当前进度，直接补齐全部内容（29 精灵 + 30 觉醒 + 全岛满级），demo 体验模式"
           >

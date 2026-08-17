@@ -28,7 +28,7 @@ function HpBox({
   right?: boolean;
 }) {
   return (
-    <div className="pixel-panel w-52 p-2.5 lg:w-60">
+    <div className="card w-52 p-2.5 lg:w-60">
       <div className={`flex items-center justify-between ${right ? "flex-row-reverse" : ""}`}>
         <span className="text-sm font-black text-[#2b3a4a]">{name}</span>
         {tag && <span className="rounded bg-[#e8edf2] px-1.5 py-0.5 text-[10px] font-bold text-[#7a8a9a]">{tag}</span>}
@@ -191,7 +191,7 @@ export default function BattleFlow({
     <div className="sky-bg min-h-screen pb-10">
       <div className="mx-auto max-w-4xl px-4 pt-5 lg:px-8">
         {/* ===== 战斗舞台（宝可梦式） ===== */}
-        <div className="pixel-panel-dark relative h-[320px] overflow-hidden p-0 lg:h-[400px]">
+        <div className="card-dark relative h-[320px] overflow-hidden p-0 lg:h-[400px]">
           {/* 天空与地面 */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#fdf6e0] via-[#fdfceb] to-[#f8f2dd]" />
           <div className="grass-checker absolute bottom-0 h-[34%] w-full border-t-4 border-[#a8c05e]" />
@@ -248,7 +248,7 @@ export default function BattleFlow({
                 right
               />
             ) : (
-              <div className="pixel-panel w-52 p-2.5 lg:w-60">
+              <div className="card w-52 p-2.5 lg:w-60">
                 <span className="text-sm font-black text-[#7a8a9a]">还没派出精灵…</span>
               </div>
             )}
@@ -379,7 +379,7 @@ export default function BattleFlow({
         {/* ===== 对话框 + 行动区（宝可梦式） ===== */}
         <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_400px]">
           {/* 对话框 */}
-          <div className="pixel-panel-dark relative min-h-[120px] p-4 lg:min-h-[150px]">
+          <div className="card-dark relative min-h-[120px] p-4 lg:min-h-[150px]">
             <p className="text-lg font-bold leading-relaxed text-white">
               {phase === "intro" && (
                 <>
@@ -456,16 +456,16 @@ export default function BattleFlow({
                   🦊 {isGuard ? "打败守卫，就能让精灵觉醒新力量！" : battleIntroGuide(brain)}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => setPhase("pick")} className="pixel-btn pixel-btn-blue py-3 text-lg">
+                  <button onClick={() => setPhase("pick")} className="btn btn-blue py-3 text-lg">
                     ⚔️ 派精灵
                   </button>
-                  <button onClick={() => router.push("/")} className="pixel-btn pixel-btn-white py-3 text-lg">
+                  <button onClick={() => router.push("/")} className="btn btn-white py-3 text-lg">
                     🏃 先溜走
                   </button>
                 </div>
                 <button
                   onClick={() => router.push(`/battle/${monsterId}?r=${Date.now()}`)}
-                  className="pixel-btn pixel-btn-white py-2 text-sm"
+                  className="btn btn-white py-2 text-sm"
                 >
                   🎲 换一批新题目
                 </button>
@@ -475,7 +475,7 @@ export default function BattleFlow({
             {phase === "pick" && (
               <div className="grid grid-cols-2 gap-3">
                 {spirits.map((s) => (
-                  <button key={s.meta_id} onClick={() => pickSpirit(s)} className="pixel-btn pixel-btn-white flex items-center gap-2 p-2.5 text-left">
+                  <button key={s.meta_id} onClick={() => pickSpirit(s)} className="btn btn-white flex items-center gap-2 p-2.5 text-left">
                     <ImgSprite src={getSpiritImage(s.meta_id)} size={44} />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-black">{s.nickname}</span>
@@ -495,7 +495,7 @@ export default function BattleFlow({
                   {spirits
                     .filter((s) => s.meta_id !== picked?.meta_id)
                     .map((s) => (
-                      <button key={s.meta_id} onClick={() => pickHelper(s)} className="pixel-btn pixel-btn-white flex items-center gap-2 p-2 text-left">
+                      <button key={s.meta_id} onClick={() => pickHelper(s)} className="btn btn-white flex items-center gap-2 p-2 text-left">
                         <ImgSprite src={getSpiritImage(s.meta_id)} size={40} />
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-black">{s.nickname}</span>
@@ -510,7 +510,7 @@ export default function BattleFlow({
             {phase === "solve" && !missingMeta && !explain && (
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
                 {steps[stepIdx].options.map((o) => (
-                  <button key={o.label} onClick={() => answer(o)} className="pixel-btn pixel-btn-green py-4 text-2xl">
+                  <button key={o.label} onClick={() => answer(o)} className="btn btn-green py-4 text-2xl">
                     {o.label}
                   </button>
                 ))}
@@ -519,12 +519,12 @@ export default function BattleFlow({
 
             {phase === "result" && (
               <div className="flex flex-col gap-3">
-                <button onClick={() => router.push("/")} className="pixel-btn pixel-btn-green py-4 text-xl">
+                <button onClick={() => router.push("/")} className="btn btn-green py-4 text-xl">
                   🏝️ 继续探索
                 </button>
                 <button
                   onClick={() => router.push(`/battle/${monsterId}?r=${Date.now()}`)}
-                  className="pixel-btn pixel-btn-white py-2.5 text-sm"
+                  className="btn btn-white py-2.5 text-sm"
                 >
                   🔁 再来一场（新题目）
                 </button>

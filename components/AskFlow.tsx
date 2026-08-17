@@ -81,23 +81,23 @@ export default function AskFlow({
     <div className="mx-auto max-w-3xl px-4 pt-5 lg:px-8">
       {/* 顶部 */}
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="pixel-panel px-4 py-2.5">
+        <div className="card px-4 py-2.5">
           <h1 className="text-xl font-black text-[#2b3a4a] lg:text-2xl">✨ 好奇心营地</h1>
           <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">会提问的孩子最厉害！问问伙伴，赢取火花</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="pixel-panel px-3 py-2 text-sm font-black text-[#e2582e]">
+          <span className="card px-3 py-2 text-sm font-black text-[#e2582e]">
             ✨ {total} · 今日已问 {today} 次
           </span>
           <Link
             href="/brain"
-            className={`pixel-btn px-3 py-2 text-sm text-white ${aiConfigured ? "" : "animate-pulse"}`}
+            className={`btn px-3 py-2 text-sm text-white ${aiConfigured ? "" : "animate-pulse"}`}
             style={{ background: aiConfigured ? "#3fb984" : "#7e57c2" }}
             title="AI 在「设置 ⚙️」里连接（仅支持 DeepSeek）"
           >
             {aiConfigured ? "🤖 AI 已连接" : "🔑 连接 AI"}
           </Link>
-          <Link href="/" className="pixel-btn pixel-btn-white px-4 py-2 text-sm">
+          <Link href="/" className="btn btn-white px-4 py-2 text-sm">
             ← 地图
           </Link>
         </div>
@@ -113,7 +113,7 @@ export default function AskFlow({
             </span>
           )}
         </div>
-        <div className="pixel-panel-dark relative min-h-[110px] flex-1 p-4">
+        <div className="card-dark relative min-h-[110px] flex-1 p-4">
           {loading ? (
             <div className="flex items-center gap-2 pt-4">
               <span className="text-lg text-white">🦊 正在想一想</span>
@@ -137,7 +137,7 @@ export default function AskFlow({
       </div>
 
       {/* 自由提问 */}
-      <div className="pixel-panel mt-4 flex flex-col gap-2 p-3 sm:flex-row sm:items-center">
+      <div className="card mt-4 flex flex-col gap-2 p-3 sm:flex-row sm:items-center">
         <input
           value={freeText}
           onChange={(e) => setFreeText(e.target.value)}
@@ -146,7 +146,7 @@ export default function AskFlow({
           disabled={!aiConfigured}
           className="min-w-0 flex-1 rounded-md border-2 border-[#2b3a4a] px-3 py-2 text-sm font-bold text-[#2b3a4a] disabled:bg-[#e8edf2] disabled:text-[#7a8a9a]"
         />
-        <button onClick={askFreeQuestion} disabled={!aiConfigured || !!loading || !freeText.trim()} className="pixel-btn pixel-btn-blue px-4 py-2 text-sm disabled:opacity-50">
+        <button onClick={askFreeQuestion} disabled={!aiConfigured || !!loading || !freeText.trim()} className="btn btn-blue px-4 py-2 text-sm disabled:opacity-50">
           🚀 问伙伴
         </button>
       </div>
@@ -158,7 +158,7 @@ export default function AskFlow({
             key={q.id}
             onClick={() => ask(q)}
             disabled={!!loading}
-            className="pixel-btn pixel-btn-white flex items-center gap-3 p-3 text-left disabled:opacity-60"
+            className="btn btn-white flex items-center gap-3 p-3 text-left disabled:opacity-60"
           >
             <span className="text-3xl">{q.emoji}</span>
             <span className="min-w-0 flex-1">
@@ -185,7 +185,7 @@ export default function AskFlow({
       </div>
 
       {/* 火花奖励进度 */}
-      <div className="pixel-panel mt-5 p-4">
+      <div className="card mt-5 p-4">
         <p className="text-sm font-black text-[#2b3a4a]">🎁 火花能换什么？</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {rewards.map((r) => {
