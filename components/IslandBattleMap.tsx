@@ -6,6 +6,8 @@ import ImgSprite from "@/components/ImgSprite";
 import { getMonsterImage } from "@/lib/sprites";
 import { getIslandBg } from "@/lib/islandArt";
 import { themeOf } from "@/lib/islandTheme";
+import { getGuardImage, pickGuardStyle } from "@/lib/guardStyles";
+import { pageOf } from "@/lib/archipelagoLayout";
 
 export type MapMonster = {
   id: string;
@@ -118,15 +120,29 @@ function WanderingMonster({ monster, index, mystery = false, onPick }: { monster
   );
 }
 
-/** 知识守卫：本岛觉醒的考验者（金纹徽章样式，不占怪物图资源），点击进守卫战 */
-function GuardMonster({ monster, index, onPick }: { monster: MapMonster; index: number; onPick?: (id: string) => void }) {
+/** 知识守卫：本岛觉醒的考验者，点击进守卫战。
+ *  外观按 6 套样式循环（按群岛页号 + 序号选样式，同岛多守卫互不重复）。 */
+function GuardMonster({ monster, index, onPick, page, prevStyle }: { monster: MapMonster; index: number; onPick?: (id: string) => void; page: number; prevStyle?: number }) {
+  const styleIndex = pickGuardStyle(page, index, prevStyle);
+  const guardImage = getGuardImage(styleIndex);
   const inner = (
     <>
       <span className="mb-1 whitespace-nowrap rounded-md border-2 border-[#8a6a3e] bg-[#ffd54f] px-2 py-0.5 text-xs font-black text-[#2b3a4a] shadow-[0_2px_0_rgba(43,58,74,0.4)] transition group-hover:bg-[#ffecb3]">
         ✦ {monster.name}
       </span>
-      <span className="animate-boss-breathe relative flex h-16 w-16 items-center justify-center rounded-full border-4 border-[#ffb300] bg-[#fff8e1] shadow-[0_3px_0_rgba(16,24,34,0.3)]">
-        <ImgSprite src={getMonsterImage(monster.id)} size={60} className="h-full w-full" />
+      <span
+        className="animate-boss-breathe relative flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-[#ffb300] bg-[#fff8e1] shadow-[0_3px_0_rgba(16,24,34,0.3)] overflow-hidden"
+        title={`守卫外观 #${styleIndex}`}
+      >
+        <img
+          src={guardImage}
+          alt={monster.name}
+          className="h-full w-full object-cover"
+          draggable={false}
+        />
+        <span className="pointer-events-none absolute -top-1 -right-1 rounded-full border-2 border-[#ffb300] bg-white px-1.5 text-[10px] font-black text-[#e2582e] shadow-card">
+          守
+        </span>
       </span>
       <span className="pointer-events-none mt-1 hidden rounded-md bg-[#22303f] px-2 py-0.5 text-xs font-bold text-white group-hover:block">
         ⚔️ 觉醒挑战
@@ -234,10 +250,28 @@ export default function IslandBattleMap({
             <WanderingMonster key={m.id} monster={m} index={i} onPick={onPickMonster} />
           ))}
 
-          {/* 知识守卫（觉醒载体） */}
-          {guards.map((m, i) => (
-            <GuardMonster key={m.id} monster={m} index={i} onPick={onPickMonster} />
-          ))}
+          {/* 知识守卫（觉醒载体）：按 page 选起始样式 + 链式避重复 */}
+          {(() => {
+            const page = pageOf(island);
+            // 预算每个守卫的样式（链式：第 i 个避开第 i-1 个的样式）
+            const styles: number[] = [];
+            let prev: number | undefined;
+            for (let i = 0; i < guards.length; i++) {
+              const s = pickGuardStyle(page, i, prev);
+              styles.push(s);
+              prev = s;
+            }
+            return guards.map((m, i) => (
+              <GuardMonster
+                key={m.id}
+                monster={m}
+                index={i}
+                page={page}
+                prevStyle={i > 0 ? styles[i - 1] : undefined}
+                onPick={onPickMonster}
+              />
+            ));
+          })()}
 
           {/* 神秘小怪（好奇心火花解锁） */}
           {hiddenMonsters.map((m, i) => (
