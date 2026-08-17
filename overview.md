@@ -1,33 +1,23 @@
-# v1.2.12 更新概述：界面图标资源映射 + 错题集前端占位
+# v1.2.13 更新概览：标签全量按键化 + 字号放大（儿童友好）
 
-## 完成内容
-1. **图标资源映射**
-   - 10 张素材复制到 `public/ui/`，按用途命名：
-     - 错题集 `mistake_book.png`、精灵 `spirit.png`、地图全览 `atlas.png`、图鉴 `dex.png`
-     - 左键 `arrow_left.png`、右键 `arrow_right.png`
-     - 按键底板短/中/长 `btn_short.png` / `btn_medium.png` / `btn_long.png`
-     - 知识家园 `knowledge_home.png`
-   - 新增 `lib/uiIcons.ts` 统一映射函数。
+## 问题
+- WorldMap 顶栏「全览」按钮直接套 `btn_short` 底图，图标 + 文字超出底板，文字未被图案完全覆盖。
+- 岛屿名（WorldMap / WorldAtlas）与小怪 / 守卫 / Boss 名牌都是纯白底标签，没用按键皮革底板，视觉不统一、文字压不住图案。
+- 多处标签字号偏小（text-xs / text-[10px]），小孩不易看清。
 
-2. **复用按键组件**
-   - 新增 `components/UiButton.tsx`，按文字长度自动选短/中/长皮革铆钉底板，支持左侧图标。
-
-3. **组件级替换**
-   - `TopShell` 群岛地图 tab 使用 atlas 图标。
-   - `WorldMap` 全览按钮、左右翻页箭头使用新图标。
-   - `HomeClient` / `WorldAtlas` / `PageHeader` 返回按钮使用 `UiButton(arrowLeft)`。
-   - `AvatarMenu` 精灵图鉴/知识家园/错题集使用对应图标，并新增错题集入口。
-   - `Spirits` / `Journal` 页面标题使用 spirit / knowledge_home 图标。
-   - `BattleFlow` / `BossFlow` 主要行动按钮改用 `UiButton` 底板。
-
-4. **错题集前端占位**
-   - 新增 `app/mistakes/page.tsx`：统计卡 + 空状态 + 开发中提示。
-   - 后端错题记录/掌握度/复习推荐逻辑待补充，已写入 `TODO.md`。
+## 改动
+1. **新增 `UiTag` 显示型标签**（`components/UiButton.tsx`）
+   - 复用皮革铆钉底板（`btn_short/medium/long`），文字居中压在图案上。
+   - 支持 `size=auto`（按文字长度自动选板）、`locked`（灰字）、`icon`（左侧图标）。
+2. **WorldMap「全览」按钮** → 大号 `UiButton`（medium 底板 + lg 高度 + text-lg），文字完全落在图案内；顶栏页标题 / 计数同步放大。
+3. **WorldMap 岛屿名** → `UiTag`(text-base)；节点改为 `flex flex-col items-center` 纵向居中，去掉截断、显示完整岛名。
+4. **WorldAtlas 岛屿名** → `UiTag`(text-sm)；群岛标题 / 计数字号放大。
+5. **IslandBattleMap 小怪 / 守卫 / Boss 名牌** → `UiTag`(text-base)，保留 `✨`(神秘) `✦`(守卫) `👑`(Boss) 身份前缀；底图图例字号放大。
 
 ## 验证
-- `npx tsc --noEmit --incremental false` 通过。
-- `npx next build` 通过，新增 `/mistakes` 路由已生成。
-- 已提交并 push 到 origin/main（commit `10605e6`）。
+- `npx tsc --noEmit --incremental false` 通过
+- `npx next build` 通过
+- 提交 `922c352`，已 push origin/main
 
-## 后续待办
-- 错题集后端数据模型与 server action（详见 `TODO.md`）。
+## 预览
+刷新 http://localhost:3000（dev 服务运行中，热更新已生效）。
