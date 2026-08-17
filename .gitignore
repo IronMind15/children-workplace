@@ -37,5 +37,9 @@ next-env.d.ts
 # large demo recordings (use Git LFS if you want them tracked)
 docs/*.mp4
 
+# UI 设计稿大文件（zip + 解包目录，不入库）
+docs/112初版*
+docs/113背景*
+
 # vercel
 .vercel

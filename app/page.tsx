@@ -2,8 +2,7 @@ import { seedIfEmpty } from "@/lib/seed";
 import { getWorldLayout } from "@/lib/worldLayout";
 import {
   getExplorer,
-  getMonstersByIsland,
-  getBossesByIsland,
+  getMonsters,
   getInternalizedMetas,
   getBrainSettings,
   getMetas,
@@ -12,9 +11,11 @@ import {
   isInternalized,
   getIslands,
   getBossByTarget,
+  getIslandLevel,
+  getConfig,
 } from "@/lib/repo";
+import { getSparkStats, getVisibleGuardsByIsland, checkAwakenings } from "@/lib/game";
 import { welcomeGuide } from "@/lib/brain";
-import { getSparkStats } from "@/lib/game";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Guide from "@/components/Guide";
@@ -41,7 +42,9 @@ export default function Home() {
   const allMetas = getMetas();
   const islands = getIslands();
   const layout = getWorldLayout();
-  const worldEdges = getEvolutionEdges().map((e) => ({ from: e.from_meta, to: e.to_meta }));
+  const allEdges = getEvolutionEdges(); // 复用：世界图连线 + 谱系树
+  const allMonsters = getMonsters(); // 一次拉全量，分组出小怪/守卫/Boss，避免逐岛查询
+  const worldEdges = allEdges.map((e) => ({ from: e.from_meta, to: e.to_meta }));
   const worldNodes: WorldNode[] = allMetas.map((m) => {
     const iname = `${m.name}岛`;
     const c = layout[m.id];
@@ -56,12 +59,26 @@ export default function Home() {
     };
   });
 
-  // 每座岛的战斗数据（小怪 / 神秘小怪 / Boss），供聚焦态渲染
+  // 每座岛的战斗数据（小怪 / 守卫 / 神秘小怪 / Boss / 岛等级），供聚焦态渲染
   const islandData: Record<string, IslandBattleData> = {};
+  const byIsland = new Map<string, ReturnType<typeof getMonsters>>();
+  for (const m of allMonsters) {
+    const list = byIsland.get(m.island) ?? [];
+    list.push(m);
+    byIsland.set(m.island, list);
+  }
   for (const it of islands) {
-    const all = getMonstersByIsland(it.name);
+    const all = byIsland.get(it.name) ?? [];
     const minions = all
       .filter((m) => m.type === "minion")
+      .map((m) => ({ id: m.id, name: m.name, question: m.question }));
+    const guards = all
+      .filter((m) => m.type === "guard")
+      .filter((m) => {
+        // 守卫：达标且未打赢才显示（多精灵守卫按 spawn_islands 决定是否在本岛现身）
+        const info = getVisibleGuardsByIsland(it.name);
+        return info.some((g) => g.id === m.id);
+      })
       .map((m) => ({ id: m.id, name: m.name, question: m.question }));
     const hiddenMonsters = all
       .filter((m) => m.type === "hidden")
@@ -74,21 +91,26 @@ export default function Home() {
         }
       })
       .map((m) => ({ id: m.id, name: m.name, question: m.question }));
-    const bosses = getBossesByIsland(it.name).map((b) => ({
-      id: b.id,
-      name: b.name,
-      question: b.question,
-      purified: b.target_meta ? isInternalized(b.target_meta) : false,
-    }));
-    islandData[it.name] = { minions, hiddenMonsters, bosses };
+    const bosses = all
+      .filter((m) => m.type === "boss")
+      .map((b) => ({
+        id: b.id,
+        name: b.name,
+        question: b.question,
+        purified: b.target_meta ? isInternalized(b.target_meta) : false,
+      }));
+    islandData[it.name] = { minions, guards, hiddenMonsters, bosses, islandLevel: getIslandLevel(it.name) };
   }
+
+  // 觉醒广播：有守卫达标待挑战时，首页提示「有些奇妙的事情发生了……」
+  const awakenings = checkAwakenings();
 
   const metas = getInternalizedMetas();
   const brain = getBrainSettings();
   const avatar = explorer.name.split(" ").pop() ?? "🧭";
 
   // 进化路线数据（谱系树）：锁定的本领写清去哪里解锁
-  const nodes: ChainNode[] = getMetas().map((m) => {
+  const nodes: ChainNode[] = allMetas.map((m) => {
     const boss = getBossByTarget(m.id);
     return {
       metaId: m.id,
@@ -106,7 +128,7 @@ export default function Home() {
             : "🌀 神秘的待解锁知识",
     };
   });
-  const edges: ChainEdge[] = getEvolutionEdges().map((e) => ({
+  const edges: ChainEdge[] = allEdges.map((e) => ({
     from: e.from_meta,
     to: e.to_meta,
     operator: e.operator,
@@ -144,6 +166,23 @@ export default function Home() {
           </div>
         </header>
       </div>
+
+      {/* 觉醒广播：有守卫达标待挑战（config.broadcast 可关） */}
+      {awakenings.length > 0 && getConfig("broadcast", "1") === "1" && (
+        <div className="mx-auto mt-3 max-w-6xl px-4 lg:px-8">
+          <div className="animate-pop rounded-xl border-2 border-[#ffd54f] bg-gradient-to-r from-[#fff8e1] to-[#fdf6e0] px-4 py-3 shadow-[0_4px_0_rgba(43,58,74,0.2)]">
+            <p className="text-sm font-black text-[#2b3a4a]">
+              ✨ 有些奇妙的事情发生了…… 知识守卫现身了！
+            </p>
+            <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">
+              {awakenings
+                .map((g) => `${g.property_name}（${g.spawn_mode === "random" ? "找找它在哪座岛" : g.island}）`)
+                .join(" · ")}
+              —— 打败它，让精灵觉醒！
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* 像素地图 */}
       <main className="mx-auto mt-4 max-w-6xl px-4 lg:px-8">

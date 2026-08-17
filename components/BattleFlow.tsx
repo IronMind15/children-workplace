@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { trainWin, logMistake, explainMistake, resolveMistake } from "@/lib/actions";
+import { trainWin, logMistake, explainMistake, resolveMistake, guardWinAction } from "@/lib/actions";
 import ImgSprite from "@/components/ImgSprite";
 import { getMonsterImage, getSpiritImage, getSpiritStage, getCompanionImage } from "@/lib/sprites";
 import { battleIntroGuide, winGuide, type BrainSettings } from "@/lib/brain";
@@ -52,6 +52,8 @@ export default function BattleFlow({
   steps,
   spirits,
   brain,
+  mode = "train",
+  propertyName,
 }: {
   monsterId: string;
   name: string;
@@ -60,6 +62,8 @@ export default function BattleFlow({
   steps: SolveStep[];
   spirits: SpiritOption[];
   brain: BrainSettings;
+  mode?: "train" | "guard";
+  propertyName?: string;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<"intro" | "pick" | "solve" | "result">("intro");
@@ -72,10 +76,12 @@ export default function BattleFlow({
   const [stars, setStars] = useState(0);
   const [shake, setShake] = useState(false);
   const [levelUp, setLevelUp] = useState<{ level: number } | null>(null);
+  const [awaken, setAwaken] = useState<{ propertyName: string; islandLevel: number } | null>(null);
   const [hp, setHp] = useState(100);
   const [explain, setExplain] = useState<{ text: string; userAnswer: string; correctAnswer: string } | null>(null);
   const [wrongOnThisStep, setWrongOnThisStep] = useState(false);
 
+  const isGuard = mode === "guard";
   const total = steps.length;
   const hpPercent = Math.round(((total - stepIdx) / total) * 100);
   const correctMetaName = spirits.find((s) => s.meta_id === correctMeta)?.meta_name;
@@ -135,9 +141,18 @@ export default function BattleFlow({
       } else {
         const s = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
         setStars(s);
-        trainWin(correctMeta, s).then((r) => {
-          if (r.leveledUp) setLevelUp({ level: r.level });
-        });
+        if (isGuard) {
+          // 守卫战：打赢 = 觉醒该性质 + 岛屿升级
+          guardWinAction(monsterId).then((r) => {
+            if (r?.ok && r.propertyName) {
+              setAwaken({ propertyName: r.propertyName, islandLevel: r.islandLevel ?? 1 });
+            }
+          });
+        } else {
+          trainWin(correctMeta, s).then((r) => {
+            if (r.leveledUp) setLevelUp({ level: r.level });
+          });
+        }
         setTimeout(() => setPhase("result"), 700);
       }
     } else {
@@ -281,6 +296,24 @@ export default function BattleFlow({
               </div>
             </div>
           )}
+
+          {/* 觉醒演出（守卫战胜利）：金光 + 金纹点亮 + 岛屿升级 */}
+          {phase === "result" && awaken && picked && (
+            <div className="pointer-events-none absolute inset-x-0 top-[8%] z-20 text-center">
+              <div className="animate-pop inline-block rounded-2xl border-4 border-[#ffb300] bg-gradient-to-b from-[#fff8e1] to-[#fdf6e0] px-5 py-3 shadow-[0_6px_0_rgba(43,58,74,0.3)]">
+                <div className="text-2xl">✦</div>
+                <span className="text-lg font-black text-[#2b3a4a]">觉醒！{picked.nickname} 领悟了「{awaken.propertyName}」！</span>
+                <div className="mt-1">
+                  <span className="rounded-md bg-[#ffb300] px-2 py-0.5 text-xs font-black text-white">
+                    🏰 岛屿升级 Lv.{awaken.islandLevel} · 进阶练习解锁
+                  </span>
+                </div>
+              </div>
+              <div className="mt-1">
+                <span className="animate-twinkle inline-block text-2xl">✨</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ===== 对话框 + 行动区（宝可梦式） ===== */}
@@ -290,9 +323,19 @@ export default function BattleFlow({
             <p className="text-lg font-bold leading-relaxed text-white">
               {phase === "intro" && (
                 <>
-                  野生的 <span className="text-[#ffd54f]">{name}</span> 跳了出来！
-                  <br />
-                  <span className="text-base font-semibold text-white/85">{question}</span>
+                  {isGuard ? (
+                    <>
+                      知识守卫 <span className="text-[#ffd54f]">{name}</span> 拦住了去路！
+                      <br />
+                      <span className="text-base font-semibold text-white/85">{question}</span>
+                    </>
+                  ) : (
+                    <>
+                      野生的 <span className="text-[#ffd54f]">{name}</span> 跳了出来！
+                      <br />
+                      <span className="text-base font-semibold text-white/85">{question}</span>
+                    </>
+                  )}
                 </>
               )}
               {phase === "pick" && (
@@ -322,10 +365,21 @@ export default function BattleFlow({
               )}
               {phase === "result" && (
                 <>
-                  打赢啦！<span className="text-[#ffd54f]">{name}</span> 被驯服了，
-                  {"⭐".repeat(stars)}
-                  <br />
-                  <span className="text-base font-semibold text-white/85">{winGuide(brain)}</span>
+                  {isGuard ? (
+                    <>
+                      打赢了守卫！<span className="text-[#ffd54f]">{propertyName}</span> 的精灵觉醒了新力量！
+                      {"⭐".repeat(stars)}
+                      <br />
+                      <span className="text-base font-semibold text-white/85">岛屿升级了，去看看新的进阶练习吧！</span>
+                    </>
+                  ) : (
+                    <>
+                      打赢啦！<span className="text-[#ffd54f]">{name}</span> 被驯服了，
+                      {"⭐".repeat(stars)}
+                      <br />
+                      <span className="text-base font-semibold text-white/85">{winGuide(brain)}</span>
+                    </>
+                  )}
                 </>
               )}
             </p>
@@ -339,7 +393,7 @@ export default function BattleFlow({
             {phase === "intro" && (
               <>
                 <div className="mb-1 rounded-xl border-2 border-[#ffb300] bg-[#fff8e1] px-3 py-2 text-sm font-bold text-[#2b3a4a]">
-                  🦊 {battleIntroGuide(brain)}
+                  🦊 {isGuard ? "打败守卫，就能让精灵觉醒新力量！" : battleIntroGuide(brain)}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => setPhase("pick")} className="pixel-btn pixel-btn-blue py-3 text-lg">

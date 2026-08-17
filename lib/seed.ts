@@ -1,10 +1,11 @@
 import db from "./db";
 
-// ========== 种子数据：完整小学数学体系（数学元认知图谱 v0.2）==========
-// 28 个元认知 = 28 只精灵 = 28 座岛（含数学广角·集合 MK-28 独立成「集合岛」）。
+// ========== 种子数据：完整小学数学体系（第二阶段 · 属性策略/觉醒）==========
+// 29 个元认知 = 29 只精灵 = 29 座岛（含 MK-37 因数倍数；数学广角 8 主题已迁为策略）。
 // 除两个起点（计数 MK-01、图形认识 MK-15）外，
 // 每个 元认知 都有一只「渡海 Boss」守在它的父知识岛上（分叉：一个岛多个出海口；
 // 汇聚：多父知识的 Boss 需要多个前置全部点亮），净化后解锁对应新岛。
+// 第二阶段：性质 30（觉醒）/ 策略 19（连招）/ 知识守卫 30（本岛觉醒载体，打赢=觉醒）。
 
 type SeedMonster = {
   id: string; name: string; type: "minion" | "boss" | "hidden"; island: string;
@@ -145,38 +146,10 @@ export const WORLD_METAS: MetaDef[] = [
   { id: "MK-28", name: "集合", meaning: "重叠关系（容斥）", domain: "数学广角", isMvp: 0, emoji: "🌀",
     parents: [{ meta: "MK-24", op: "重叠" }], bossName: "集合怪", bossQuestion: "分着分着，有两堆东西重叠了……",
     quiz: { prompt: "既喜欢吃苹果又喜欢吃香蕉的小朋友，该放在哪个圈里？", correct: "两个圈重叠的部分", wrong: ["只放苹果圈", "只放香蕉圈"] }, discoverWrong: ["分类整理", "统计图"] },
-  // ---- H. 数学广角扩展（MK-29 ~ MK-36，系统渗透数学思想方法）----
-  { id: "MK-29", name: "搭配", meaning: "排列组合、有序列举", domain: "数学广角", isMvp: 0, emoji: "🔀",
-    parents: [{ meta: "MK-05", op: "聚合" }], bossName: "搭配怪", bossQuestion: "2 件上衣配 3 条裤子，有几种穿法？有序地数一数！",
-    quiz: { prompt: "2 件上衣、3 条裤子，一共几种搭配？", correct: "6", wrong: ["5", "3"] }, discoverWrong: ["乘法", "集合"] },
-  { id: "MK-30", name: "推理", meaning: "逻辑推理（排除法）", domain: "数学广角", isMvp: 0, emoji: "🔍",
-    parents: [{ meta: "MK-24", op: "分类" }], bossName: "推理怪", bossQuestion: "三个小朋友赛跑，甲不是第一，乙比丙慢……谁是第一？",
-    quiz: { prompt: "甲乙丙三人，甲不是最高，乙比丙矮，谁最高？", correct: "丙", wrong: ["甲", "乙"] }, discoverWrong: ["分类整理", "搭配"] },
-  { id: "MK-31", name: "优化", meaning: "运筹思想、合理安排", domain: "数学广角", isMvp: 0, emoji: "⚡",
-    parents: [{ meta: "MK-23", op: "聚合" }], bossName: "优化怪", bossQuestion: "烧水时可以同时洗茶杯，怎样安排最省时间？",
-    quiz: { prompt: "烧水 10 分钟（同时可洗杯子 2 分钟），最快几分钟喝到茶？", correct: "10", wrong: ["12", "8"] }, discoverWrong: ["时间", "搭配"] },
-  { id: "MK-32", name: "鸡兔同笼", meaning: "假设建模", domain: "数学广角", isMvp: 0, emoji: "🐔",
-    parents: [{ meta: "MK-05", op: "抽象" }, { meta: "MK-04", op: "抽象" }], bossName: "鸡兔怪", bossQuestion: "笼子里有鸡和兔，数头 8 个、数脚 26 只，各几只？",
-    quiz: { prompt: "鸡兔同笼，8 头 26 脚，兔有几只？", correct: "5", wrong: ["3", "4"] }, discoverWrong: ["乘法", "减法"] },
-  { id: "MK-33", name: "植树问题", meaning: "化归模型（间隔与棵数）", domain: "数学广角", isMvp: 0, emoji: "🌳",
-    parents: [{ meta: "MK-05", op: "关系" }], bossName: "植树怪", bossQuestion: "20 米路每隔 5 米栽一棵树，两端都栽，几棵树？",
-    quiz: { prompt: "20 米路每 5 米栽一棵（两端都栽），共几棵？", correct: "5", wrong: ["4", "6"] }, discoverWrong: ["乘法", "比"] },
-  { id: "MK-34", name: "找次品", meaning: "三分最优策略（逻辑推理）", domain: "数学广角", isMvp: 0, emoji: "⚖️",
-    parents: [{ meta: "MK-30", op: "细化" }], bossName: "次品怪", bossQuestion: "9 个零件有 1 个较轻，用天平至少称几次保证找到？",
-    quiz: { prompt: "9 个球 1 个较轻，天平至少称几次找到？", correct: "2", wrong: ["3", "4"] }, discoverWrong: ["推理", "优化"] },
-  { id: "MK-35", name: "数与形", meaning: "数形结合、规律探索", domain: "数学广角", isMvp: 0, emoji: "🔲",
-    parents: [{ meta: "MK-18", op: "变换" }, { meta: "MK-05", op: "变换" }], bossName: "数形怪", bossQuestion: "1+3=4=2²，1+3+5=9=3²……数和形是好朋友！",
-    quiz: { prompt: "1+3+5+7+9 等于几？（想想正方形点阵）", correct: "25", wrong: ["15", "20"] }, discoverWrong: ["面积", "乘法"] },
-  { id: "MK-36", name: "鸽巢问题", meaning: "抽屉原理", domain: "数学广角", isMvp: 0, emoji: "🕊️",
-    parents: [{ meta: "MK-30", op: "抽象" }], bossName: "鸽巢怪", bossQuestion: "4 只鸽子飞进 3 个巢，至少有一个巢里有几只？",
-    quiz: { prompt: "5 支笔放进 4 个盒子，至少有一个盒子放几支？", correct: "2", wrong: ["1", "3"] }, discoverWrong: ["推理", "搭配"] },
-  // ---- I. 数与代数补缺（MK-37 ~ MK-38）----
+  // ---- H. 数与代数补缺（MK-37 因数倍数，真元认知）----
   { id: "MK-37", name: "因数倍数", meaning: "质数合数、公因数公倍数", domain: "数与运算", isMvp: 0, emoji: "🔗",
     parents: [{ meta: "MK-05", op: "关系" }, { meta: "MK-02", op: "细化" }], bossName: "因数怪", bossQuestion: "6 = 1×6 = 2×3……每个数都有自己的因数！",
     quiz: { prompt: "12 的因数有几个？", correct: "6", wrong: ["4", "5"] }, discoverWrong: ["乘法", "位值"] },
-  { id: "MK-38", name: "运算定律", meaning: "交换/结合/分配律", domain: "数与运算", isMvp: 0, emoji: "📋",
-    parents: [{ meta: "MK-03", op: "聚合" }, { meta: "MK-05", op: "聚合" }], bossName: "定律怪", bossQuestion: "25×(4+8) = 25×4+25×8……这就是分配律！",
-    quiz: { prompt: "25×(4+8) 用分配律怎么算？", correct: "25×4+25×8", wrong: ["25×4×8", "25+4×8"] }, discoverWrong: ["乘法", "加法"] },
 ];
 
 // ================= 进化边（DAG，允许多父交叉 = 知识迁移） =================
@@ -201,7 +174,121 @@ export const WORLD_SPIRITS = WORLD_METAS.map((m) => ({
   nickname: `${m.name}精灵`,
 }));
 
+// ============ 第二阶段 · 性质（30 条，觉醒路线） ============
 const metaName = (id: string) => WORLD_METAS.find((m) => m.id === id)?.name ?? id;
+// order = 觉醒顺序；requiredLevel = 等级门槛（第 1 条 Lv2、第 2 条 Lv3、第 3 条 Lv4）
+// spawnMode: fixed（单精灵 → 本岛必现）/ random（多精灵 → 相关岛随机现身 + 广播）
+export type PropertySeed = {
+  id: string;
+  name: string;
+  belongsTo: string[];      // 依附元认知（多精灵 = 觉醒联手）
+  order: number;            // 觉醒顺序
+  requiredLevel: number;    // 等级门槛
+  spawnMode: "fixed" | "random";
+  explain: string;
+};
+
+export const WORLD_PROPERTIES: PropertySeed[] = [
+  // ---- 数与运算 ----
+  { id: "PP-01", name: "加法交换律", belongsTo: ["MK-03"], order: 1, requiredLevel: 2, spawnMode: "fixed", explain: "换序和不变：a+b = b+a。凑整更快！" },
+  { id: "PP-02", name: "加法结合律", belongsTo: ["MK-03"], order: 2, requiredLevel: 3, spawnMode: "fixed", explain: "先加谁和不变：(a+b)+c = a+(b+c)。" },
+  { id: "PP-03", name: "乘法交换律", belongsTo: ["MK-05"], order: 1, requiredLevel: 2, spawnMode: "fixed", explain: "换序积不变：a×b = b×a。" },
+  { id: "PP-04", name: "乘法结合律", belongsTo: ["MK-05"], order: 2, requiredLevel: 3, spawnMode: "fixed", explain: "先乘谁积不变：(a×b)×c = a×(b×c)。" },
+  { id: "PP-05", name: "乘法分配律", belongsTo: ["MK-05", "MK-03"], order: 3, requiredLevel: 4, spawnMode: "random", explain: "乘开括号：a×(b+c) = a×b + a×c。" },
+  { id: "PP-06", name: "等式性质", belongsTo: ["MK-14", "MK-13"], order: 1, requiredLevel: 2, spawnMode: "random", explain: "两边同加减乘除，等式仍成立（解方程的钥匙）。" },
+  { id: "PP-07", name: "商不变规律", belongsTo: ["MK-06", "MK-11"], order: 1, requiredLevel: 2, spawnMode: "random", explain: "被除数除数同乘同除，商不变。" },
+  { id: "PP-08", name: "分数的基本性质", belongsTo: ["MK-07"], order: 1, requiredLevel: 2, spawnMode: "fixed", explain: "分子分母同乘同除，分数大小不变（约分通分依据）。" },
+  { id: "PP-09", name: "运算优先级", belongsTo: ["MK-03", "MK-04", "MK-05", "MK-06"], order: 1, requiredLevel: 2, spawnMode: "random", explain: "先乘除后加减，同级从左到右。" },
+  { id: "PP-10", name: "减法性质", belongsTo: ["MK-04"], order: 1, requiredLevel: 2, spawnMode: "fixed", explain: "连减 = 减去它们的和：a-b-c = a-(b+c)。" },
+  { id: "PP-11", name: "小数的性质", belongsTo: ["MK-08", "MK-02"], order: 1, requiredLevel: 2, spawnMode: "random", explain: "末尾添 0 / 去 0，大小不变：3.5 = 3.50。" },
+  { id: "PP-12", name: "整除特征", belongsTo: ["MK-37"], order: 1, requiredLevel: 2, spawnMode: "fixed", explain: "2 / 5 / 3 / 9 的倍数特征（看个位、看数字和）。" },
+  { id: "PP-13", name: "质数与合数", belongsTo: ["MK-37"], order: 2, requiredLevel: 3, spawnMode: "fixed", explain: "质数只有 1 和它本身两个因数；合数至少三个。" },
+  { id: "PP-14", name: "百分数互化", belongsTo: ["MK-09", "MK-07"], order: 1, requiredLevel: 2, spawnMode: "random", explain: "百分数 ↔ 分数 / 小数 的转换规则。" },
+  { id: "PP-15", name: "十进制规则", belongsTo: ["MK-02"], order: 1, requiredLevel: 2, spawnMode: "fixed", explain: "逢十进一，满十向高位移一。" },
+  // ---- 数的关系与代数 ----
+  { id: "PP-16", name: "比的基本性质", belongsTo: ["MK-11"], order: 1, requiredLevel: 2, spawnMode: "fixed", explain: "前项后项同乘同除，比值不变（化简比依据）。" },
+  { id: "PP-17", name: "比例的基本性质", belongsTo: ["MK-12"], order: 1, requiredLevel: 2, spawnMode: "fixed", explain: "内项积 = 外项积（解比例的钥匙）。" },
+  // ---- 图形与几何 ----
+  { id: "PP-18", name: "三角形内角和 = 180°", belongsTo: ["MK-16", "MK-15"], order: 1, requiredLevel: 2, spawnMode: "random", explain: "任何三角形三个角加起来都是 180°。" },
+  { id: "PP-19", name: "圆周长 = 2πr", belongsTo: ["MK-17", "MK-15"], order: 1, requiredLevel: 2, spawnMode: "random", explain: "圆的一圈 = 直径 × π。" },
+  { id: "PP-20", name: "圆面积 = πr²", belongsTo: ["MK-18", "MK-17"], order: 1, requiredLevel: 2, spawnMode: "random", explain: "圆的面积 = 半径平方 × π。" },
+  { id: "PP-21", name: "面积公式推导链", belongsTo: ["MK-18"], order: 2, requiredLevel: 3, spawnMode: "fixed", explain: "平行四边形割补成长方形 → 三角形 / 梯形各取一半。" },
+  { id: "PP-22", name: "圆柱与圆锥体积关系", belongsTo: ["MK-19", "MK-18"], order: 1, requiredLevel: 2, spawnMode: "random", explain: "等底等高时，圆锥体积 = 圆柱的 1/3。" },
+  { id: "PP-23", name: "图形变换不变性", belongsTo: ["MK-20"], order: 1, requiredLevel: 2, spawnMode: "fixed", explain: "平移 / 旋转 / 对称不改变形状与大小。" },
+  // ---- 量与测量 ----
+  { id: "PP-24", name: "进率规律", belongsTo: ["MK-22", "MK-02"], order: 1, requiredLevel: 2, spawnMode: "random", explain: "相邻单位：长度 ×10、面积 ×100、体积 / 质量 ×1000。" },
+  { id: "PP-25", name: "时间进制", belongsTo: ["MK-23"], order: 1, requiredLevel: 2, spawnMode: "fixed", explain: "60 秒 = 1 分、60 分 = 1 时（不是十进制！）。" },
+  // ---- 统计与概率 ----
+  { id: "PP-26", name: "平均数关系", belongsTo: ["MK-26", "MK-06"], order: 1, requiredLevel: 2, spawnMode: "random", explain: "总和 = 平均数 × 个数（移多补少的量化）。" },
+  { id: "PP-27", name: "中位数", belongsTo: ["MK-26"], order: 2, requiredLevel: 3, spawnMode: "fixed", explain: "有序数据最中间的值，代表「中间水平」。" },
+  { id: "PP-28", name: "众数", belongsTo: ["MK-26"], order: 3, requiredLevel: 4, spawnMode: "fixed", explain: "出现次数最多的值，代表「大多数水平」。" },
+  { id: "PP-29", name: "概率范围", belongsTo: ["MK-27"], order: 1, requiredLevel: 2, spawnMode: "fixed", explain: "概率在 0~1 之间；必然 = 1，不可能 = 0。" },
+  // ---- 数学广角 ----
+  { id: "PP-30", name: "容斥规则", belongsTo: ["MK-28", "MK-24"], order: 1, requiredLevel: 2, spawnMode: "random", explain: "重叠部分只能数一次（韦恩图计数）。" },
+];
+
+// ============ 第二阶段 · 策略（19 条，连招/思想方法） ============
+export type StrategySeed = { id: string; name: string; effect: string; tier: number };
+
+export const WORLD_STRATEGIES: StrategySeed[] = [
+  { id: "ST-01", name: "简算", effect: "凑整、凑十，配合运算律", tier: 1 },
+  { id: "ST-02", name: "验算", effect: "反向检查结果", tier: 1 },
+  { id: "ST-03", name: "估算", effect: "近似判断范围", tier: 1 },
+  { id: "ST-04", name: "画图", effect: "线段图、数形结合", tier: 1 },
+  { id: "ST-05", name: "逆向", effect: "从结果倒推", tier: 1 },
+  { id: "ST-06", name: "找规律", effect: "模式识别", tier: 1 },
+  { id: "ST-07", name: "括号", effect: "人为改变运算优先级", tier: 1 },
+  { id: "ST-08", name: "搭配", effect: "有序列举 / 乘法计数原理", tier: 1 },
+  { id: "ST-09", name: "推理", effect: "逻辑排除（数独 / 排除法）", tier: 1 },
+  { id: "ST-10", name: "优化", effect: "统筹最省（同时做、不空等）", tier: 1 },
+  { id: "ST-11", name: "假设", effect: "鸡兔同笼假设法（全设为 A，看差补）", tier: 1 },
+  { id: "ST-12", name: "化归", effect: "植树问题间隔模型（棵数 = 段数 ± 1）", tier: 1 },
+  { id: "ST-13", name: "三分", effect: "找次品天平最优策略", tier: 1 },
+  { id: "ST-14", name: "数形结合", effect: "数与形互译（平方数点阵等）", tier: 1 },
+  { id: "ST-15", name: "抽屉", effect: "鸽巢原理（至少 / 必有）", tier: 1 },
+  { id: "ST-16", name: "归一归总", effect: "先求 1 份量 / 先求总量", tier: 2 },
+  { id: "ST-17", name: "行程", effect: "路程 = 速度 × 时间（相遇 / 追及）", tier: 2 },
+  { id: "ST-18", name: "和差倍", effect: "线段图 + 和差 / 和倍公式", tier: 2 },
+  { id: "ST-19", name: "工程", effect: "总量设为 1，工效相加", tier: 2 },
+];
+
+// ============ 知识守卫（由性质派生：打赢守卫 = 觉醒该性质） ============
+export type GuardSeed = {
+  id: string;
+  name: string;
+  type: "guard";
+  island: string;
+  question: string;
+  correct_meta: string | null;
+  target_meta: string | null;
+  prerequisites: string[] | null;
+  required_metas: string[];   // 需要哪些精灵达标（多精灵守卫）
+  required_level: number;     // 等级门槛
+  spawn_mode: "fixed" | "random";
+  spawn_islands: string[];    // 随机现身池
+  steps: { type: "solve"; prompt: string; options: { label: string; correct?: boolean }[] }[];
+};
+
+/** 由性质派生守卫：fixed → 主岛必现；random → 相关岛随机现身 */
+export const WORLD_GUARDS: GuardSeed[] = WORLD_PROPERTIES.map((p) => {
+  const islands = p.belongsTo.map((m) => `${metaName(m)}岛`);
+  return {
+    id: `guard-${p.id.toLowerCase().replace("=", "").replace("π", "pi").replace("²", "2")}`,
+    name: `${p.name}守卫`,
+    type: "guard" as const,
+    island: islands[0],
+    question: `${p.name}的觉醒考验！打赢它，${p.name}就真正属于你了！`,
+    correct_meta: p.belongsTo[0],
+    target_meta: null,
+    prerequisites: p.belongsTo,
+    required_metas: p.belongsTo,
+    required_level: p.requiredLevel,
+    spawn_mode: p.spawnMode,
+    spawn_islands: islands,
+    steps: [{ type: "solve", prompt: p.explain, options: [{ label: "我明白了", correct: true }] }],
+  };
+});
+
 const islandOf = (m: MetaDef) => `${m.name}岛`;
 
 /** 由元认知定义生成 Boss：守在「最深」父知识的岛上（分叉），前置 = 全部父知识（汇聚） */
@@ -354,13 +441,68 @@ export function requiredSparksOf(id: string): number {
   return { "minion-why-01": 3, "minion-riddle-01": 6, "minion-star-01": 9 }[id] ?? 999;
 }
 
+/** 已淘汰的元认知（数学广角 8 主题 → 策略；运算定律 → 性质） */
+const RETIRED_METAS = ["MK-29", "MK-30", "MK-31", "MK-32", "MK-33", "MK-34", "MK-35", "MK-36", "MK-38"];
+const RETIRED_ISLANDS = ["搭配岛", "推理岛", "优化岛", "鸡兔同笼岛", "植树问题岛", "找次品岛", "数与形岛", "鸽巢问题岛", "运算定律岛"];
+
+/** 第二阶段种子：性质（30）/ 策略（19）/ 知识守卫（30）/ config 默认值（幂等） */
+function seedSecondStage() {
+  const upsertProperty = db.prepare(
+    'INSERT OR IGNORE INTO property (id, name, belongs_to, "order", explain) VALUES (?, ?, ?, ?, ?)'
+  );
+  for (const p of WORLD_PROPERTIES) upsertProperty.run(p.id, p.name, JSON.stringify(p.belongsTo), p.order, p.explain);
+
+  const upsertStrategy = db.prepare("INSERT OR IGNORE INTO strategy (id, name, effect, tier) VALUES (?, ?, ?, ?)");
+  for (const s of WORLD_STRATEGIES) upsertStrategy.run(s.id, s.name, s.effect, s.tier);
+
+  const upsertGuard = db.prepare(
+    "INSERT OR REPLACE INTO monster (id, name, type, island, question, correct_meta, target_meta, prerequisites, options, steps, required_metas, required_level, spawn_mode, spawn_islands) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  );
+  for (const g of WORLD_GUARDS) {
+    upsertGuard.run(
+      g.id, g.name, g.type, g.island, g.question, g.correct_meta, g.target_meta,
+      g.prerequisites ? JSON.stringify(g.prerequisites) : null,
+      null, JSON.stringify(g.steps),
+      JSON.stringify(g.required_metas), g.required_level, g.spawn_mode, JSON.stringify(g.spawn_islands)
+    );
+  }
+
+  // config 默认值（INSERT OR IGNORE：已有用户调过的值不覆盖）
+  const defaults: [string, string][] = [
+    ["xp_threshold", "3"],        // 每升 1 级需赢的场数
+    ["step_base", "4"],           // 每场基础题目数
+    ["step_per_level", "1"],      // 每精灵等级 +1 招
+    ["step_max", "7"],            // 每场上限
+    ["diff_a", "1"],              // 难度：下游岛权重
+    ["diff_b", "2"],              // 难度：精灵等级权重
+    ["broadcast", "1"],           // 觉醒广播开关
+    ["boss_stuck_attempts", "2"], // 卡关阈值（同 Boss 失败次数）
+  ];
+  const upsertConfig = db.prepare("INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)");
+  for (const [k, v] of defaults) upsertConfig.run(k, v);
+}
+
 /**
- * 世界结构迁移（v5：完整小学数学体系）：
- * - 28 元认知 / 29 进化边 / 28 精灵 幂等入库（INSERT OR IGNORE，不覆盖老数据）
- * - Boss 全量 UPSERT（Boss 行不含用户状态，可安全覆盖；id 规则 boss-mkxx）
+ * 世界结构迁移（v6：第二阶段 · 属性策略/觉醒）：
+ * - 29 元认知 / 31 进化边 / 29 精灵 幂等入库
+ * - 淘汰 MK-29~36、MK-38（清理孤儿行）
+ * - 性质 30 / 策略 19 / 知识守卫 30 / config 默认值 幂等 seed
+ * - Boss 全量 UPSERT（布局可随版本调整）；小怪/神秘怪幂等补种
  * - 老库补偿：图形认识（几何线起点）补发初始内化；MK-01 初始内化保留
  */
 function migrateWorld() {
+  // v6 迁移：淘汰数学广角 8 主题（→ 策略）与运算定律（→ 性质），清理孤儿行
+  const retired = `(${RETIRED_METAS.map((m) => `'${m}'`).join(",")})`;
+  const retiredIslands = `(${RETIRED_ISLANDS.map((i) => `'${i}'`).join(",")})`;
+  db.exec(`DELETE FROM meta_cognition WHERE id IN ${retired}`);
+  db.exec(`DELETE FROM evolution_edge WHERE from_meta IN ${retired} OR to_meta IN ${retired}`);
+  db.exec(`DELETE FROM spirit WHERE meta_id IN ${retired}`);
+  db.exec(`DELETE FROM internalized_meta WHERE meta_id IN ${retired}`);
+  db.exec(`DELETE FROM monster WHERE target_meta IN ${retired} OR island IN ${retiredIslands}`);
+  // 进化边为静态知识（无用户状态）：全量重建，避免旧库 E-xx 编号与新库错位
+  db.exec("DELETE FROM evolution_edge");
+  seedSecondStage();
+
   const upsertMeta = db.prepare(
     "INSERT OR IGNORE INTO meta_cognition (id, name, meaning, domain, is_mvp) VALUES (?, ?, ?, ?, ?)"
   );
@@ -432,6 +574,7 @@ export function seedIfEmpty() {
         JSON.stringify(mo.steps)
       );
     }
+    seedSecondStage(); // 性质 / 策略 / 守卫 / config
     db.prepare("INSERT OR REPLACE INTO explorer (id, name, brain_settings, current_island) VALUES (?, ?, ?, ?)")
       .run(defaultExplorer.id, defaultExplorer.name, defaultExplorer.brain_settings, defaultExplorer.current_island);
     // 初始内化：计数（孩子天生会数数）+ 图形认识（几何线起点）

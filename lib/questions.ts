@@ -760,8 +760,14 @@ const COMBOS: Record<string, () => SolveStep> = {
 };
 
 /** 为某知识点生成一整场随机题目。
- * level 越高：数字范围越大、题目也越多（4→7 招），并更可能穿插联手大题。 */
-export function generateSteps(metaId: string, count?: number, level = 1): SolveStep[] {
+ * level 越高：数字范围越大、题目也越多（4→7 招），并更可能穿插联手大题。
+ * opts.islandLevel ≥ 2 时穿插「觉醒题」（用已觉醒的性质解题，需调用方传 awakened 列表）。 */
+export function generateSteps(
+  metaId: string,
+  count?: number,
+  level = 1,
+  opts?: { islandLevel?: number; awakened?: string[] }
+): SolveStep[] {
   setDifficultyLevel(level);
   const gen = GENERATORS[metaId];
   if (!gen) return [];
@@ -771,7 +777,490 @@ export function generateSteps(metaId: string, count?: number, level = 1): SolveS
   for (let i = 0; i < base; i++) {
     // 中后段穿插联手题（如果该岛有联手机制）
     if (combo && i === Math.floor(base / 2)) steps.push(combo());
+    // 岛档位 ≥2：最后一招穿插觉醒题（用已觉醒的性质）
+    else if ((opts?.islandLevel ?? 1) >= 2 && i === base - 1) {
+      const pw = propertyStepFor(metaId, opts?.awakened);
+      steps.push(pw ?? gen());
+    }
     else steps.push(gen());
   }
   return steps;
+}
+
+// ============ 觉醒题生成器（PROPERTY_GENERATORS，第二阶段） ============
+// 打赢知识守卫 = 觉醒对应性质；守卫战与进阶小怪（岛档位 ≥2）用它出题。
+// 第一批核心 7 条（PP-01~04/10/16 单精灵 + PP-05 分配律觉醒联手）。
+
+function swapAddStep(pp: "PP-01" | "PP-02"): SolveStep {
+  const x = rnd(1, 8);
+  const y = rnd(1, 9);
+  const z = 10 - x;
+  const ans = y + 10;
+  const explain =
+    pp === "PP-01"
+      ? `交换律：${x} 和 ${z} 换个位置凑成 10（${x}+${z}=10），再加上 ${y} = ${ans}。换序和不变！`
+      : `结合律：先把 ${x} 和 ${z} 加在一起（${x}+${z}=10），再和 ${y} 相加 = ${ans}。先加谁和不变！`;
+  return { type: "solve", prompt: `✨ ${x} + ${y} + ${z} = ?（想想怎么算更快）`, options: numOptions(ans), explain };
+}
+
+function swapMulStep(): SolveStep {
+  const a = [2, 5][rnd(0, 1)];
+  const c = 10 / a;
+  const b = rnd(2, 9);
+  return {
+    type: "solve",
+    prompt: `✨ ${a} × ${b} × ${c} = ?（想想怎么算更快）`,
+    options: numOptions(b * 10),
+    explain: `交换律：把 ${a} 和 ${c} 换到一起先乘（${a}×${c}=10），再乘 ${b} = ${b * 10}。换序积不变！`,
+  };
+}
+
+function groupMulStep(): SolveStep {
+  const a = rnd(2, 9);
+  return {
+    type: "solve",
+    prompt: `✨ 25 × ${a} × 4 = ?（想想怎么算更快）`,
+    options: numOptions(a * 100),
+    explain: `结合律：先算 25×4 = 100，再乘 ${a} = ${a * 100}。先乘谁积不变！`,
+  };
+}
+
+function subChainStep(): SolveStep {
+  const b = rnd(2, 8);
+  const c = 10 - b;
+  const extra = rnd(1, 5);
+  const a = b + c + extra;
+  return {
+    type: "solve",
+    prompt: `✨ ${a} - ${b} - ${c} = ?（想想怎么算更快）`,
+    options: numOptions(extra),
+    explain: `减法性质：连减 = 减去它们的和。${a} - (${b}+${c}) = ${a} - ${10} = ${extra}。`,
+  };
+}
+
+function simplifyRatioStep(): SolveStep {
+  const k = rnd(2, 4);
+  const x = rnd(2, 6);
+  const y = rnd(2, 6);
+  const ans = `${x}:${y}`;
+  return {
+    type: "solve",
+    prompt: `✨ 化简比：${k * x} : ${k * y} = ?`,
+    options: choiceOptions(ans, [`${k * x}:${y}`, `${x}:${k * y}`]),
+    explain: `比的基本性质：前项后项同除以 ${k}，比值不变。${k * x}:${k * y} 化简 = ${ans}。`,
+  };
+}
+
+/** 分配律（多精灵觉醒联手：需乘法 + 加法精灵） */
+function distributeStep(): SolveStep {
+  const a = rnd(2, 9);
+  const b = rnd(2, 9);
+  const c = rnd(2, 9);
+  return {
+    type: "solve",
+    prompt: `✨ ${a} × (${b} + ${c}) 用分配律怎么拆？`,
+    options: choiceOptions(`${a}×${b} + ${a}×${c}`, [`${a}×${b}×${c}`, `${a}×${b}+${c}`]),
+    requires: ["MK-05", "MK-03"],
+    requires_properties: ["PP-05"],
+    explain: `分配律：${a}×( ${b}+${c} ) = ${a}×${b} + ${a}×${c}。拆开后再算更灵活！`,
+  };
+}
+
+const PROPERTY_GENERATORS: Record<string, () => SolveStep> = {
+  "PP-01": () => swapAddStep("PP-01"),
+  "PP-02": () => swapAddStep("PP-02"),
+  "PP-03": swapMulStep,
+  "PP-04": groupMulStep,
+  "PP-05": distributeStep,
+  "PP-06": equalPropStep,
+  "PP-07": quotientStep,
+  "PP-08": reduceFracStep,
+  "PP-09": priorityStep,
+  "PP-10": subChainStep,
+  "PP-11": decimalZeroStep,
+  "PP-12": divisibilityStep,
+  "PP-13": primeStep,
+  "PP-14": percentOfStep,
+  "PP-15": decimalPlaceStep,
+  "PP-16": simplifyRatioStep,
+  "PP-17": ratioPropertyStep,
+  "PP-18": innerAngleStep,
+  "PP-19": circlePerimeterStep,
+  "PP-20": circleAreaStep,
+  "PP-21": areaDeriveStep,
+  "PP-22": cylinderConeStep,
+  "PP-23": transformInvariantStep,
+  "PP-24": rateLawStep,
+  "PP-25": timeBaseStep,
+  "PP-26": averageRelationStep,
+  "PP-27": medianStep,
+  "PP-28": modeStep,
+  "PP-29": probRangeStep,
+  "PP-30": overlapStep,
+};
+
+/** 某岛在已觉醒性质中有生成器的，随机取一条出觉醒题 */
+export function propertyStepFor(metaId: string, awakened?: string[]): SolveStep | null {
+  if (!awakened || awakened.length === 0) return null;
+  const candidates = awakened.filter((p) => PROPERTY_GENERATORS[p]);
+  // 只取属于该元认知的性质题（多精灵性质由主精灵出）
+  const own = candidates.filter((p) => PROPERTY_OWNER[p] === metaId);
+  const pool = own.length > 0 ? own : candidates;
+  if (pool.length === 0) return null;
+  return PROPERTY_GENERATORS[pool[rnd(0, pool.length - 1)]]();
+}
+
+/** 性质 → 主归属元认知（决定哪座岛的进阶小怪出它） */
+const PROPERTY_OWNER: Record<string, string> = {
+  "PP-01": "MK-03", "PP-02": "MK-03", "PP-03": "MK-05", "PP-04": "MK-05", "PP-05": "MK-05",
+  "PP-06": "MK-14", "PP-07": "MK-06", "PP-08": "MK-07", "PP-09": "MK-03", "PP-10": "MK-04",
+  "PP-11": "MK-08", "PP-12": "MK-37", "PP-13": "MK-37", "PP-14": "MK-09", "PP-15": "MK-02",
+  "PP-16": "MK-11", "PP-17": "MK-12", "PP-18": "MK-16", "PP-19": "MK-17", "PP-20": "MK-18",
+  "PP-21": "MK-18", "PP-22": "MK-19", "PP-23": "MK-20", "PP-24": "MK-22", "PP-25": "MK-23",
+  "PP-26": "MK-26", "PP-27": "MK-26", "PP-28": "MK-26", "PP-29": "MK-27", "PP-30": "MK-28",
+};
+
+/** 守卫战题目：由守卫对应性质生成（觉醒联手题带 requires / requires_properties）；无生成器则用 seed 兜底 steps */
+export function guardSteps(propertyId: string): SolveStep[] {
+  const gen = PROPERTY_GENERATORS[propertyId];
+  if (gen) return [gen()];
+  return [];
+}
+
+// ============ 觉醒题生成器 · 第二批（23 条，30 条性质全覆盖） ============
+
+/** PP-08 分数基本性质：约分 */
+function reduceFracStep(): SolveStep {
+  const k = rnd(2, 4);
+  const x = rnd(2, 5);
+  const y = rnd(2, 5);
+  const ans = `${x}/${y}`;
+  return {
+    type: "solve",
+    prompt: `✨ ${k * x}/${k * y} 约分后是几分之几？`,
+    options: choiceOptions(ans, [`${k}/${y}`, `${x}/${k * y}`]),
+    explain: `分数的基本性质：分子分母同除以 ${k}，大小不变。${k * x}/${k * y} 约分 = ${ans}。`,
+  };
+}
+
+/** PP-12 整除特征：判断能否被 2/3/5/9 整除 */
+function divisibilityStep(): SolveStep {
+  const cases = [
+    () => {
+      const n = rnd(2, 9) * 10 + [0, 5][rnd(0, 1)];
+      return { p: `${n} 能被几整除？（看个位）`, a: "5", w: ["2", "3"] as [string, string], e: `个位是 ${n % 10}，所以 ${n} 能被 5 整除（也能被 2 整除，但看个位先想到 5）。` };
+    },
+    () => {
+      const n = rnd(3, 9) * 10 + rnd(0, 9);
+      return { p: `下面哪个数能被 3 整除？（看数字和）`, a: `${n}`, w: [`${n + 1}`, `${n + 2}`] as [string, string], e: `${n} 的数字和是 ${String(n).split("").reduce((s, c) => s + +c, 0)}，能被 3 整除，所以 ${n} 能被 3 整除。` };
+    },
+  ] as (() => { p: string; a: string; w: [string, string]; e: string })[];
+  const c = cases[rnd(0, cases.length - 1)]();
+  return { type: "solve", prompt: `✨ ${c.p}`, options: choiceOptions(c.a, c.w), explain: c.e };
+}
+
+/** PP-13 质数与合数 */
+function primeStep(): SolveStep {
+  const primes = [7, 11, 13, 17, 19, 23];
+  const n = primes[rnd(0, primes.length - 1)];
+  return {
+    type: "solve",
+    prompt: `✨ ${n} 是什么数？`,
+    options: choiceOptions("质数", ["合数", "偶数"]),
+    explain: `${n} 只有 1 和 ${n} 两个因数，所以是质数（质数 = 只有 1 和它本身两个因数）。`,
+  };
+}
+
+/** PP-15 十进制规则：进位 */
+function decimalPlaceStep(): SolveStep {
+  if (Math.random() < 0.5) {
+    return {
+      type: "solve",
+      prompt: `✨ 10 个一是几个十？`,
+      options: choiceOptions("1 个十", ["10 个十", "0 个十"]),
+      explain: `十进制：满十进一。10 个一打包成 1 个十。`,
+    };
+  }
+  const t = rnd(2, 9);
+  return {
+    type: "solve",
+    prompt: `✨ ${t} 个十再添 ${10 - t} 个十，一共是几个十？`,
+    options: numOptions(10),
+    explain: `${t} + ${10 - t} = 10 个十，满十向百位进一，是 1 个百（100）。`,
+  };
+}
+
+/** PP-17 比例的基本性质：内项积 = 外项积 */
+function ratioPropertyStep(): SolveStep {
+  const b = rnd(2, 6);
+  const c = rnd(2, 6);
+  const d = [2, 3, 4, 6].filter((v) => (b * c) % v === 0 && v <= 9)[rnd(0, 3)] ?? 2;
+  const x = (b * c) / d;
+  return {
+    type: "solve",
+    prompt: `✨ x : ${b} = ${c} : ${d}，x 是几？（用内项积 = 外项积）`,
+    options: numOptions(x),
+    explain: `比例的基本性质：内项积 = 外项积。${b}×${c} = ${d}×x，所以 x = ${b * c} ÷ ${d} = ${x}。`,
+  };
+}
+
+/** PP-21 面积公式推导链：割补法 */
+function areaDeriveStep(): SolveStep {
+  const b = rnd(3, 8);
+  const h = rnd(3, 6);
+  return {
+    type: "solve",
+    prompt: `✨ 平行四边形底 ${b} 厘米、高 ${h} 厘米，沿高割补成长方形后，面积是多少平方厘米？`,
+    options: numOptions(b * h),
+    explain: `割补法：平行四边形沿高剪开拼成长方形，面积不变 = 底 × 高 = ${b} × ${h} = ${b * h} 平方厘米。`,
+  };
+}
+
+/** PP-23 图形变换不变性 */
+function transformInvariantStep(): SolveStep {
+  const cases = [
+    ["✨ 正方形平移后，它的大小会变吗？", "不变", ["变大", "变小"] as [string, string], "平移只改变位置，形状和大小都不变。"],
+    ["✨ 长方形旋转 90° 后，它的形状还是长方形吗？", "是", ["不是", "变成三角形"] as [string, string], "旋转不改变形状，长方形转一下还是长方形。"],
+    ["✨ 对称图形沿对称轴对折后，两边（ ）", "完全重合", ["完全分开", "大小不同"] as [string, string], "对称 = 对折后两边完全重合，形状大小一模一样。"],
+  ] as [string, string, [string, string], string][];
+  const [p, a, w, e] = cases[rnd(0, 2)];
+  return { type: "solve", prompt: p, options: choiceOptions(a, w), explain: e };
+}
+
+/** PP-25 时间进制 */
+function timeBaseStep(): SolveStep {
+  const h = rnd(1, 4);
+  const m = [15, 30, 45][rnd(0, 2)];
+  const total = h * 60 + m;
+  return {
+    type: "solve",
+    prompt: `✨ ${total} 分 = ? 时 ? 分`,
+    options: choiceOptions(`${h} 时 ${m} 分`, [`${h + 1} 时 ${m} 分`, `${h} 时 ${m + 15} 分`]),
+    explain: `时间进制：60 分 = 1 时。${total} 分 = ${h} 时 ${m} 分（不是十进制！）。`,
+  };
+}
+
+/** PP-27 中位数 */
+function medianStep(): SolveStep {
+  const nums = Array.from({ length: 5 }, () => rnd(1, 9));
+  const sorted = [...nums].sort((a, b) => a - b);
+  return {
+    type: "solve",
+    prompt: `✨ 数据 ${nums.join("、")} 的中位数是几？（先从小到大排好）`,
+    options: numOptions(sorted[2]),
+    explain: `中位数 = 有序数据最中间的值。排序后：${sorted.join("、")}，中间是 ${sorted[2]}。`,
+  };
+}
+
+/** PP-28 众数 */
+function modeStep(): SolveStep {
+  const m = rnd(1, 9);
+  const others = [rnd(1, 9), rnd(1, 9)];
+  const nums = [m, m, m, others[0], others[1]];
+  return {
+    type: "solve",
+    prompt: `✨ 数据 ${nums.join("、")} 的众数是几？（出现最多的数）`,
+    options: numOptions(m),
+    explain: `众数 = 出现次数最多的值。${m} 出现了 3 次最多，所以众数是 ${m}。`,
+  };
+}
+
+/** PP-29 概率范围 */
+function probRangeStep(): SolveStep {
+  const cases = [
+    ["✨ 太阳从西边升起，这件事的概率是？", "0", ["1", "0.5"] as [string, string], "不可能事件概率 = 0。"],
+    ["✨ 明天一定会天亮，这件事的概率是？", "1", ["0", "0.5"] as [string, string], "必然事件概率 = 1。"],
+    ["✨ 抛一枚硬币正面朝上，概率在哪个范围？", "0 到 1 之间", ["小于 0", "大于 1"] as [string, string], "任何概率都在 0~1 之间。"],
+  ] as [string, string, [string, string], string][];
+  const [p, a, w, e] = cases[rnd(0, 2)];
+  return { type: "solve", prompt: p, options: choiceOptions(a, w), explain: e };
+}
+
+// ---- 多精灵觉醒联手题（带 requires + requires_properties） ----
+
+/** PP-06 等式性质（方程 + 字母表示数） */
+function equalPropStep(): SolveStep {
+  const a = rnd(2, 8);
+  const x = rnd(1, 9);
+  return {
+    type: "solve",
+    prompt: `✨ x + ${a} = ${x + a}，两边同时减 ${a}，x = ?`,
+    options: numOptions(x),
+    requires: ["MK-14", "MK-13"],
+    requires_properties: ["PP-06"],
+    explain: `等式性质：两边同减 ${a}，等式仍成立。x + ${a} - ${a} = ${x + a} - ${a}，所以 x = ${x}。`,
+  };
+}
+
+/** PP-07 商不变规律（除法 + 比） */
+function quotientStep(): SolveStep {
+  const k = rnd(2, 4);
+  const a = rnd(2, 6);
+  const b = rnd(2, 6);
+  return {
+    type: "solve",
+    prompt: `✨ ${a * k} ÷ ${b * k} = ?（被除数除数同时缩小 ${k} 倍）`,
+    options: numOptions(a / b),
+    requires: ["MK-06", "MK-11"],
+    requires_properties: ["PP-07"],
+    explain: `商不变：被除数除数同除以 ${k}，商不变。${a * k} ÷ ${b * k} = ${a} ÷ ${b} = ${a / b}。`,
+  };
+}
+
+/** PP-09 运算优先级（四则组合） */
+function priorityStep(): SolveStep {
+  const a = rnd(2, 6);
+  const b = rnd(2, 6);
+  const c = rnd(2, 6);
+  return {
+    type: "solve",
+    prompt: `✨ ${a} + ${b} × ${c} = ?（先算乘法！）`,
+    options: numOptions(a + b * c),
+    requires: ["MK-03", "MK-05"],
+    requires_properties: ["PP-09"],
+    explain: `运算优先级：先乘除后加减。先算 ${b}×${c} = ${b * c}，再 ${a} + ${b * c} = ${a + b * c}。`,
+  };
+}
+
+/** PP-11 小数的性质（小数 + 位值） */
+function decimalZeroStep(): SolveStep {
+  const y = rnd(1, 9);
+  const j = rnd(1, 9);
+  const z = rnd(1, 3);
+  return {
+    type: "solve",
+    prompt: `✨ ${y}.${j} 的末尾添上 ${z} 个 0，变成 ${y}.${j}${"0".repeat(z)}，大小变了吗？`,
+    options: choiceOptions("大小不变", ["变大了", "变小了"]),
+    requires: ["MK-08", "MK-02"],
+    requires_properties: ["PP-11"],
+    explain: `小数的性质：末尾添 0 / 去 0，大小不变。${y}.${j} = ${y}.${j}${"0".repeat(z)}。`,
+  };
+}
+
+/** PP-14 百分数互化（百分数 + 分数） */
+function percentOfStep(): SolveStep {
+  const k = rnd(1, 8);
+  const pct = k * 5;
+  return {
+    type: "solve",
+    prompt: `✨ ${k}/20 = ?%`,
+    options: numOptions(pct),
+    requires: ["MK-09", "MK-07"],
+    requires_properties: ["PP-14"],
+    explain: `百分数互化：分数化百分数，先化成 100 为分母。${k}/20 = ${k * 5}/100 = ${pct}%。`,
+  };
+}
+
+/** PP-18 三角形内角和（角 + 图形认识） */
+function innerAngleStep(): SolveStep {
+  const a = rnd(30, 70);
+  const b = rnd(30, 70 - (a - 30));
+  const c = 180 - a - b;
+  return {
+    type: "solve",
+    prompt: `✨ 三角形两个角分别是 ${a}° 和 ${b}°，第三个角是多少度？`,
+    options: numOptions(c),
+    requires: ["MK-16", "MK-15"],
+    requires_properties: ["PP-18"],
+    explain: `三角形内角和 = 180°。第三个角 = 180° - ${a}° - ${b}° = ${c}°。`,
+  };
+}
+
+/** PP-19 圆周长（周长 + 图形认识，π 取 3） */
+function circlePerimeterStep(): SolveStep {
+  const r = rnd(2, 6);
+  return {
+    type: "solve",
+    prompt: `✨ 半径 ${r} 的圆（π 取 3），周长约是多少？`,
+    options: numOptions(6 * r),
+    requires: ["MK-17", "MK-15"],
+    requires_properties: ["PP-19"],
+    explain: `圆周长 = 2πr。2 × 3 × ${r} = ${6 * r}。`,
+  };
+}
+
+/** PP-20 圆面积（面积 + 周长，π 取 3） */
+function circleAreaStep(): SolveStep {
+  const r = rnd(2, 5);
+  return {
+    type: "solve",
+    prompt: `✨ 半径 ${r} 的圆（π 取 3），面积约是多少？`,
+    options: numOptions(3 * r * r),
+    requires: ["MK-18", "MK-17"],
+    requires_properties: ["PP-20"],
+    explain: `圆面积 = πr²。3 × ${r}² = 3 × ${r * r} = ${3 * r * r}。`,
+  };
+}
+
+/** PP-22 圆柱与圆锥体积关系（体积 + 面积） */
+function cylinderConeStep(): SolveStep {
+  const v = rnd(2, 6) * 3;
+  return {
+    type: "solve",
+    prompt: `✨ 等底等高的圆柱体积 ${v}，圆锥体积是多少？`,
+    options: numOptions(v / 3),
+    requires: ["MK-19", "MK-18"],
+    requires_properties: ["PP-22"],
+    explain: `等底等高时，圆锥体积 = 圆柱的 1/3。${v} ÷ 3 = ${v / 3}。`,
+  };
+}
+
+/** PP-24 进率规律（单位换算 + 位值） */
+function rateLawStep(): SolveStep {
+  const cases = [
+    () => ({ p: "1 平方米 = ? 平方分米", a: 100, e: "面积单位相邻进率 ×100。" }),
+    () => ({ p: "1 立方分米 = ? 毫升", a: 1000, e: "体积单位相邻进率 ×1000。" }),
+    () => ({ p: "1 千米 = ? 米", a: 1000, e: "长度单位千米→米进率 ×1000。" }),
+    () => ({ p: "1 吨 = ? 千克", a: 1000, e: "质量单位吨→千克进率 ×1000。" }),
+  ];
+  const { p, a, e } = cases[rnd(0, cases.length - 1)]();
+  return {
+    type: "solve",
+    prompt: `✨ ${p}`,
+    options: numOptions(a),
+    requires: ["MK-22", "MK-02"],
+    requires_properties: ["PP-24"],
+    explain: `进率规律：${e}`,
+  };
+}
+
+/** PP-26 平均数关系（平均数 + 除法） */
+function averageRelationStep(): SolveStep {
+  if (Math.random() < 0.5) {
+    const avg = rnd(3, 8);
+    const n = rnd(3, 6);
+    return {
+      type: "solve",
+      prompt: `✨ 平均每人 ${avg} 颗糖，共 ${n} 个人，糖的总数是？`,
+      options: numOptions(avg * n),
+      requires: ["MK-26", "MK-06"],
+      requires_properties: ["PP-26"],
+      explain: `平均数关系：总和 = 平均数 × 个数 = ${avg} × ${n} = ${avg * n}。`,
+    };
+  }
+  const sum = rnd(4, 8) * 6;
+  const n = [3, 4, 6][rnd(0, 2)];
+  return {
+    type: "solve",
+    prompt: `✨ ${sum} 颗糖平均分给 ${n} 个人，平均每人几颗？`,
+    options: numOptions(sum / n),
+    requires: ["MK-26", "MK-06"],
+    requires_properties: ["PP-26"],
+    explain: `平均数 = 总和 ÷ 个数 = ${sum} ÷ ${n} = ${sum / n}。`,
+  };
+}
+
+/** PP-30 容斥规则（集合 + 分类整理） */
+function overlapStep(): SolveStep {
+  const a = rnd(6, 12);
+  const b = rnd(6, 12);
+  const c = rnd(1, Math.max(1, Math.min(a, b) - 1));
+  return {
+    type: "solve",
+    prompt: `✨ ${a} 人喜欢苹果、${b} 人喜欢香蕉，${c} 人两种都喜欢。喜欢其中一种的共几人？`,
+    options: numOptions(a + b - c),
+    requires: ["MK-28", "MK-24"],
+    requires_properties: ["PP-30"],
+    explain: `容斥规则：重叠部分只能数一次。${a} + ${b} - ${c} = ${a + b - c}。`,
+  };
 }

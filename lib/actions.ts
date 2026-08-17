@@ -1,8 +1,9 @@
 "use server";
 
 import { seedIfEmpty } from "./seed";
-import { setExplorerName, setBrainSettings, setExplorerIsland, getIslands, getExplorer, getMeta } from "./repo";
-import { trainWin as doTrainWin, purify as doPurify, addSpark, getSparkStats, clearSparks, resetAllProgress, getDifficultyLevel, adjustDifficultyBias, recordMistake as doRecordMistake, resolveMistakes as doResolveMistakes } from "./game";
+import { setExplorerName, setBrainSettings, setExplorerIsland, getIslands, getExplorer, getMeta, getInternalizedMetas, getMetas, getProperties, setIslandLevel, setConfig, getAllConfig, getInternalizedStrategies, recordAwakening } from "./repo";
+import { trainWin as doTrainWin, purify as doPurify, addSpark, getSparkStats, clearSparks, resetAllProgress, getDifficultyLevel, adjustDifficultyBias, recordMistake as doRecordMistake, resolveMistakes as doResolveMistakes, guardWin as doGuardWin, checkAwakenings, getVisibleGuardsByIsland, bossFail as doBossFail } from "./game";
+import db from "./db";
 import { getQuestionById, getTipById } from "./askBank";
 import { askAi, saveAiConfig, clearAiConfig, explainWrong, feynmanChat } from "./ai";
 import { revalidatePath } from "next/cache";
@@ -151,4 +152,107 @@ export async function feynmanTeach(metaId: string, history: { role: "kid" | "ai"
   if (!meta) return null;
   const kidName = getExplorer()?.name.split(" ")[0] ?? "小朋友";
   return feynmanChat(meta.name, kidName, history);
+}
+
+// ============ 第二阶段 · 觉醒 / 守卫 / 卡关 / 开发者工具 ============
+
+/** 打赢知识守卫：觉醒性质（镀金）+ 岛屿等级 +1 */
+export async function guardWinAction(guardId: string) {
+  seedIfEmpty();
+  const r = doGuardWin(guardId);
+  revalidatePath("/");
+  return r;
+}
+
+/** 全部可达守卫（达标未觉醒）—— 首页广播「有些奇妙的事情发生了……」用 */
+export async function getAwakeningsInfo() {
+  seedIfEmpty();
+  return checkAwakenings();
+}
+
+/** 某岛当前可见守卫（达标 + 未觉醒） */
+export async function getIslandGuards(island: string) {
+  seedIfEmpty();
+  return getVisibleGuardsByIsland(island);
+}
+
+/** Boss 挑战失败计数（卡关退路：失败 ≥阈值 引导觉醒相关旧知） */
+export async function bossFail(monsterId: string) {
+  seedIfEmpty();
+  return doBossFail(monsterId);
+}
+
+/** 开发者工具：设岛屿档位（模拟守卫已打赢 → 解锁进阶题） */
+export async function setIslandLevelAction(island: string, level: number) {
+  seedIfEmpty();
+  setIslandLevel(island, level);
+  revalidatePath("/");
+}
+
+/** 开发者工具：岛名列表（TestTools 选岛用） */
+export async function getIslandsAction() {
+  seedIfEmpty();
+  return getIslands().map((i) => i.name);
+}
+
+/** 开发者工具：全部岛屿设档位（全岛拉满，demo 演示用） */
+export async function bumpAllIslands(level: number) {
+  seedIfEmpty();
+  for (const i of getIslands()) setIslandLevel(i.name, level);
+  revalidatePath("/");
+}
+
+/** 开发者工具：一键拉满所有精灵等级（触发全部觉醒广播） */
+export async function bumpAllSpirits() {
+  seedIfEmpty();
+  for (const m of getInternalizedMetas()) {
+    db.prepare("UPDATE internalized_meta SET mastery_level = 4, mastery_xp = 0 WHERE meta_id = ?").run(m.id);
+  }
+  revalidatePath("/");
+}
+
+/**
+ * 开发者工具：一键解锁全部内容（demo 体验模式）——
+ * 内化全部 29 元认知（Lv4）+ 觉醒全部 30 条性质 + 全岛等级拉满 Lv4。
+ * 不重置进度；要「从零 + 全解锁」先调 resetProgress 再调本函数（TestTools 已组合）。
+ */
+export async function unlockAllContent() {
+  seedIfEmpty();
+  const now = new Date().toISOString();
+  // 1. 内化全部元认知（精灵全收，Lv4）
+  for (const m of getMetas()) {
+    db.prepare("INSERT OR REPLACE INTO internalized_meta (meta_id, acquired_at, source, mastery_level, mastery_xp) VALUES (?, ?, ?, 4, 0)")
+      .run(m.id, now, "demo");
+  }
+  // 2. 觉醒全部性质（多精灵性质 = 相关精灵共同镀金）
+  for (const p of getProperties()) {
+    let metas: string[] = [];
+    try {
+      metas = JSON.parse(p.belongs_to) as string[];
+    } catch {
+      metas = [p.belongs_to];
+    }
+    for (const m of metas) recordAwakening(m, p.id, "demo");
+  }
+  // 3. 全岛等级拉满（4 档，进阶练习全解锁）
+  for (const i of getIslands()) setIslandLevel(i.name, 4);
+  revalidatePath("/");
+}
+
+/** 开发者工具：读写 config（参数化数值可调） */
+export async function getConfigAction() {
+  seedIfEmpty();
+  return getAllConfig();
+}
+
+export async function setConfigAction(key: string, value: string) {
+  seedIfEmpty();
+  setConfig(key, value);
+  revalidatePath("/");
+}
+
+/** 已掌握的连招（策略） */
+export async function getStrategiesAction() {
+  seedIfEmpty();
+  return getInternalizedStrategies();
 }

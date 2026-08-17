@@ -1,6 +1,12 @@
 import db from "./db";
-import type { MetaCognition, Monster, Spirit, Explorer, InternalizedMeta, GrowthLog, EvolutionEdge, Mistake } from "./types";
+import type { MetaCognition, Monster, Spirit, Explorer, InternalizedMeta, GrowthLog, EvolutionEdge, Mistake, Property, Strategy, ConfigEntry, BossProgress, IslandLevel } from "./types";
 import { parseBrainSettings, type BrainSettings } from "./brain";
+import { cache } from "react";
+
+// ============ 性能：高频只读查询用 React cache() 做「同请求去重」 ============
+// 首页/图鉴等会对同一数据查多次（getMetas/getIslands/getEvolutionEdges…），
+// cache() 保证同一请求生命周期内只查一次 DB，显著减少 SQLite 调用。
+// 只包「纯只读」函数——写后同请求再读的（internalized_meta 相关）不包，避免旧值。
 
 // ============ 探险家 ============
 export function getExplorer(): Explorer | null {
@@ -29,19 +35,22 @@ export function getMeta(id: string): MetaCognition | null {
   return db.prepare("SELECT * FROM meta_cognition WHERE id = ?").get(id) as MetaCognition | null;
 }
 
-export function getMetas(): MetaCognition[] {
+export const getMetas = cache((): MetaCognition[] => {
   // MK-id 数字序（MK-02 排在 MK-10 前，字典序会把 MK-10 排到 MK-02 前面）
   return db
     .prepare("SELECT * FROM meta_cognition ORDER BY CAST(SUBSTR(id, 4) AS INTEGER) ASC")
     .all() as MetaCognition[];
-}
+});
 
 /** 进化路线（全部边） */
-export function getEvolutionEdges(): EvolutionEdge[] {
+export const getEvolutionEdges = cache((): EvolutionEdge[] => {
   return db
     .prepare("SELECT * FROM evolution_edge ORDER BY CAST(SUBSTR(from_meta, 4) AS INTEGER), CAST(SUBSTR(to_meta, 4) AS INTEGER)")
     .all() as EvolutionEdge[];
-}
+});
+
+/** 全部怪物（Boss / 小怪 / 隐藏 / 守卫）—— 一次拉全量，页面内分组避免逐岛查询 */
+export const getMonsters = cache(() => db.prepare("SELECT * FROM monster").all() as Monster[]);
 
 /** 已内化的元认知（= 已拥有的精灵） */
 export function getInternalizedMetas(): MetaCognition[] {
@@ -164,4 +173,148 @@ export function getMistakes(limit = 200): Mistake[] {
 export function getUnresolvedMistakeCount(): number {
   const r = db.prepare("SELECT COUNT(*) AS c FROM mistake WHERE resolved = 0").get() as { c: number };
   return r.c;
+}
+
+// ============ 第二阶段 · 性质 / 觉醒 ============
+/** 精灵 id（1:1 元认知，规则同 seed：SP-{编号}） */
+export const spiritIdOf = (metaId: string) => `SP-${metaId.slice(3)}`;
+
+export function getProperties(): Property[] {
+  return db.prepare("SELECT * FROM property ORDER BY CAST(SUBSTR(id, 4) AS INTEGER)").all() as Property[];
+}
+
+export function getProperty(id: string): Property | null {
+  return db.prepare("SELECT * FROM property WHERE id = ?").get(id) as Property | null;
+}
+
+/** 某元认知的全部性质（按觉醒顺序） */
+export function getPropertiesByMeta(metaId: string): Property[] {
+  return db
+    .prepare('SELECT * FROM property WHERE belongs_to LIKE ? ORDER BY "order" ASC')
+    .all(`%${metaId}%`) as Property[];
+}
+
+/** 该性质是否已被觉醒（打赢守卫） */
+export function isPropertyAwakened(propertyId: string): boolean {
+  return !!db.prepare("SELECT 1 FROM internalized_property WHERE property_id = ?").get(propertyId);
+}
+
+export function isPropertyAwakenedByMeta(metaId: string, propertyId: string): boolean {
+  return !!db
+    .prepare("SELECT 1 FROM internalized_property WHERE spirit_id = ? AND property_id = ?")
+    .get(spiritIdOf(metaId), propertyId);
+}
+
+export function getAwakenedPropertyIds(): string[] {
+  return (db.prepare("SELECT property_id FROM internalized_property").all() as { property_id: string }[]).map(
+    (r) => r.property_id
+  );
+}
+
+/** 某精灵已觉醒的性质（按顺序） */
+export function getAwakenedPropertiesByMeta(metaId: string): Property[] {
+  return db
+    .prepare(
+      `SELECT p.* FROM property p JOIN internalized_property ip ON ip.property_id = p.id
+       WHERE ip.spirit_id = ? ORDER BY p."order" ASC`
+    )
+    .all(spiritIdOf(metaId)) as Property[];
+}
+
+/**
+ * 该精灵下一档可觉醒的性质（教育顺序，不跳序）：
+ * 已觉醒跳过；等级门槛 = order + 1（第 1 条 Lv2、第 2 条 Lv3、第 3 条 Lv4），
+ * 门槛未到则后续也不会到，返回 null。
+ */
+export function getNextAwakenable(metaId: string, level: number): Property | null {
+  const props = getPropertiesByMeta(metaId);
+  for (const p of props) {
+    if (isPropertyAwakenedByMeta(metaId, p.id)) continue;
+    if (p.order + 1 > level) return null;
+    return p;
+  }
+  return null;
+}
+
+/** 觉醒记录（打赢守卫调用） */
+export function recordAwakening(metaId: string, propertyId: string, source: string): void {
+  db.prepare(
+    "INSERT OR REPLACE INTO internalized_property (spirit_id, property_id, awakened_at, source) VALUES (?, ?, ?, ?)"
+  ).run(spiritIdOf(metaId), propertyId, new Date().toISOString(), source);
+}
+
+// ============ 第二阶段 · 知识守卫 ============
+export function getGuards(): Monster[] {
+  return db.prepare("SELECT * FROM monster WHERE type = 'guard'").all() as Monster[];
+}
+
+export function getGuard(id: string): Monster | null {
+  return db.prepare("SELECT * FROM monster WHERE id = ?").get(id) as Monster | null;
+}
+
+export function getGuardsByIsland(island: string): Monster[] {
+  return db.prepare("SELECT * FROM monster WHERE type = 'guard' AND island = ?").all(island) as Monster[];
+}
+
+// ============ 第二阶段 · 岛屿等级 ============
+export function getIslandLevel(island: string): number {
+  return (db.prepare("SELECT level FROM island_level WHERE island = ?").get(island) as IslandLevel | undefined)?.level ?? 1;
+}
+
+export function setIslandLevel(island: string, level: number): void {
+  db.prepare("INSERT OR REPLACE INTO island_level (island, level) VALUES (?, ?)").run(island, Math.max(1, Math.floor(level)));
+}
+
+/** 守卫打赢 → 岛等级 +1，返回新等级 */
+export function bumpIslandLevel(island: string): number {
+  const next = getIslandLevel(island) + 1;
+  setIslandLevel(island, next);
+  return next;
+}
+
+// ============ 第二阶段 · 参数化 config ============
+export function getConfig(key: string, fallback: string): string {
+  return (db.prepare("SELECT value FROM config WHERE key = ?").get(key) as ConfigEntry | undefined)?.value ?? fallback;
+}
+
+export function getConfigNum(key: string, fallback: number): number {
+  const v = parseFloat(getConfig(key, String(fallback)));
+  return Number.isFinite(v) ? v : fallback;
+}
+
+export function setConfig(key: string, value: string): void {
+  db.prepare("INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)").run(key, value);
+}
+
+export function getAllConfig(): Record<string, string> {
+  const rows = db.prepare("SELECT key, value FROM config").all() as ConfigEntry[];
+  return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+}
+
+// ============ 第二阶段 · Boss 失败计数（卡关退路） ============
+export function getBossAttempts(bossId: string): number {
+  return (db.prepare("SELECT attempt_count FROM boss_progress WHERE boss_id = ?").get(bossId) as BossProgress | undefined)
+    ?.attempt_count ?? 0;
+}
+
+/** Boss 失败 +1，返回累计次数 */
+export function bumpBossAttempt(bossId: string): number {
+  const n = getBossAttempts(bossId) + 1;
+  db.prepare("INSERT OR REPLACE INTO boss_progress (boss_id, attempt_count, last_attempt_at) VALUES (?, ?, ?)").run(
+    bossId,
+    n,
+    new Date().toISOString()
+  );
+  return n;
+}
+
+// ============ 第二阶段 · 策略 ============
+export function getStrategies(): Strategy[] {
+  return db.prepare("SELECT * FROM strategy ORDER BY CAST(SUBSTR(id, 4) AS INTEGER)").all() as Strategy[];
+}
+
+export function getInternalizedStrategies(): string[] {
+  return (db.prepare("SELECT strategy_id FROM internalized_strategy").all() as { strategy_id: string }[]).map(
+    (r) => r.strategy_id
+  );
 }

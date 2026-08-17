@@ -94,6 +94,28 @@ function WanderingMonster({ monster, index, mystery = false }: { monster: MapMon
   );
 }
 
+/** 知识守卫：本岛觉醒的考验者（金纹徽章样式，不占怪物图资源），点击进守卫战 */
+function GuardMonster({ monster, index }: { monster: MapMonster; index: number }) {
+  return (
+    <Link
+      href={`/battle/${monster.id}`}
+      className="group absolute z-10 flex flex-col items-center"
+      style={{ left: `${10 + (index * 17) % 72}%`, top: `${18 + (index * 13) % 52}%` }}
+      title={monster.question}
+    >
+      <span className="mb-1 whitespace-nowrap rounded-md border-2 border-[#8a6a3e] bg-[#ffd54f] px-2 py-0.5 text-xs font-black text-[#2b3a4a] shadow-[0_2px_0_rgba(43,58,74,0.4)] transition group-hover:bg-[#ffecb3]">
+        ✦ {monster.name}
+      </span>
+      <span className="animate-boss-breathe flex h-16 w-16 items-center justify-center rounded-full border-4 border-[#ffb300] bg-[#fff8e1] text-3xl shadow-[0_3px_0_rgba(16,24,34,0.3)]">
+        🛡️
+      </span>
+      <span className="pointer-events-none mt-1 hidden rounded-md bg-[#22303f] px-2 py-0.5 text-xs font-bold text-white group-hover:block">
+        ⚔️ 觉醒挑战
+      </span>
+    </Link>
+  );
+}
+
 /** 装饰物：树 / 灌木 / 石头 / 花，固定在草地上 */
 function Decor({ kind, x, y, size = 64 }: { kind: "tree" | "bush" | "rock" | "flower"; x: number; y: number; size?: number }) {
   const sprite = getDecorSprite(kind);
@@ -123,20 +145,36 @@ const seaStyle = (a: string, b: string): React.CSSProperties => ({
 export default function IslandBattleMap({
   island,
   minions,
+  guards = [],
   hiddenMonsters = [],
   bosses,
+  islandLevel = 1,
   avatar,
 }: {
   island: string;
   minions: MapMonster[];
+  guards?: MapMonster[];
   hiddenMonsters?: MapMonster[];
   bosses: MapBoss[];
+  islandLevel?: number;
   avatar: string;
 }) {
   const theme = themeOf(island);
 
   return (
     <div className="pixel-panel relative overflow-hidden p-2">
+      {/* 岛屿等级徽章（觉醒挂钩：守卫打赢 → 升级 → 解锁进阶练习） */}
+      <div className="mb-2 flex items-center justify-between px-1">
+        <span className="flex items-center gap-1.5 rounded-md border-2 border-[#ffb300] bg-[#fff8e1] px-2 py-1 text-xs font-black text-[#2b3a4a]">
+          🏰 岛屿等级 Lv.{islandLevel}
+          {islandLevel === 1 ? " · 基础练习" : ` · 已解锁 ${islandLevel - 1} 档进阶练习`}
+        </span>
+        {guards.length > 0 && (
+          <span className="animate-twinkle rounded-md border-2 border-[#f79228] bg-[#fff3e0] px-2 py-1 text-xs font-black text-[#e2582e]">
+            ✦ {guards.length} 位知识守卫现身！
+          </span>
+        )}
+      </div>
       {/* 海面（主题色） */}
       <div className="relative h-[440px] overflow-hidden rounded-md lg:h-[540px]" style={seaStyle(...theme.sea)}>
         {/* 像素云 */}
@@ -186,6 +224,11 @@ export default function IslandBattleMap({
               {/* 溜达的小怪 */}
               {minions.map((m, i) => (
                 <WanderingMonster key={m.id} monster={m} index={i} />
+              ))}
+
+              {/* 知识守卫（觉醒载体）：金纹徽章，点击进守卫战 */}
+              {guards.map((m, i) => (
+                <GuardMonster key={m.id} monster={m} index={i} />
               ))}
 
               {/* 神秘小怪（好奇心火花解锁） */}

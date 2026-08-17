@@ -1,5 +1,5 @@
 import { seedIfEmpty } from "@/lib/seed";
-import { getExplorer, getSpiritCards, getGrowthLogs, getMeta } from "@/lib/repo";
+import { getExplorer, getSpiritCards, getGrowthLogs, getMeta, getAwakenedPropertiesByMeta } from "@/lib/repo";
 import BottomNav from "@/components/BottomNav";
 import TestTools from "@/components/TestTools";
 import SpiritsFlow, { type SpiritCardData } from "@/components/SpiritsFlow";
@@ -36,6 +36,7 @@ export default function Spirits() {
     mastery_level: s.mastery_level,
     mastery_xp: s.mastery_xp,
     history: historyByMeta.get(s.meta_id) ?? [],
+    awakened: getAwakenedPropertiesByMeta(s.meta_id).map((p) => p.name),
   }));
 
   return (

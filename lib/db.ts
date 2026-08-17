@@ -33,13 +33,16 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS property (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    belongs_to TEXT NOT NULL
+    belongs_to TEXT NOT NULL,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    explain TEXT
   );
 
   CREATE TABLE IF NOT EXISTS strategy (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    effect TEXT NOT NULL
+    effect TEXT NOT NULL,
+    tier INTEGER NOT NULL DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS monster (
@@ -52,7 +55,11 @@ db.exec(`
     target_meta TEXT,
     prerequisites TEXT,
     options TEXT,
-    steps TEXT
+    steps TEXT,
+    required_metas TEXT,
+    required_level INTEGER,
+    spawn_mode TEXT,
+    spawn_islands TEXT
   );
 
   CREATE TABLE IF NOT EXISTS spirit (
@@ -75,6 +82,40 @@ db.exec(`
     source TEXT,
     mastery_level INTEGER NOT NULL DEFAULT 1,
     mastery_xp INTEGER NOT NULL DEFAULT 0
+  );
+
+  -- 觉醒进度：打赢知识守卫 = 觉醒该性质（精灵镀金）
+  CREATE TABLE IF NOT EXISTS internalized_property (
+    spirit_id TEXT NOT NULL,
+    property_id TEXT NOT NULL,
+    awakened_at TEXT NOT NULL,
+    source TEXT,
+    PRIMARY KEY (spirit_id, property_id)
+  );
+
+  -- 连招进度（策略掌握度）
+  CREATE TABLE IF NOT EXISTS internalized_strategy (
+    strategy_id TEXT PRIMARY KEY,
+    mastery INTEGER NOT NULL DEFAULT 0
+  );
+
+  -- 岛屿等级（守卫打赢 → level+1 → 解锁进阶练习）
+  CREATE TABLE IF NOT EXISTS island_level (
+    island TEXT PRIMARY KEY,
+    level INTEGER NOT NULL DEFAULT 1
+  );
+
+  -- 参数化配置（升级场次 / 题目数量公式 / 难度权重 / 觉醒门槛 / 广播开关）
+  CREATE TABLE IF NOT EXISTS config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+
+  -- Boss 失败计数（卡关退路判定：同 Boss 失败 ≥2）
+  CREATE TABLE IF NOT EXISTS boss_progress (
+    boss_id TEXT PRIMARY KEY,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    last_attempt_at TEXT
   );
 
   CREATE TABLE IF NOT EXISTS growth_log (
@@ -118,5 +159,42 @@ try {
   db.exec("ALTER TABLE explorer ADD COLUMN difficulty_bias INTEGER NOT NULL DEFAULT 0");
 } catch {
   // 列已存在则忽略
+}
+
+// 老库兼容：property / strategy / monster 新列（老库已建表，CREATE TABLE IF NOT EXISTS 不会补列）
+try {
+  db.exec("ALTER TABLE property ADD COLUMN \"order\" INTEGER NOT NULL DEFAULT 0");
+} catch {
+  /* 已存在 */
+}
+try {
+  db.exec("ALTER TABLE property ADD COLUMN explain TEXT");
+} catch {
+  /* 已存在 */
+}
+try {
+  db.exec("ALTER TABLE strategy ADD COLUMN tier INTEGER NOT NULL DEFAULT 1");
+} catch {
+  /* 已存在 */
+}
+try {
+  db.exec("ALTER TABLE monster ADD COLUMN required_metas TEXT");
+} catch {
+  /* 已存在 */
+}
+try {
+  db.exec("ALTER TABLE monster ADD COLUMN required_level INTEGER");
+} catch {
+  /* 已存在 */
+}
+try {
+  db.exec("ALTER TABLE monster ADD COLUMN spawn_mode TEXT");
+} catch {
+  /* 已存在 */
+}
+try {
+  db.exec("ALTER TABLE monster ADD COLUMN spawn_islands TEXT");
+} catch {
+  /* 已存在 */
 }
 

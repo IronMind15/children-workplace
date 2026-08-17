@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { purifyMonster, logMistake, explainMistake, resolveMistake } from "@/lib/actions";
+import { purifyMonster, logMistake, explainMistake, resolveMistake, bossFail } from "@/lib/actions";
 import ImgSprite from "@/components/ImgSprite";
 import EvolutionModal, { type ChainNode, type ChainEdge } from "@/components/EvolutionModal";
 import { getMonsterImage, getCompanionImage } from "@/lib/sprites";
@@ -45,6 +45,8 @@ export default function BossFlow({
   const [hp, setHp] = useState(100);
   const [explain, setExplain] = useState<{ text: string; userAnswer: string; correctAnswer: string } | null>(null);
   const [wrongOnThisStep, setWrongOnThisStep] = useState(false);
+  // 卡关退路：同一 Boss 失败 ≥2 次，伙伴引导去觉醒相关旧知
+  const [stuck, setStuck] = useState<{ attempts: number; nextName?: string } | null>(null);
 
   const total = steps.length;
   const isDiscover = steps[stepIdx]?.type === "discover";
@@ -94,6 +96,12 @@ export default function BossFlow({
       setExplain({ text: base, userAnswer: opt.label, correctAnswer: correctLabel });
       explainMistake(steps[stepIdx].prompt, correctLabel, opt.label, metaName).then((ai) => {
         if (ai) setExplain((e) => (e ? { ...e, text: ai } : e));
+      });
+      // 卡关计数：失败 ≥ 阈值 → 伙伴引导去觉醒相关旧知
+      bossFail(monsterId).then((r) => {
+        if (r?.stuck && r.nextProperty) {
+          setStuck({ attempts: r.attempts, nextName: r.nextProperty.name });
+        }
       });
     }
   }
@@ -256,13 +264,34 @@ export default function BossFlow({
             )}
 
             {phase === "solve" && !explain && (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-                {steps[stepIdx].options.map((o) => (
-                  <button key={o.label} onClick={() => answer(o)} className="pixel-btn pixel-btn-green py-4 text-2xl">
-                    {o.label}
-                  </button>
-                ))}
-              </div>
+              <>
+                {/* 卡关退路：失败 ≥2 次，伙伴引导去觉醒旧知 */}
+                {stuck && (
+                  <div className="animate-pop rounded-xl border-2 border-[#ffb300] bg-gradient-to-b from-[#fff8e1] to-[#fdf6e0] px-3 py-2.5 shadow-[0_4px_0_rgba(43,58,74,0.2)]">
+                    <p className="text-sm font-black text-[#2b3a4a]">
+                      🦊 别急！这个 Boss 有点强，你的老精灵好像还有没觉醒的力量——
+                    </p>
+                    <p className="mt-1 text-xs font-bold text-[#e2582e]">
+                      ✨ 先去觉醒「{stuck.nextName}」，回来再战就简单啦！
+                    </p>
+                    <button
+                      onClick={() => router.push("/")}
+                      className="mt-2 w-full rounded-xl bg-[#1d9e75] py-2 text-sm font-black text-white transition-colors hover:bg-[#176e52]"
+                    >
+                      ✨ 去觉醒（回地图）
+                    </button>
+                  </div>
+                )}
+                {!stuck && (
+                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+                    {steps[stepIdx].options.map((o) => (
+                      <button key={o.label} onClick={() => answer(o)} className="pixel-btn pixel-btn-green py-4 text-2xl">
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
 
             {phase === "result" && !result?.ok && (

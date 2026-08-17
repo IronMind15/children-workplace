@@ -19,8 +19,10 @@ export type WorldEdge = { from: string; to: string };
 
 export type IslandBattleData = {
   minions: MapMonster[];
+  guards: MapMonster[];
   hiddenMonsters: MapMonster[];
   bosses: MapBoss[];
+  islandLevel?: number;
 };
 
 /** 海面条纹背景样式（统一青绿海域，对齐设计稿，不按单岛主题） */
@@ -66,7 +68,7 @@ export default function WorldMap({
 
   // ===== 聚焦态：放大进入单岛战斗地图 =====
   if (focused) {
-    const d = islandData[focused] ?? { minions: [], hiddenMonsters: [], bosses: [] };
+    const d = islandData[focused] ?? { minions: [], guards: [], hiddenMonsters: [], bosses: [] };
     const node = nodes.find((n) => n.island === focused);
     return (
       <div>
@@ -86,8 +88,10 @@ export default function WorldMap({
         <IslandBattleMap
           island={focused}
           minions={d.minions}
+          guards={d.guards}
           hiddenMonsters={d.hiddenMonsters}
           bosses={d.bosses}
+          islandLevel={d.islandLevel}
           avatar={avatar}
         />
       </div>

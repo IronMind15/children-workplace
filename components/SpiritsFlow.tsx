@@ -14,6 +14,7 @@ export type SpiritCardData = {
   mastery_level: number;
   mastery_xp: number;
   history: { stars: number; at: string }[];
+  awakened?: string[]; // 已觉醒的性质名（金纹）
 };
 
 const XP_THRESHOLD = 3; // 与 lib/game.ts 的熟练经验阈值一致
@@ -81,6 +82,18 @@ export default function SpiritsFlow({ spirits, kidName }: { spirits: SpiritCardD
                 </span>
               </div>
               <div className="mt-2 text-xs font-bold text-[#7a8a9a]">本领：{s.meta_name}</div>
+              {s.awakened && s.awakened.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1">
+                  <span className="rounded-full border-2 border-[#ffb300] bg-[#fff8e1] px-1.5 py-0.5 text-[10px] font-black text-[#e2582e]">
+                    ✦ 觉醒 {s.awakened.length}
+                  </span>
+                  {s.awakened.slice(0, 2).map((p) => (
+                    <span key={p} className="rounded-full bg-[#ffb300]/15 px-1.5 py-0.5 text-[9px] font-bold text-[#a66d00]">
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="mt-2 flex items-center justify-center gap-1 text-[10px] font-bold text-[#7a8a9a]">
                 <span>进化能量</span>
                 <span className="tracking-widest text-[#ffb300]">
@@ -151,6 +164,29 @@ export default function SpiritsFlow({ spirits, kidName }: { spirits: SpiritCardD
                       </p>
                     ) : (
                       <p className="mt-2 text-center text-xs font-bold text-[#7a8a9a]">和它互动试试，它会跟你说话哦～</p>
+                    )}
+                  </div>
+
+                  {/* 觉醒金纹（性质） */}
+                  <div className="mt-3 rounded-xl border-2 border-[#ffd54f] bg-[#fffdf2] p-3">
+                    <p className="text-sm font-black text-[#2b3a4a]">
+                      ✦ 觉醒的力量（{open.awakened?.length ?? 0}）
+                    </p>
+                    {!open.awakened || open.awakened.length === 0 ? (
+                      <p className="mt-2 rounded-lg bg-[#e8edf2] p-3 text-center text-xs font-bold text-[#7a8a9a]">
+                        还没觉醒任何力量——让它的等级提升，知识守卫就会出现！
+                      </p>
+                    ) : (
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {open.awakened.map((p) => (
+                          <span
+                            key={p}
+                            className="animate-pop rounded-lg border-2 border-[#ffb300] bg-[#fff8e1] px-2 py-1 text-xs font-black text-[#a66d00]"
+                          >
+                            ✦ {p}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
 

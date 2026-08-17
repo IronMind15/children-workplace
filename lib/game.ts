@@ -1,8 +1,14 @@
 import db from "./db";
-import { getMonster, getMeta, isInternalized, getInternalized, getExplorer, getIslands, getEvolutionEdges, getMetas } from "./repo";
+import {
+  getMonster, getMeta, isInternalized, getInternalized, getExplorer, getIslands, getEvolutionEdges, getMetas,
+  getProperty, getNextAwakenable, recordAwakening, isPropertyAwakened, getGuard, getGuardsByIsland,
+  getConfigNum, bumpIslandLevel, bumpBossAttempt,
+} from "./repo";
+import type { GuardInfo, Property } from "./types";
 
 /**
- * 训练胜利：该元认知熟练经验 +1，满 3 次则熟练等级 +1（= 精灵进化），并写成长日志。
+ * 训练胜利：该元认知熟练经验 +1，满阈值则熟练等级 +1（= 精灵进化），并写成长日志。
+ * 阈值可调（config.xp_threshold，默认 3）。
  * 无血量、无失败终态（零失败压力）。
  * 返回是否触发进化（升级），供前端播放进化庆祝。
  */
@@ -12,7 +18,7 @@ export function trainWin(metaId: string, stars: number): { leveledUp: boolean; l
 
   let level = im.mastery_level;
   let xp = im.mastery_xp + 1;
-  const THRESHOLD = 3; // 经验阈值
+  const THRESHOLD = getConfigNum("xp_threshold", 3); // 经验阈值（开发者可调）
   let leveledUp = false;
   if (xp >= THRESHOLD) {
     level += 1;
@@ -59,15 +65,15 @@ export function clearSparks(): SparkStats {
 
 // ============ 难度系统（按岛计算） ============
 // 每个岛的难度独立 = 基础(1) + a×已解锁下游岛数 + b×(精灵等级−1) + 全局偏置(bias)
-// a=1：看重"这岛当跳板开了多少下游岛"；b=2：看重"精灵靠打怪练上来多少级"
+// a/b 权重可调（config.diff_a / diff_b，默认 1 / 2）
 // Boss 战使用 seed 固定题，不随本公式缩放。
 const DIFF_BASE = 1;
-const DIFF_A = 1; // 下游岛权重
-const DIFF_B = 2; // 精灵等级权重
 
 /** 某元认知岛屿的难度等级（≥1，≤30） */
 export function getIslandDifficulty(metaId: string): number {
   const bias = getExplorer()?.difficulty_bias ?? 0;
+  const DIFF_A = getConfigNum("diff_a", 1); // 下游岛权重
+  const DIFF_B = getConfigNum("diff_b", 2); // 精灵等级权重
   // ① 已解锁的下游岛数：本岛在进化 DAG 中作为直接父的那些元认知，已内化的个数
   const children = getEvolutionEdges()
     .filter((e) => e.from_meta === metaId)
@@ -170,4 +176,89 @@ export function recordMistake(metaId: string, question: string, userAnswer: stri
 /** 重做答对后，把该知识点的未掌握错题标记为已掌握 */
 export function resolveMistakes(metaId: string): void {
   db.prepare("UPDATE mistake SET resolved = 1 WHERE meta_id = ? AND resolved = 0").run(metaId);
+}
+
+// ============ 第二阶段 · 知识守卫 / 觉醒 ============
+
+/** 由怪物行构建守卫展示信息（达标判定：所有精灵已内化 且 等级 ≥ required_level） */
+function toGuardInfo(g: ReturnType<typeof getGuard> & { type: string }): GuardInfo | null {
+  if (!g || g.type !== "guard") return null;
+  const propertyId = g.id.replace(/^guard-/, "").toUpperCase();
+  const prop = getProperty(propertyId);
+  if (!prop) return null;
+  const metas: string[] = g.required_metas ? JSON.parse(g.required_metas) : [];
+  const requiredLevel = g.required_level ?? 2;
+  const visible =
+    metas.length > 0 &&
+    metas.every((m) => {
+      const im = getInternalized(m);
+      return !!im && im.mastery_level >= requiredLevel;
+    });
+  return {
+    id: g.id,
+    name: g.name,
+    island: g.island,
+    property_id: propertyId,
+    property_name: prop.name,
+    required_metas: metas,
+    required_level: requiredLevel,
+    spawn_mode: g.spawn_mode === "random" ? "random" : "fixed",
+    spawn_islands: g.spawn_islands ? JSON.parse(g.spawn_islands) : [g.island],
+    awakened: isPropertyAwakened(propertyId),
+    visible,
+  };
+}
+
+/** 全部可达的守卫（达标且未觉醒 = 触发广播 / 岛上现身） */
+export function checkAwakenings(): GuardInfo[] {
+  const rows = db.prepare("SELECT * FROM monster WHERE type = 'guard'").all() as (ReturnType<typeof getGuard> & { type: string })[];
+  return rows.map((r) => toGuardInfo(r)).filter((x): x is GuardInfo => !!x && x.visible && !x.awakened);
+}
+
+/** 某岛当前可见的守卫（达标 + 未觉醒 + 主岛或随机池含该岛） */
+export function getVisibleGuardsByIsland(island: string): GuardInfo[] {
+  return checkAwakenings().filter(
+    (g) => g.spawn_mode === "fixed" ? g.island === island : g.spawn_islands.includes(island)
+  );
+}
+
+/** 打赢守卫：觉醒该性质（多精灵守卫 = 相关精灵共同镀金）+ 岛屿等级 +1 */
+export function guardWin(
+  guardId: string
+): { ok: boolean; propertyId?: string; propertyName?: string; island?: string; islandLevel?: number; reason?: string } {
+  const g = getGuard(guardId);
+  const info = toGuardInfo(g as ReturnType<typeof getGuard> & { type: string });
+  if (!info) return { ok: false, reason: "不是知识守卫" };
+  if (!info.visible) return { ok: false, reason: "精灵等级未达标" };
+  if (info.awakened) return { ok: false, reason: "该性质已觉醒" };
+  // 觉醒：所有相关精灵共同记录（共同镀金）
+  for (const m of info.required_metas) recordAwakening(m, info.property_id, "guard");
+  const islandLevel = bumpIslandLevel(info.island);
+  db.prepare("INSERT INTO growth_log (event, detail) VALUES (?, ?)").run(
+    "property_awaken",
+    JSON.stringify({ property_id: info.property_id, guard_id: guardId, island: info.island, island_level: islandLevel })
+  );
+  return { ok: true, propertyId: info.property_id, propertyName: info.property_name, island: info.island, islandLevel };
+}
+
+// ============ 第二阶段 · Boss 卡关退路 ============
+
+/**
+ * Boss 挑战失败计数；达到阈值（config.boss_stuck_attempts，默认 2）后进入「卡关退路」：
+ * 引导觉醒相关旧知（前置元认知的下一档可觉醒性质），让孩子先深化旧知再回来。
+ */
+export function bossFail(
+  monsterId: string
+): { attempts: number; stuck: boolean; guideMeta?: string; nextProperty?: Property | null } {
+  const attempts = bumpBossAttempt(monsterId);
+  const threshold = getConfigNum("boss_stuck_attempts", 2);
+  if (attempts < threshold) return { attempts, stuck: false };
+  const monster = getMonster(monsterId);
+  const prereqs: string[] = monster?.prerequisites ? JSON.parse(monster.prerequisites) : [];
+  for (const m of prereqs) {
+    const im = getInternalized(m);
+    const next = im ? getNextAwakenable(m, im.mastery_level) : null;
+    if (next) return { attempts, stuck: true, guideMeta: m, nextProperty: next };
+  }
+  return { attempts, stuck: true };
 }
