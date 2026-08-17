@@ -19,7 +19,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen antialiased">{children}</body>
+      {/* suppressHydrationWarning：兼容浏览器扩展往 <body> 注入属性（如 inject_video_svd）导致的 hydration mismatch */}
+      <body className="min-h-screen antialiased" suppressHydrationWarning>{children}</body>
     </html>
   );
 }

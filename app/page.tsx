@@ -1,5 +1,5 @@
 import { seedIfEmpty } from "@/lib/seed";
-import { getWorldLayout, getWorldPages, pageOf } from "@/lib/worldLayout";
+import { getWorldLayout, getWorldPages, pageOf, pageOfIsland } from "@/lib/worldLayout";
 import { QUESTIONS, AI_TIPS, RECOMMEND_BY_META } from "@/lib/askBank";
 import {
   getExplorer,
@@ -174,7 +174,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
     const guards = getGuardsByIsland(islandName); // 该岛全部守卫（与地图渲染顺序一致）
     const idx = guards.findIndex((g) => g.id === guardId);
     if (idx < 0) return 1;
-    const page = pageOf(islandName);
+    const page = pageOfIsland(islandName); // v1.2.11：按岛名查群岛页（此前误用 pageOf(MK id) 恒为 1）
     let prev: number | undefined;
     let style = 1;
     for (let i = 0; i <= idx; i++) {
@@ -251,7 +251,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
         // 守卫战：算好该守卫的外观样式索引（与岛上一致：按群岛页号 + 岛内守卫序号链式避重复）
         guardStyleIndex: mode === "guard" ? computeGuardStyleIndex(m.id, m.island) : undefined,
         // v1.2.10 战斗背景：守卫统一 guard_bg，小怪按群岛 page 选 arch_XX_bg
-        battleBg: mode === "guard" ? GUARD_BATTLE_BG : getMinionBattleBg(pageOf(m.island)),
+        battleBg: mode === "guard" ? GUARD_BATTLE_BG : getMinionBattleBg(pageOfIsland(m.island)),
       };
       view = { kind: "battle", monsterId: m.id };
     }

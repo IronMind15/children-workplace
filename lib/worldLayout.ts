@@ -1,7 +1,7 @@
 import { getMetas, getEvolutionEdges } from "./repo";
-import { ISLAND_PAGE_MAP, PAGE_META, pageOf, getArchipelagoBg, PAGE_COUNT } from "./archipelagoLayout";
+import { ISLAND_PAGE_MAP, PAGE_META, pageOf, pageOfIsland, getArchipelagoBg, PAGE_COUNT } from "./archipelagoLayout";
 // 重新导出 archipelagoLayout 里的所有符号，保持外部调用方不变
-export { ISLAND_PAGE_MAP, PAGE_META, pageOf, getArchipelagoBg, PAGE_COUNT };
+export { ISLAND_PAGE_MAP, PAGE_META, pageOf, pageOfIsland, getArchipelagoBg, PAGE_COUNT };
 
 export type WorldCoord = { x: number; y: number; depth: number };
 

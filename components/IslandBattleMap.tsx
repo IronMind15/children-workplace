@@ -7,7 +7,7 @@ import { getMonsterImage } from "@/lib/sprites";
 import { getIslandBg } from "@/lib/islandArt";
 import { themeOf } from "@/lib/islandTheme";
 import { getGuardImage, pickGuardStyle } from "@/lib/guardStyles";
-import { pageOf } from "@/lib/archipelagoLayout";
+import { pageOfIsland } from "@/lib/archipelagoLayout";
 
 export type MapMonster = {
   id: string;
@@ -286,7 +286,7 @@ export default function IslandBattleMap({
 
           {/* 知识守卫（觉醒载体）：按 page 选起始样式 + 链式避重复 */}
           {(() => {
-            const page = pageOf(island);
+            const page = pageOfIsland(island);
             // 预算每个守卫的样式（链式：第 i 个避开第 i-1 个的样式）
             const styles: number[] = [];
             let prev: number | undefined;
