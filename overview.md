@@ -1,66 +1,42 @@
-# v1.2.14 更新概览：标签去框 + 小探险家头像 / 等级配置
+# v1.2.15 精灵资源全量替换
 
-## 一、标签显示修正
+## 完成内容
 
-**问题**
-- v1.2.13 的岛屿名 / 小怪名牌加了深色外框，看起来像「框套框」，部分短文本仍会出格。
+1. **28 张新精灵图入库**
+   - 复制到 `public/spirits/page_{1-7}_stage_{1-4}.png`
+   - 命名规则：page = 群岛序号（1~7），stage = 进化形态（1~4）
+   - 按用户提供的图片顺序，每群岛第 1 张（最高形态）映射为 stage 4，后 3 张映射为 stage 1~3
 
-**改动**
-- `components/UiButton.tsx` 的 `UiTag` 去掉 `border-2` 外框，只靠皮革底板图案自身边缘。
-- 增加 `min-w-[3.5rem]` 与 `px-4`，让文字始终完整落在底板图案内。
-- `lib/uiIcons.ts` 的 `getButtonBgByText` 改为：1 字 → short、2~3 字 → medium、4 字及以上 → long，短文本不再被挤到图案边缘。
+2. **软连接映射（无硬编码）**
+   - 重写 `lib/sprites.ts`：移除原来的 `SPIRIT_IMAGES` 数组、`META_DOMAIN`、`DOMAIN_TEMPLATE`
+   - 新增 `resolveSpiritPath(page, stage)`：唯一约定路径规则
+   - `getSpiritImage(metaId, level)` → 通过 `pageOf(metaId)` 拿到群岛页 + 等级映射到 stage
+   - `getCompanionImage()` → 统一走 `resolveSpiritPath(1, 2)`
+   - 后续替换精灵素材只需按相同命名覆盖文件，无需改代码
 
-## 二、小探险家角色配置
+3. **简版精灵优化性能**
+   - 新增 `getSimpleSpiritImage(metaId)`：始终取 stage 1（基础宝宝体）
+   - `SpiritsFlow` 精灵列表、`JournalDex` 图鉴列表改用简版，减少列表同时加载 28 张高阶图
+   - 详情弹窗、战斗、进化动画等关键场景仍用完整形态
 
-**资源**
-- 从 `docs/117宠物和我_抠图版/` 导入 6 张头像到 `public/explorers/`：
-  - 男探险家：`boy_1.png` / `boy_2.png` / `boy_3.png`
-  - 女探险家：`girl_1.png` / `girl_2.png` / `girl_3.png`
+4. **等级→形态映射**
+   - Lv.1 → stage 1（宝宝体）
+   - Lv.2 → stage 2（成长体）
+   - Lv.3+ → stage 4（完全体/皇冠）
 
-**代码**
-- 新增 `lib/explorers.ts`：
-  - `EXPLORER_AVATARS` 男女分组配置
-  - `getExplorerImage(gender, idx)` 取头像路径
-  - `getExplorerById(id)` 按 id 取头像
-  - `listAllExplorers()` 平铺列表（选角页用）
-
-**化身使用场景**（已记入 TODO / 项目记忆，后续提到时提醒）
-1. 世界地图：当前岛站立化身
-2. 单岛战斗地图：玩家位置探险家
-3. 战斗 / Boss 流程：玩家侧头像
-4. 结算 / 觉醒 / 晋升：探险家表情动作 + 等级徽章
-5. 成长记录 / 知识家园：头像水印、时间轴
-6. 排行榜 / 成就墙：社交标识
-7. 加载 / 欢迎页：打招呼形象
-8. 家长端：孩子身份与学习报告头像
-
-## 三、等级头衔配置
-
-**设计来源**：`docs/外壳与地图重设计方案.md` §2
-
-- 新增 `lib/ranks.ts`，6 档头衔：
-
-| 等级 | 头衔 | 升级条件 | 解锁内容 |
-|---|---|---|---|
-| Lv.1 | 🧭 海岛新丁 | 起始 | 计数岛 + 图形岛 |
-| Lv.2 | 🌱 海岸探险家 | 净化 3 Boss 或火花 ≥ 30 | 全览缩略图 |
-| Lv.3 | 📚 海图学者 | 净化 8 Boss 或火花 ≥ 100 | 进化树 + 双 tab/分屏 |
-| Lv.4 | 🏆 海图大师 | 净化 16 Boss 或火花 ≥ 250 | AI 自由提问 |
-| Lv.5 | 🌟 海图宗师 | 净化 25 Boss 或火花 ≥ 500 | 自定义头像 + 主题色 |
-| Lv.6 | 👑 知识岛屿主 | 净化全部 29 Boss | 专属彩蛋 + 装饰称号 |
-
-- 提供 `computeRankLevel(purifiedBosses, sparks)`、`getNextRank(level)`、`formatRankProgress(...)`。
-
-## 四、待办（已写入 TODO.md）
-- Onboarding 引导页：首次使用填写基本信息 + 选男女探险家头像。
-- `explorer` 表扩展：`gender` / `avatar_id` / `level` / `xp` / `title`。
-- 化身替换：把 WorldMap / IslandBattleMap / BattleFlow / BossFlow 的 emoji 占位改成探险家图片。
-- 等级晋升检测：`checkAndPromote()` 写入 `growth_log`。
-- 解锁内容兑现：全览、进化树、AI 自由提问、自定义头像、彩蛋。
+5. **组件替换范围**
+   - `SpiritsFlow`：列表简版、弹窗完整版
+   - `JournalDex`：列表简版、弹窗完整版
+   - `BattleFlow`：完整版 + 预加载 stage 1/2/4
+   - `EvolutionModal` / `BossFlow`：完整版
 
 ## 验证
+
 - `npx tsc --noEmit --incremental false` 通过
 - `npx next build` 通过
-- 提交 `31045ed`，已 push origin/main
+- 已 push origin/main（commit `cde7f4f`）
 
-刷新 http://localhost:3000 即可看到标签去框后的效果。
+## 后续可扩展
+
+- 若后续提供 companion（伙伴狐狸）专属图，可扩展 `getCompanionImage` 单独走一条路径
+- 若需要更小的缩略图，可额外生成 `public/spirits/page_N_stage_M_thumb.png`，并在 `getSimpleSpiritImage` 中切换
