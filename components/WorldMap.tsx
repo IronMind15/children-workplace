@@ -110,14 +110,14 @@ export default function WorldMap({
   }
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
       {lockedHint && (
         <div className="mb-2 flex items-center gap-2 rounded-md border-2 border-[#8a97a5] bg-[#e8edf2] px-3 py-1.5 text-base font-bold text-[#7a8a9a]">
           🔒 {lockedHint} 还在迷雾中，先净化上游 Boss 才能登岛
         </div>
       )}
 
-      <div className="card relative overflow-hidden border-4 border-[#2b3a4a] p-2">
+      <div className="card relative flex h-full flex-col overflow-hidden border-4 border-[#2b3a4a] p-2">
         {/* 顶栏：页指示 + 全览按钮 */}
         <div className="mb-2 flex items-center justify-between gap-2 border-b-2 border-[#fde9d0] pb-2">
           <div className="flex items-center gap-2">
@@ -159,10 +159,14 @@ export default function WorldMap({
             ▶
           </button>
 
-          {/* 群岛背景（整页一张设计稿：1~7 群岛各自一张） */}
+          {/* 群岛背景（整页一张设计稿：1~7 群岛各自一张）
+              高度自适应：layout 模式下与右栏 AskPanel 等高；无右栏时取较大值 */}
           <div
-            className="relative h-[60vh] min-h-[480px] w-full overflow-hidden rounded-xl bg-cover bg-center"
-            style={{ backgroundImage: `url(${bg})` }}
+            className="relative w-full flex-1 overflow-hidden rounded-xl bg-cover bg-center"
+            style={{
+              backgroundImage: `url(${bg})`,
+              minHeight: "520px",
+            }}
           >
             {/* 边缘柔化（让节点浮在背景上不显突兀） */}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/5" />
