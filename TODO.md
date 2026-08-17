@@ -60,6 +60,21 @@
 
 ## 已完成（最近）
 
+- [x] **v1.3.0 统一世界地图重设计（2026-08-18）**：
+  - 底图替换：移除 7 页群岛分页与独立 `arch_01~07.webp` 背景，改用单张 `docs/数学世界地图.png` 经 WebP 压缩后的 `public/world/world_map.webp`（3840×2400，由 21MB PNG 降至约 0.86MB），作为唯一底图全量展示 29 座岛。
+  - 坐标标定：新增 `lib/worldMapData.ts`，按新底图视觉岛屿位置给出 29 个 MK id 的百分比坐标（7 大领域环绕中央城堡），`WorldMap` 按 `metaId` 查找坐标叠加节点。
+  - 交互增强：`WorldMap` 重写为可交互地图。按钮/滚轮双方式缩放，滚轮以鼠标位置为锚点，单次步长约 15%，限制 20%~500%；按住鼠标左键拖动平移，松开后带惯性滑动；地图始终限制在可视区内，缩小时自动居中，放大时边缘 clamp 防止拖出。
+  - 性能与响应：地图层使用 CSS `transform: translate(...) scale(...)` + `will-change-transform` 硬件加速；容器用 `ResizeObserver` 适配尺寸；节点仍复用现有 `island-node` 样式与点击登岛逻辑。
+  - UI 调整：顶部仅保留「数学世界地图 · 已点亮 X/29」；移除分页箭头/指示器/全览入口；右下角悬浮缩放控件（+ / 缩放% / − / 复位），左下角「回到当前岛」按钮可平滑动画定位到当前岛。`WorldMap` 仍兼容原 `onPickIsland/onLocked` 等接口，`tsc` + `next build` 通过。
+- [x] **v1.2.20 界面一屏化 + 右侧AI面板精简 + 费曼上移 + AI连接儿童化（2026-08-18）**：
+  - 一屏化/精简：AskFlow 头部移除「✨ N · 今日已问 N 次」与「🤖 AI 已连接」状态徽章（火花已在 TopShell/浮标展示）；仅留标题 + 未配置时的「🔑 连接 AI」入口。压缩头部/对话区/输入区高度（狐狸 16→12、对话 min-h 90→60、间距 mt-3→mt-2、padding 收敛），右栏固定头部更矮、问题列表滚动区更大，更易一屏容纳。
+  - 费曼上移：`FeynmanChat` 在嵌入（右栏）模式从滚动区底部移到顶部（图标靠近顶部、下方由问题卡片填充，消除底部空白），新增 `compact` 紧凑模式（卡片 padding/图标/对话高度 max-h-72→56 收敛）；/ask 页同步启用 compact。
+  - AI 连接儿童化：`lib/ai.ts` 的 `askAi` 改结构化 `AskResult`（ok 判别）区分 unconfigured/timeout/network/http；`lib/actions.ts` 的 `askFree` 连不上时由小狐狸用小学生能懂的话说明原因（超时/断网/出错/未配置各异），直接渲染在右侧对话气泡内；推荐问题卡 AI 不可用时静默回退内置题库。`tsc` + `next build` + `/`、`/ask`、`/spirits`、`/journal`、`/brain` 运行期 HTTP 200 冒烟通过，SSR 已无「今日已问/AI已连接」字样。
+- [x] **v1.2.19 群岛按钮三场景一致性 + 分岛费曼学习（2026-08-18）**：
+  - 一致性：`WorldMap` 地图区 + `WorldAtlas` 缩略图容器加固定 `aspect-[16/9]`（背景实拍 1216×706≈1.72 / 1586×992≈1.60），锁定 `bg-cover` 裁切，AI 助手最小化致左栏满宽时按钮相对背景不错位；`WorldMap` 地图区 `flex` 居中避免高列留空。
+  - 前置确认结论：群岛背景 `archipelagos/arch_01~07.webp` 是装饰性海图（无绘制岛屿），岛屿坐标为 `getWorldLayout` 算法叠加层；新增 `docs/岛屿坐标表模板.md`（29 岛→群岛页/MK id + 留空 x/y%）供日后换「带绘制岛屿背景图」时对齐。
+  - 分岛费曼：`app/page.tsx` 由 `explorer.current_island` 推导 `currentIslandMeta`（metaId/name/domain/level/awakened/tier，tier=awakened?advanced:internalized?practicing:base），透传 HomeClient→AskPanel→AskFlow；`AskFlow` 顶部「🏝️ 岛上小课堂」卡（狐狸问候带当前岛+领域自动聚焦、分层徽章、分层引导、岛域专属提问 chips，觉醒后解锁进阶两问）；`FeynmanChat` 加 `defaultMetaId`+`tier`，AskPanel(embedded) 也渲染费曼（此前仅 /ask 页）。`tsc` + `next build` + `/`、`/ask` HTTP 200 冒烟通过。
+- [x] **v1.2.18 七大体验改动（2026-08-18）**：① 战斗精灵形象实时跟随真实 `mastery_level + awakened`（`resolveStage`/`getSpiritImage` 觉醒感知，完全体 stage4 需对应性质觉醒）；② 等级升级改递增熟练度曲线 `xpToNext=3+(lv-1)*2`、上限 Lv.10（养成类成长曲线）；③ `UiTag`/`UiButton` 文字溢出皮底板修复（换行 + `max-w-[9rem]` + `leading-tight`）；④ 新手引导（`tutorial_enabled` 开关 + 返回主页自动进入 + 🦊/🧭 对话式串讲，`/?tutorial=1` 手动重看）；⑤ 战斗答错讲解统一推送到右侧 `AskPanel`（`window` 事件总线 `partner-message`，窄屏自动展开浮标）；⑥ 题目刷新加 `busy` 锁，AI 异步讲解期间禁用换题/再来避免中途刷新冲突；⑦ 精灵/帮手选错给儿童友好 `pickHint` 引导。`tsc` + `next build` 通过，`/`/`/spirits`/`/journal`/`/brain` 运行期 HTTP 200 冒烟通过。
 - [x] 精灵形象一致性修复（2026-08-18）：精灵图鉴/知识家园的列表预览图（`getSimpleSpiritImage`）原恒为形态1，与详情（`getSpiritImage(meta_id, mastery_level)`）不一致；改为按真实 `mastery_level` 解析形态，预览=详情。等级→形态映射抽成可配置 `SPIRIT_FORMS` 表（`getSpiritStage`/`levelToStage` 读表）；`trainWin` 显式 revalidate `/spirits`、`/journal` 保证进化后自动刷新。`tsc` + `next build` 通过。
 - [x] 第三轮·成长主线地基（2026-08-18）：`explorer` 表扩展 `gender/avatar_id/level/xp/title`（幂等 ALTER，老库兼容）；`lib/ranks.ts` 的 `computeRankLevel/getRankByLevel/getNextRank/formatRankProgress` 接入 `checkAndPromote`，并在 `purifyMonster/askQuestion/askFree` 后触发；化身落地 onboarding 选角 + WorldMap/BattleFlow/BossFlow 换图 + AvatarMenu/TopShell 头部；新建 `/profile` 资料页（大头像/头衔/火花进度/已净化/换头像 `updateExplorerAvatar`）；`tsc` + `next build` 通过
 - [x] v1.2.16 单岛场景背景替换：19 张 2.5D 顶视图岛屿背景入 `public/islands/battle_bg_01~19.png`；`lib/islandArt.ts` 按 29 岛 MK 顺序循环分配；`IslandBattleMap` 清理像素风 emoji/路牌

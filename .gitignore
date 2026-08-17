@@ -4,6 +4,7 @@
 # next.js
 /.next/
 /.next_bak/
+/.next_bak_*/
 /out/
 
 # production build
@@ -37,6 +38,9 @@ next-env.d.ts
 
 # large demo recordings (use Git LFS if you want them tracked)
 docs/*.mp4
+
+# 原始大体积参考图（游戏内已用压缩 WebP，原始图本地留存不入库）
+docs/数学世界地图.png
 
 # UI 设计稿大文件（zip + 解包目录，不入库）
 docs/112初版*

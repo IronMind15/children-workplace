@@ -1,50 +1,68 @@
-# 知识岛 · 第三轮前自查报告（v1.2.1 ~ v1.2.16）
+# v1.3.0 · 统一世界地图重设计
 
-> 目标：交叉核查本轮 UI 更新是否引入 bug / 不稳定点 / 可优化项，并汇总当前待办，准备进入第三轮需求。
+> 校验：`tsc --noEmit --incremental false` 通过；`NODE_OPTIONS="" npx next build` 通过。
 
-## 一、本轮已修复的问题（v1.2.17）
+## 这次改了什么
 
-| # | 问题 | 位置 | 严重度 | 处理 |
-|---|------|------|--------|------|
-| 1 | 守卫图用 `object-cover`，透明 PNG 精灵被方形裁切缺边 | `IslandBattleMap.tsx:172` | 中（视觉） | 改为 `object-contain`，与 ImgSprite 保持一致 |
-| 2 | `lib/sprites.ts` 残留 ~200 行旧像素画死代码（`SpriteDef`/`SLIME`/`getMonsterSprite`/`getSpiritSprite`/`getDecorSprite` 等），无任何调用；且 `import { pageOf }` 被放在文件中部 | `lib/sprites.ts` | 低（死代码/规范） | 重写文件：删除全部死代码，import 提到顶部，仅保留 `getMonsterImage` / `getSpiritStage` / 精灵软连接函数 |
-| 3 | `fogOverlay()` 引用的关键帧名 `fog-drift` 与 globals.css 实际定义 `fogDrift` 不一致导致动画失效，且全局未被调用 | `lib/islandArt.ts` | 低（死代码+bug） | 移除该函数，并加注释说明若需雾效应在组件用 `.fog-drift` class 实现 |
+### 1. 地图资源替换
+- 移除原来的 7 页群岛分页与独立 `arch_01~07.webp` 背景。
+- 使用用户指定图片 `docs/数学世界地图.png` 作为新底图，压缩为 `public/world/world_map.webp`：
+  - 原始 PNG 21MB → WebP 约 0.86MB（质量 90，几乎无损）。
+  - 尺寸 3840×2400（16:10），29 座岛完整呈现在一张图上。
+- 新增 `lib/worldMapData.ts`：
+  - `WORLD_MAP_SRC` 指向 `/world/world_map.webp`。
+  - `UNIFIED_MAP_COORDS`：29 个 MK id 在新底图上的百分比坐标，按 7 大领域环绕中央城堡分布。
 
-> 验证：`npx tsc --noEmit` 通过；`npx next build` 通过（全部路由正常生成）；dev 服务 http://localhost:3000 首页 / 精灵图 / 岛屿背景均返回 200。
+### 2. 交互功能增强
+`components/WorldMap.tsx` 重写为可交互地图：
+- **按钮缩放**：右下角悬浮控件 `+` / `−` / `复位`，每次约 15% 步长。
+- **滚轮缩放**：监听 `wheel` 事件，以鼠标当前位置为锚点平滑缩放。
+- **缩放范围**：最小 20%，最大 500%。
+- **鼠标拖动**：按住左键拖动地图平移，松开后带**惯性滑动**。
+- **触摸支持**：单指拖动同样生效，并阻止页面滚动冲突。
 
-## 二、已确认无隐患的项
+### 3. 响应式与性能
+- 地图层使用 `transform: translate(...) scale(...)` + `will-change-transform`，由 GPU 加速。
+- 容器尺寸通过 `ResizeObserver` 监听，窗口/布局变化时自动重新适配。
+- 节点与化身随地图一起缩放，保持相对位置不变。
 
-- **资源完整性**：`public/monsters`(cute/boss ×6)、`public/guards`(×6)、`public/spirits`(7×4=28)、`public/islands/battle_bg_01~19`、`public/islands/island_01~19`、`public/bg/bg_01~19`、`public/ui`(10)、`public/explorers`(6) 全部存在，路径与映射函数对应。
-- **软连接映射**：精灵 `resolveSpiritPath(page,stage)`、岛屿背景 `getIslandBg`、图标 `getUiIcon/getButtonBg*` 均无硬编码文件名，替换素材无需改代码。
-- **标签组件**：`UiButton` / `UiTag` 结构完整，边框已去除，`min-w + px-4` 保证短文本不出格；字号按儿童友好放大。
-- **动画类**：`walk-bob`(`bobPixel`)、`animate-boss-breathe`、`animate-twinkle`、`stage-aura`、`animate-node-pulse`、`fogDrift` 关键帧均存在。
-- **类型与构建**：TS 零错误，生产构建成功。
+### 4. 边界处理
+- 地图不能无限拖出可视区：
+  - 缩小时自动居中。
+  - 放大时 `tx`/`ty` 被 clamp 到 `[容器大小 - 地图有效大小, 0]`。
+- 惯性滑动过程中也受边界限制，松手后不会漂出屏幕。
 
-## 三、观察与可选优化（非 bug，按需处理）
+### 5. UI 调整
+- 顶部只保留「🗺️ 数学世界地图 · 已点亮 X/29」。
+- 移除左右翻页箭头、底部页指示器、「全览」入口（新地图本身即全览）。
+- 右下角悬浮缩放面板：放大 / 缩放百分比 / 缩小 / 复位。
+- 左下角「回到当前岛」按钮，点击后平滑动画定位到当前岛。
+- 保留岛屿节点样式（未解锁 🔒、当前岛脉冲、玩家化身站立）。
 
-1. **两套岛屿排序并存**：精灵/守卫分组用 `ISLAND_NAME_PAGE_MAP`（按知识领域），背景分配用 `ISLAND_ORDER`（按 MK 顺序）。两者是**有意不同**的设计（背景按顺序一一对应、精灵按领域成群），但后续若要“某岛背景与精灵同源”，需统一来源。
-2. **岛屿背景为 PNG**：`battle_bg_01~19.png` 体积可能偏大，单岛详情首屏加载可转 WebP 进一步提速（性能敏感项）。
-3. **WorldMap 玩家化身**：仍渲染 `{avatar}`（当前 emoji 占位），是**预留位**——按计划后续接入探险家图片，非本轮要删的“像素小元素”，保持不变。
-4. **`getWorldSea` 仍用旧 `/bg/bg_XX.webp` 海面图**：资源存在、无 404，但世界地图海面与新岛屿背景风格可进一步统一（视觉一致性）。
-5. **运行时风险提醒**：dev 服务历史上多次因 `next dev` 卡死需重启；生产构建稳定。建议长会话后若页面无响应，先重启 dev server。
+## 改动文件
 
-## 四、当前待办事项汇总（详见 TODO.md）
+| 文件 | 改动 |
+|---|---|
+| `public/world/world_map.webp` | 新增：压缩后的统一世界地图底图 |
+| `lib/worldMapData.ts` | 新增：底图路径 + 29 岛百分比坐标 |
+| `components/WorldMap.tsx` | 重写：单图底图、缩放、拖动、惯性、边界、新 UI |
+| `.gitignore` | 增加 `.next_bak_*/`（应对被锁无法重命名的构建备份） |
+| `TODO.md` | 记录 v1.3.0 完成项 |
+| `.workbuddy/memory/2026-08-18.md` / `MEMORY.md` | 更新群岛界面现状 |
 
-### 🔴 后端逻辑缺口
-- **错题集后端**（v1.2.12 仅前端占位）：`mistakes` 表设计、`logMistake/resolveMistake/getMistakes` server action、战斗埋点、掌握度算法、`/mistakes` 数据化、待复习入口。
+## 怎么看效果
 
-### 🟠 小探险家 + 等级系统（v1.2.14 资源/配置已就位，UI 未接）
-- Onboarding 引导页改造（emoji→boy/girl 真实图 + 性别选择）
-- `explorer` 表扩展：`gender` / `avatar_id` / `level` / `xp` / `title`
-- 化身替换 WorldMap / IslandBattleMap / BattleFlow / BossFlow 的 emoji 占位
-- 个人资料页 `/profile`、家长端头像、晋升动画、AvatarMenu 等级展示
-- 等级晋升检测 `checkAndPromote()` + 解锁内容兑现（Lv.2~6）
+```bash
+NODE_OPTIONS="" npx next dev
+```
 
-### 🟢 已沉淀的“化身 8 大使用场景”（后续提及相关内容时主动提醒）
-世界地图站位 / 单岛战斗位 / 战斗玩家侧 / 结算觉醒晋升 / 成长记录水印 / 排行榜 / 欢迎页 / 家长端报告。
+打开首页即可看到新的世界地图：
+- 鼠标滚轮在地图上滚动，会以鼠标位置为中心放大/缩小。
+- 按住地图空白处拖动，松开后会有轻微惯性滑行。
+- 点击岛屿节点进入单岛（未解锁岛会提示迷雾中）。
+- 点击「回到当前岛」可快速定位到探险家所在岛屿。
 
-### ✅ 本轮 UI 更新已完成（v1.2.1 ~ v1.2.16 + 自查 v1.2.17）
-图标映射、标签按键化、精灵全量替换、岛屿背景替换、探险家资源与等级配置入库、错题集前端占位。
-
----
-**结论**：本轮 UI 更新未引入运行期 bug，编译/构建/资源均健康。已修复 3 处（守卫裁切、sprites 死代码、fogOverlay 坏动画）。可放心进入第三轮需求清单。
+## 备注 / 待办
+- `docs/数学世界地图.png`（21MB 原始参考图）留在本地 docs 目录，不入库（已在 `.gitignore` 中排除），实际运行使用压缩后的 `public/world/world_map.webp`。
+- 29 岛坐标是基于新底图视觉岛屿的初步标定；后续若发现某岛位置需微调，直接改 `lib/worldMapData.ts` 中的 `UNIFIED_MAP_COORDS` 即可，无需改渲染代码。
+- `WorldAtlas` 全览组件已不被 `WorldMap` 引用，可保留或未来移除。
