@@ -343,24 +343,27 @@ const BOSS_IMAGES = [
   "/monsters/boss_6.webp",
 ];
 
-/** 精灵图按「领域」分 7 组，对应设计稿 7 套模板（10-1~10-7）。
- *  当前仅 2 套精灵图已抠图（blue=青 / purple=紫），其余 5 套待 10-1~10-7 裁成 4 形态后补齐。
- *  本轮先用 blue/purple 承载 7 个领域（相邻领域异色），待 7 套图到位后把 DOMAIN_TEMPLATE 指向 7 个 key。 */
-const DOMAIN_TEMPLATE: Record<string, "blue" | "purple"> = {
-  数与运算: "blue",
-  数的关系: "purple",
-  代数初步: "blue",
-  图形与几何: "purple",
-  量与测量: "blue",
-  统计与概率: "purple",
-  数学广角: "blue",
+/** 精灵图按「领域」分 7 组，对应设计稿 7 套模板（10-1~10-7），每组 4 个进化形态 */
+const DOMAIN_TEMPLATE: Record<string, number> = {
+  数与运算: 1,
+  数的关系: 2,
+  代数初步: 3,
+  图形与几何: 4,
+  量与测量: 5,
+  统计与概率: 6,
+  数学广角: 7,
 };
 
-/** 8 个精灵（青色系 4 形态 + 紫色系 4 形态） */
-const SPIRIT_IMAGES: Record<string, string[]> = {
-  blue: ["/sprites/blue_1.webp", "/sprites/blue_2.webp", "/sprites/blue_3.webp", "/sprites/blue_4.webp"],
-  purple: ["/sprites/purple_1.webp", "/sprites/purple_2.webp", "/sprites/purple_3.webp", "/sprites/purple_4.webp"],
-};
+/** 7 套模板 × 4 形态（由 scripts/crop_spirits.py 从设计稿裁剪抠图生成） */
+const SPIRIT_IMAGES: Record<number, string[]> = {};
+for (let g = 1; g <= 7; g++) {
+  SPIRIT_IMAGES[g] = [
+    `/sprites/s${g}_1.webp`,
+    `/sprites/s${g}_2.webp`,
+    `/sprites/s${g}_3.webp`,
+    `/sprites/s${g}_4.webp`,
+  ];
+}
 
 /** 怪物 WebP 资源路径：小怪/神秘小怪循环 6 张 cute 图，Boss 循环 6 张 boss 图 */
 export function getMonsterImage(monsterId: string): string {
@@ -386,8 +389,8 @@ const META_DOMAIN: Record<string, string> = {
 /** 精灵 WebP 资源路径：按领域分模板（数与运算/图形几何…），熟练度等级（1-4）分形态 */
 export function getSpiritImage(metaId: string, level = 1): string {
   const domain = META_DOMAIN[metaId] ?? "数与运算";
-  const tmpl = DOMAIN_TEMPLATE[domain] ?? "blue";
-  const arr = SPIRIT_IMAGES[tmpl] ?? SPIRIT_IMAGES.blue;
+  const tmpl = DOMAIN_TEMPLATE[domain] ?? 1;
+  const arr = SPIRIT_IMAGES[tmpl] ?? SPIRIT_IMAGES[1];
   return arr[Math.min(Math.max(level, 1), arr.length) - 1];
 }
 
