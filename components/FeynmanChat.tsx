@@ -9,8 +9,18 @@ type Msg = { role: "kid" | "ai"; content: string };
  * 费曼小课堂：AI 扮演「似懂非懂的小同学」，孩子当小老师教它。
  * 学以致用 —— 能讲清楚，才是真的会。
  */
-export default function FeynmanChat({ metas }: { metas: { id: string; name: string }[] }) {
-  const [metaId, setMetaId] = useState(metas[0]?.id ?? "");
+export default function FeynmanChat({
+  metas,
+  defaultMetaId,
+  tier,
+}: {
+  metas: { id: string; name: string }[];
+  /** 分岛费曼：默认选中某岛元认知（如当前岛） */
+  defaultMetaId?: string;
+  /** 分层徽章：基础篇 / 进阶篇👑 */
+  tier?: "base" | "practicing" | "advanced";
+}) {
+  const [metaId, setMetaId] = useState(defaultMetaId ?? metas[0]?.id ?? "");
   const [history, setHistory] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -45,10 +55,19 @@ export default function FeynmanChat({ metas }: { metas: { id: string; name: stri
     <div className="rounded-2xl border-2 border-[#b39ddb] bg-white p-4">
       <div className="flex items-center gap-2">
         <span className="text-2xl">🧑‍🏫</span>
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-black text-ink">费曼小课堂</p>
           <p className="text-[11px] font-bold text-ink-soft">当小老师，教 AI 学数学 —— 能讲清楚才是真的会</p>
         </div>
+        {tier && (
+          <span
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${
+              tier === "advanced" ? "bg-[#fff3d6] text-[#c98a12]" : "bg-[#eaf7e4] text-[#3a8f2f]"
+            }`}
+          >
+            {tier === "advanced" ? "进阶篇👑" : "基础篇"}
+          </span>
+        )}
       </div>
 
       {/* 选题（默认最近学的） */}

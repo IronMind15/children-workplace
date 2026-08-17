@@ -52,6 +52,7 @@ export default function HomeClient({
   rewards,
   aiConfigured,
   recentMetas,
+  currentIslandMeta,
   battleData,
   bossData,
   brain,
@@ -71,6 +72,16 @@ export default function HomeClient({
   rewards: { name: string; required: number }[];
   aiConfigured: boolean;
   recentMetas: { id: string; name: string }[];
+  currentIslandMeta?: {
+    metaId: string;
+    name: string;
+    domain: string;
+    island: string;
+    internalized: boolean;
+    level: number;
+    awakened: boolean;
+    tier: "base" | "practicing" | "advanced";
+  } | null;
   battleData?: {
     monsterId: string;
     name: string;
@@ -258,6 +269,7 @@ export default function HomeClient({
               rewards={rewards}
               aiConfigured={aiConfigured}
               recentMetas={recentMetas}
+              currentIslandMeta={currentIslandMeta}
               onMinimizeChange={setAskMinimized}
             />
           </div>
@@ -272,6 +284,7 @@ export default function HomeClient({
           rewards={rewards}
           aiConfigured={aiConfigured}
           recentMetas={recentMetas}
+          currentIslandMeta={currentIslandMeta}
           onMinimizeChange={setAskMinimized}
         />
       )}

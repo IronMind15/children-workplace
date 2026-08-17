@@ -27,6 +27,7 @@ export default function AskFlow({
   rewards,
   aiConfigured,
   recentMetas,
+  currentMeta,
   embedded = false,
 }: {
   questions: Q[];
@@ -35,6 +36,17 @@ export default function AskFlow({
   rewards: Reward[];
   aiConfigured: boolean;
   recentMetas: { id: string; name: string }[];
+  /** 分岛费曼学习：当前探险家化身所在岛的元认知上下文（领域/等级/觉醒/分层） */
+  currentMeta?: {
+    metaId: string;
+    name: string;
+    domain: string;
+    island: string;
+    internalized: boolean;
+    level: number;
+    awakened: boolean;
+    tier: "base" | "practicing" | "advanced";
+  } | null;
   /** 内嵌到地图右栏（AskPanel）时为 true：去掉返回地图头、改紧凑 padding */
   embedded?: boolean;
 }) {
@@ -64,6 +76,35 @@ export default function AskFlow({
   const nextReward = rewards.find((r) => r.required > total);
   const lastReward = nextReward ?? rewards[rewards.length - 1];
 
+  // 分岛费曼：以「当前岛元认知」为首选费曼题，去重合并最近学的
+  const feynmanMetas = currentMeta
+    ? [{ id: currentMeta.metaId, name: currentMeta.name }, ...recentMetas.filter((m) => m.id !== currentMeta.metaId)]
+    : recentMetas;
+
+  // 分层引导文案 + 岛域专属提问（按 tier 解锁进阶）
+  const tierGuidance: Record<string, string> = {
+    base: `这岛的本领还没收成精灵～先去驯服岛上的小怪，把「${currentMeta?.name ?? ""}」练熟，再来教小狐狸吧！`,
+    practicing: `「${currentMeta?.name ?? ""}」已经是你的精灵啦（Lv.${currentMeta?.level ?? 1}）！用费曼法讲给小狐狸听；打知识守卫觉醒后还能解锁进阶关联知识👑。`,
+    advanced: `「${currentMeta?.name ?? ""}」已觉醒完全体👑！可以挑战进阶关联知识，把这座岛和别岛的本领串起来🌟。`,
+  };
+  const tierBadge: Record<string, { label: string; cls: string }> = {
+    base: { label: "未解锁 · 基础篇", cls: "bg-[#e8edf2] text-[#7a8a9a]" },
+    practicing: { label: "已内化 · 基础篇", cls: "bg-[#d9f2e5] text-[#2f8f5b]" },
+    advanced: { label: "已觉醒 · 进阶篇👑", cls: "bg-[#fff3d6] text-[#c98a12]" },
+  };
+  const islandQuestions = currentMeta
+    ? [
+        `什么是${currentMeta.name}？举个例子`,
+        `${currentMeta.name}在生活里哪里用得到？`,
+        ...(currentMeta.awakened
+          ? [
+              `${currentMeta.name}和别的岛的本领有什么关系？`,
+              `为什么${currentMeta.name}能帮我们解决更难的问题？`,
+            ]
+          : []),
+      ]
+    : [];
+
   async function ask(q: Q) {
     if (loading) return;
     setLoading(q.id);
@@ -77,19 +118,20 @@ export default function AskFlow({
     if (r.ok) setGainSpark(Date.now());
   }
 
-  async function askFreeQuestion() {
-    if (loading || !freeText.trim()) return;
+  async function askFreeQuestion(prefill?: string) {
+    const text = (prefill ?? freeText).trim();
+    if (loading || !text) return;
     setLoading("free");
-    setAskedLabel(freeText.trim());
+    setAskedLabel(text);
     setAnswer(null);
-    const r = await askFree(freeText);
+    setFreeText("");
+    const r = await askFree(text);
     setLoading(null);
     setAnswer(r.answer);
     setTotal(r.total);
     setToday(r.todayCount);
     if (r.ok) {
       setGainSpark(Date.now());
-      setFreeText("");
     }
   }
 
@@ -123,6 +165,35 @@ export default function AskFlow({
         </div>
       </header>
 
+      {/* 分岛费曼 · 岛上小课堂（化身在某岛时聚焦该岛领域，按觉醒/等级分层） */}
+      {currentMeta && (
+        <div className="card mt-3 border-2 border-[#8fd14f] p-3">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🏝️</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-[#2b3a4a]">岛上小课堂 · {currentMeta.island}</p>
+              <p className="truncate text-[11px] font-bold text-[#7a8a9a]">领域：{currentMeta.domain} · {currentMeta.name}</p>
+            </div>
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${tierBadge[currentMeta.tier].cls}`}>
+              {tierBadge[currentMeta.tier].label}
+            </span>
+          </div>
+          <p className="mt-2 text-xs font-bold leading-relaxed text-[#2b3a4a]">{tierGuidance[currentMeta.tier]}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {islandQuestions.map((q, i) => (
+              <button
+                key={i}
+                onClick={() => askFreeQuestion(q)}
+                disabled={!aiConfigured || !!loading}
+                className="rounded-full bg-[#eaf7e4] px-2.5 py-1 text-[11px] font-black text-[#3a8f2f] transition-transform active:scale-95 disabled:opacity-50"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 伙伴 + 回答区 */}
       <div className="mt-2 flex items-start gap-3">
         <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-4 border-[#2b3a4a] bg-[#fff8e1] text-4xl shadow-[0_5px_0_rgba(43,58,74,0.25)]">
@@ -149,8 +220,17 @@ export default function AskFlow({
             </div>
           ) : (
             <p className="text-sm font-bold text-white">
-              嘿嘿，我是你的伙伴🦊！点下面的问题来问我，或者自己打字提问，每次提问都能收集 ✨火花，
-              火花够了，神秘小怪就会出现在岛上！
+              {currentMeta ? (
+                <>
+                  🏝️ 小小探险家现在在「{currentMeta.island}」！这一带属于「{currentMeta.domain}」领域，
+                  我们正好可以聊聊「{currentMeta.name}」～ 点下面的岛域问题，或自己打字问我都可以，每次提问都能收集 ✨火花！
+                </>
+              ) : (
+                <>
+                  嘿嘿，我是你的伙伴🦊！点下面的问题来问我，或者自己打字提问，每次提问都能收集 ✨火花，
+                  火花够了，神秘小怪就会出现在岛上！
+                </>
+              )}
             </p>
           )}
           {partnerMsgs.length > 0 && (
@@ -175,7 +255,7 @@ export default function AskFlow({
           disabled={!aiConfigured}
           className="min-w-0 flex-1 rounded-md border-2 border-[#2b3a4a] px-3 py-2 text-sm font-bold text-[#2b3a4a] disabled:bg-[#e8edf2] disabled:text-[#7a8a9a]"
         />
-        <button onClick={askFreeQuestion} disabled={!aiConfigured || !!loading || !freeText.trim()} className="btn btn-blue px-4 py-2 text-sm disabled:opacity-50">
+        <button onClick={() => askFreeQuestion()} disabled={!aiConfigured || !!loading || !freeText.trim()} className="btn btn-blue px-4 py-2 text-sm disabled:opacity-50">
           🚀 问伙伴
         </button>
       </div>
@@ -214,6 +294,16 @@ export default function AskFlow({
               </button>
             ))}
           </div>
+          {feynmanMetas.length > 0 && (
+            <div className="mt-4">
+              <FeynmanChat
+                metas={feynmanMetas}
+                defaultMetaId={currentMeta?.metaId}
+                tier={currentMeta?.tier}
+                key={currentMeta?.metaId ?? "recent"}
+              />
+            </div>
+          )}
         </div>
       ) : (
         <>
@@ -288,10 +378,15 @@ export default function AskFlow({
               每次提问 +1 ✨火花（推荐问题和小贴士也一样），保持爱提问的好习惯！
             </p>
 
-            {/* 费曼小课堂：当小老师，教 AI 学数学 */}
-            {recentMetas.length > 0 && (
+            {/* 费曼小课堂：当小老师，教 AI 学数学（默认聚焦当前岛元认知，按分层解锁） */}
+            {feynmanMetas.length > 0 && (
               <div className="mt-6">
-                <FeynmanChat metas={recentMetas} />
+                <FeynmanChat
+                  metas={feynmanMetas}
+                  defaultMetaId={currentMeta?.metaId}
+                  tier={currentMeta?.tier}
+                  key={currentMeta?.metaId ?? "recent"}
+                />
               </div>
             )}
           </div>

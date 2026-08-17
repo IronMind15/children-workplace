@@ -57,6 +57,7 @@ export default function AskPanel({
   rewards,
   aiConfigured,
   recentMetas,
+  currentIslandMeta,
   onMinimizeChange,
 }: {
   questions: Q[];
@@ -65,6 +66,16 @@ export default function AskPanel({
   rewards: Reward[];
   aiConfigured: boolean;
   recentMetas: { id: string; name: string }[];
+  currentIslandMeta?: {
+    metaId: string;
+    name: string;
+    domain: string;
+    island: string;
+    internalized: boolean;
+    level: number;
+    awakened: boolean;
+    tier: "base" | "practicing" | "advanced";
+  } | null;
   /** 当面板展开/收起时通知外层（用于改变左侧主区域宽度） */
   onMinimizeChange?: (minimized: boolean) => void;
 }) {
@@ -202,6 +213,7 @@ export default function AskPanel({
           rewards={rewards}
           aiConfigured={aiConfigured}
           recentMetas={recentMetas}
+          currentMeta={currentIslandMeta}
           embedded
         />
       </div>

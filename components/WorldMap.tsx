@@ -117,8 +117,8 @@ export default function WorldMap({
           </UiButton>
         </div>
 
-        {/* 主体：群岛背景 + 左右箭头 */}
-        <div className="relative flex-1">
+        {/* 主体：群岛背景 + 左右箭头（flex 居中固定比例地图，避免高列下留出空隙） */}
+        <div className="relative flex flex-1 items-center justify-center">
           {/* 左箭头 */}
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
@@ -138,10 +138,11 @@ export default function WorldMap({
             <img src={getUiIcon("arrowRight")} alt="下一页" className="h-full w-full object-contain" />
           </button>
 
-          {/* 群岛背景：minHeight 兜底保证最小高度（父链塌缩时背景仍可见） */}
+          {/* 群岛背景：固定 16:9 宽高比，保证 bg-cover 裁切在「默认 / AI最小化」两种列宽下完全一致
+              → 岛屿按钮（x/y% 叠加）相对背景不错位；min-h 兜底防止极端窄列下过小 */}
           <div
-            className="relative h-full w-full overflow-hidden rounded-xl bg-cover bg-center"
-            style={{ backgroundImage: `url(${bg})`, minHeight: "520px" }}
+            className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-cover bg-center"
+            style={{ backgroundImage: `url(${bg})`, minHeight: "300px" }}
           >
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/5" />
 

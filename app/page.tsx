@@ -148,6 +148,27 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
     .sort((a, b) => a.required - b.required);
   const aiConfigured = !!getAiConfig();
 
+  // 当前岛（探险家化身所在）→ 分岛费曼学习上下文：领域 / 等级 / 觉醒 / 分层
+  const islandMeta = allMetas.find((m) => `${m.name}岛` === island) ?? null;
+  const curMetaId = islandMeta?.id ?? null;
+  const curInternalized = curMetaId ? getInternalized(curMetaId) : null;
+  const curAwakened = curMetaId ? getMetaAwakened(curMetaId) : false;
+  const currentIslandMeta = curMetaId && islandMeta
+    ? {
+        metaId: curMetaId,
+        name: islandMeta.name,
+        domain: islandMeta.domain,
+        island,
+        internalized: !!curInternalized,
+        level: curInternalized?.mastery_level ?? 0,
+        awakened: curAwakened,
+        tier: (curAwakened ? "advanced" : curInternalized ? "practicing" : "base") as
+          | "base"
+          | "practicing"
+          | "advanced",
+      }
+    : null;
+
   // 进化链节点（EvolutionModal 用）
   const chainNodes: ChainNode[] = allMetas.map((m) => {
     const boss = getBossByTarget(m.id);
@@ -326,6 +347,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
           rewards={rewards}
           aiConfigured={aiConfigured}
           recentMetas={getInternalizedMetas().slice(-3).reverse().map((m) => ({ id: m.id, name: getMeta(m.id)?.name ?? m.id }))}
+          currentIslandMeta={currentIslandMeta}
           battleData={battleData}
           bossData={bossData}
           brain={brain}

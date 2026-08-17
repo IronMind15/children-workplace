@@ -134,7 +134,7 @@ function AtlasArchipelago({
         </span>
       </div>
       <div
-        className="relative h-[220px] w-full overflow-hidden rounded-xl bg-cover bg-center"
+        className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-cover bg-center"
         style={{ backgroundImage: `url(${bg})` }}
       >
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/10" />
