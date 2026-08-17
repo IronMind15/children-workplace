@@ -5,12 +5,14 @@ export type BrainSettings = {
   more_encourage: boolean; // 开关：多鼓励我
   more_hint: boolean;      // 开关：多给提示
   help_level: number;      // 帮助力度：1=少 2=中 3=多
+  tutorial_enabled: boolean; // 开关：开启后返回主界面自动进入新手引导
 };
 
 export const DEFAULT_BRAIN_SETTINGS: BrainSettings = {
   more_encourage: true,
   more_hint: true,
   help_level: 2,
+  tutorial_enabled: false,
 };
 
 export const HELP_LEVEL_LABELS: Record<number, string> = {
@@ -32,6 +34,8 @@ export function parseBrainSettings(json: string | null | undefined): BrainSettin
         o.help_level === 1 || o.help_level === 2 || o.help_level === 3
           ? o.help_level
           : DEFAULT_BRAIN_SETTINGS.help_level,
+      tutorial_enabled:
+        typeof o.tutorial_enabled === "boolean" ? o.tutorial_enabled : DEFAULT_BRAIN_SETTINGS.tutorial_enabled,
     };
   } catch {
     return { ...DEFAULT_BRAIN_SETTINGS };

@@ -8,20 +8,27 @@ import type { GuardInfo, Property } from "./types";
 import { computeRankLevel, getRankByLevel } from "./ranks";
 
 /**
- * 训练胜利：该元认知熟练经验 +1，满阈值则熟练等级 +1（= 精灵进化），并写成长日志。
- * 阈值可调（config.xp_threshold，默认 3）。
+ * 训练胜利：该元认知熟练经验 +1，达到「递增阈值」则熟练等级 +1（= 精灵进化），并写成长日志。
+ * 升级遵循成熟的「练习熟练度积累规律」：每升一级所需经验递增（xpToNext），而非固定阈值，
+ * 越往后越需要更多练习，契合养成类游戏的成长曲线。
  * 无血量、无失败终态（零失败压力）。
  * 返回是否触发进化（升级），供前端播放进化庆祝。
  */
+export const MAX_MASTERY_LEVEL = 10;
+
+/** 升到下一级所需经验：基础 3，每级 +2（Lv1→2:3, Lv2→3:5, Lv3→4:7 …），递增曲线 */
+export function xpToNext(level: number): number {
+  return 3 + (level - 1) * 2;
+}
+
 export function trainWin(metaId: string, stars: number): { leveledUp: boolean; level: number } {
   const im = getInternalized(metaId);
   if (!im) return { leveledUp: false, level: 0 };
 
   let level = im.mastery_level;
-  let xp = im.mastery_xp + 1;
-  const THRESHOLD = getConfigNum("xp_threshold", 3); // 经验阈值（开发者可调）
+  let xp = im.mastery_xp + 1; // 每次胜利 +1 熟练经验
   let leveledUp = false;
-  if (xp >= THRESHOLD) {
+  if (level < MAX_MASTERY_LEVEL && xp >= xpToNext(level)) {
     level += 1;
     xp = 0;
     leveledUp = true;
@@ -29,7 +36,7 @@ export function trainWin(metaId: string, stars: number): { leveledUp: boolean; l
   db.prepare("UPDATE internalized_meta SET mastery_level = ?, mastery_xp = ? WHERE meta_id = ?").run(level, xp, metaId);
   db.prepare("INSERT INTO growth_log (event, detail) VALUES (?, ?)").run(
     "train_win",
-    JSON.stringify({ meta_id: metaId, stars, mastery_level: level })
+    JSON.stringify({ meta_id: metaId, stars, mastery_level: level, mastery_xp: xp })
   );
   return { leveledUp, level };
 }

@@ -10,6 +10,7 @@ import {
   getBossesByIsland,
   getMonstersByIsland,
   getBossByTarget,
+  getMetaAwakened,
 } from "@/lib/repo";
 import { SPIRIT_LORE } from "@/lib/spiritLore";
 import { islandLabel } from "@/lib/islandTheme";
@@ -89,6 +90,7 @@ export default function Journal() {
       island: lore?.island ?? m.name + "岛",
       evolvesTo: edges.filter((e) => e.from_meta === m.id).map((e) => metaName.get(e.to_meta) ?? e.to_meta),
       unlockHint: boss ? `在${boss.island}净化「${boss.name}」解锁` : "🌙 神秘支线·暂未开放",
+      awakened: getMetaAwakened(m.id),
     };
   });
 

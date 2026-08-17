@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { saveBrainSettings, setConfigAction, getConfigAction } from "@/lib/actions";
 import { HELP_LEVEL_LABELS, missGuide, winGuide, type BrainSettings } from "@/lib/brain";
 import Guide from "@/components/Guide";
@@ -97,6 +98,7 @@ export default function BrainEditor({
   const [saved, setSaved] = useState(true);
   const [layoutMode, setLayoutMode] = useState<"auto" | "tabs" | "split">("auto");
   const [layoutSaved, setLayoutSaved] = useState(true);
+  const router = useRouter();
 
   // 加载 layout_mode
   useEffect(() => {
@@ -176,6 +178,21 @@ export default function BrainEditor({
               <span>多</span>
             </div>
           </div>
+
+          {/* 新手引导开关 */}
+          <Toggle
+            label="📖 显示新手引导"
+            hint="开启后，返回主界面会自动弹出玩法引导；随时可重看"
+            checked={brain.tutorial_enabled}
+            onChange={(v) => update({ tutorial_enabled: v })}
+          />
+          <button
+            onClick={() => router.push("/?tutorial=1")}
+            className="w-full rounded-card bg-white p-3 text-left shadow-card transition-transform active:scale-[0.98]"
+          >
+            <span className="block text-base font-black text-[#2b3a4a]">📖 重看新手引导</span>
+            <span className="mt-0.5 block text-sm text-ink-soft">立刻回到主界面看一遍小狐狸的玩法讲解</span>
+          </button>
         </div>
       </section>
 

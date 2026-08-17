@@ -16,6 +16,7 @@ import IslandBattleMap from "@/components/IslandBattleMap";
 import BattleFlow from "@/components/BattleFlow";
 import BossFlow from "@/components/BossFlow";
 import AskPanel from "@/components/AskPanel";
+import TutorialOverlay from "@/components/TutorialOverlay";
 import UiButton from "@/components/UiButton";
 import type { WorldNode, WorldEdge } from "@/components/WorldMap";
 import type { SolveStep } from "@/lib/types";
@@ -79,7 +80,7 @@ export default function HomeClient({
     mode: "train" | "guard";
     propertyName?: string;
     returnIsland: string;
-    spirits: { meta_id: string; emoji: string; nickname: string; meta_name: string }[];
+    spirits: { meta_id: string; emoji: string; nickname: string; meta_name: string; level: number; awakened: boolean }[];
     guardStyleIndex?: number;
     battleBg: string;
   };
@@ -101,6 +102,26 @@ export default function HomeClient({
   const searchParams = useSearchParams();
   const [askMinimized, setAskMinimized] = useState(false);
   const [lockedHint, setLockedHint] = useState<string | null>(null);
+  const [tutorialDone, setTutorialDone] = useState(false);
+  const [tutorialDismissed, setTutorialDismissed] = useState(false);
+
+  // 新手引导：开启后返回主界面自动进入；或手动 ?tutorial=1 重看
+  const forceTutorial = searchParams.get("tutorial") === "1";
+  useEffect(() => {
+    try {
+      setTutorialDone(localStorage.getItem("tutorial:done") === "1");
+    } catch {}
+  }, []);
+  const tutorialActive = (brain.tutorial_enabled && !tutorialDone) || forceTutorial;
+  const showTutorial = tutorialActive && view.kind === "map" && !tutorialDismissed;
+  function closeTutorial() {
+    setTutorialDismissed(true);
+    if (brain.tutorial_enabled) {
+      try {
+        localStorage.setItem("tutorial:done", "1");
+      } catch {}
+    }
+  }
 
   // URL → view 已经在 server 端完成；这里只读 searchParams 保持响应
   useEffect(() => {
@@ -254,6 +275,9 @@ export default function HomeClient({
           onMinimizeChange={setAskMinimized}
         />
       )}
+
+      {/* 新手引导浮层：返回主界面且已开启时自动进入 */}
+      {showTutorial && <TutorialOverlay avatarSrc={avatarSrc} onClose={closeTutorial} />}
     </div>
   );
 }

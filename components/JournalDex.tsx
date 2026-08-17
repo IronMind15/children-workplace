@@ -18,6 +18,7 @@ export type DexSpirit = {
   island: string;
   evolvesTo: string[]; // 后继本领名
   unlockHint: string;  // 锁定时的解锁方式说明
+  awakened?: boolean;  // 对应性质是否已觉醒（决定是否展示完全体）
 };
 
 export default function JournalDex({ spirits }: { spirits: DexSpirit[] }) {
@@ -28,7 +29,7 @@ export default function JournalDex({ spirits }: { spirits: DexSpirit[] }) {
     <>
       <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-5">
         {spirits.map((s) => {
-          const stage = getSpiritStage(s.mastery_level);
+          const stage = getSpiritStage(s.mastery_level, s.awakened);
           return (
             <button
               key={s.meta_id}
@@ -40,7 +41,7 @@ export default function JournalDex({ spirits }: { spirits: DexSpirit[] }) {
               <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
                 {s.unlocked ? (
                   <ImgSprite
-                    src={getSimpleSpiritImage(s.meta_id, s.mastery_level)}
+                    src={getSimpleSpiritImage(s.meta_id, s.mastery_level, s.awakened)}
                     size={stage.size - 8}
                     className={stage.crown ? "stage-aura-strong" : stage.aura ? "stage-aura" : ""}
                   />
@@ -69,13 +70,13 @@ export default function JournalDex({ spirits }: { spirits: DexSpirit[] }) {
             onClick={(e) => e.stopPropagation()}
           >
             {(() => {
-              const stage = getSpiritStage(open.mastery_level);
+              const stage = getSpiritStage(open.mastery_level, open.awakened);
               return (
                 <>
                   <div className="flex items-start justify-between">
                     <div className="relative flex h-28 w-28 items-center justify-center">
                       <ImgSprite
-                        src={getSpiritImage(open.meta_id, open.mastery_level)}
+                        src={getSpiritImage(open.meta_id, open.mastery_level, open.awakened)}
                         size={stage.size}
                         className={stage.crown ? "stage-aura-strong" : stage.aura ? "stage-aura" : ""}
                       />

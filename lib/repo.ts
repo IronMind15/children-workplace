@@ -275,6 +275,11 @@ export function isPropertyAwakenedByMeta(metaId: string, propertyId: string): bo
     .get(spiritIdOf(metaId), propertyId);
 }
 
+/** 该精灵是否有任意性质已觉醒（用于决定是否能展示「完全体」形态） */
+export function getMetaAwakened(metaId: string): boolean {
+  return !!db.prepare("SELECT 1 FROM internalized_property WHERE spirit_id = ?").get(spiritIdOf(metaId));
+}
+
 export function getAwakenedPropertyIds(): string[] {
   return (db.prepare("SELECT property_id FROM internalized_property").all() as { property_id: string }[]).map(
     (r) => r.property_id

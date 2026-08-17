@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { askQuestion, askFree } from "@/lib/actions";
 import FeynmanChat from "@/components/FeynmanChat";
@@ -44,6 +44,19 @@ export default function AskFlow({
   const [askedLabel, setAskedLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [gainSpark, setGainSpark] = useState<number | null>(null);
+
+  // 接收战斗界面推来的伙伴讲解（跨组件事件：BattleFlow → 右侧 AI 对话区）
+  const [partnerMsgs, setPartnerMsgs] = useState<{ text: string; key: number }[]>([]);
+  useEffect(() => {
+    function onMsg(e: Event) {
+      const detail = (e as CustomEvent<{ text: string }>).detail;
+      if (detail?.text) {
+        setPartnerMsgs((prev) => [...prev.slice(-4), { text: detail.text, key: Date.now() + Math.random() }]);
+      }
+    }
+    window.addEventListener("partner-message", onMsg);
+    return () => window.removeEventListener("partner-message", onMsg);
+  }, []);
 
   // 自由提问
   const [freeText, setFreeText] = useState("");
@@ -139,6 +152,15 @@ export default function AskFlow({
               嘿嘿，我是你的伙伴🦊！点下面的问题来问我，或者自己打字提问，每次提问都能收集 ✨火花，
               火花够了，神秘小怪就会出现在岛上！
             </p>
+          )}
+          {partnerMsgs.length > 0 && (
+            <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
+              {partnerMsgs.map((m) => (
+                <div key={m.key} className="animate-pop rounded-xl bg-white/10 px-3 py-2 text-sm font-bold leading-relaxed text-white">
+                  {m.text}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>

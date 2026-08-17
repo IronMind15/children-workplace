@@ -87,6 +87,20 @@ export default function AskPanel({
     setReady(true);
   }, []);
 
+  // 战斗界面推来的伙伴讲解：若面板收起则自动展开，确保讲解可见
+  useEffect(() => {
+    function onMsg() {
+      if (minimized) {
+        setMinimized(false);
+        try {
+          localStorage.setItem(MIN_KEY, "0");
+        } catch {}
+      }
+    }
+    window.addEventListener("partner-message", onMsg);
+    return () => window.removeEventListener("partner-message", onMsg);
+  }, [minimized]);
+
   function toggleMin() {
     const next = !minimized;
     setMinimized(next);

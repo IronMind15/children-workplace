@@ -5,15 +5,21 @@ import { useRouter } from "next/navigation";
 import { trainWin, logMistake, explainMistake, resolveMistake, guardWinAction } from "@/lib/actions";
 import ImgSprite from "@/components/ImgSprite";
 import UiButton from "@/components/UiButton";
-import { getMonsterImage, getSpiritImage, getSpiritStage, getCompanionImage } from "@/lib/sprites";
+import { getMonsterImage, getSpiritImage, getSpiritStage, getCompanionImage, AWAKENED_STAGE } from "@/lib/sprites";
 import { getGuardImage } from "@/lib/guardStyles";
 import { battleIntroGuide, winGuide, type BrainSettings } from "@/lib/brain";
 import type { SolveStep } from "@/lib/types";
 
-type SpiritOption = { meta_id: string; emoji: string; nickname: string; meta_name: string };
+type SpiritOption = { meta_id: string; emoji: string; nickname: string; meta_name: string; level: number; awakened: boolean };
 type Effect = { kind: "crit" | "miss" | "combo"; text: string; key: number } | null;
 
 const hpColor = (p: number) => (p > 50 ? "#4cd964" : p > 25 ? "#ffd54f" : "#ff5252");
+
+/** 把伙伴（狐狸）讲解推送到右侧 AI 对话区（AskPanel），实现跨组件提示集成 */
+function pushPartnerMessage(text: string) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("partner-message", { detail: { text } }));
+}
 
 /** 宝可梦式 HP 信息框 */
 function HpBox({
@@ -94,7 +100,9 @@ export default function BattleFlow({
   const [levelUp, setLevelUp] = useState<{ level: number } | null>(null);
   const [awaken, setAwaken] = useState<{ propertyName: string; islandLevel: number } | null>(null);
   const [hp, setHp] = useState(100);
-  const [explain, setExplain] = useState<{ text: string; userAnswer: string; correctAnswer: string } | null>(null);
+  const [wrongNote, setWrongNote] = useState<{ text: string; userAnswer: string; correctAnswer: string } | null>(null);
+  const [pickHint, setPickHint] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [wrongOnThisStep, setWrongOnThisStep] = useState(false);
 
   const isGuard = mode === "guard";
@@ -106,17 +114,18 @@ export default function BattleFlow({
     mode === "guard" && guardStyleIndex != null
       ? getGuardImage(guardStyleIndex)
       : getMonsterImage(monsterId);
-  const spiritImage = picked ? getSpiritImage(picked.meta_id) : null;
+  // 战斗中精灵形象实时跟随真实熟练度等级 + 觉醒状态（修复恒为宝宝体）
+  const spiritImage = picked ? getSpiritImage(picked.meta_id, picked.level, picked.awakened) : null;
 
   // 进场预加载本场会用到全部图片（怪物 + 候选精灵 + 伙伴），避免战斗中首帧闪加载
   useEffect(() => {
     const urls = [
       monsterImage,
       getCompanionImage(),
-      // 精灵只有 3 种实际形态：stage1（Lv.1）/ stage2（Lv.2）/ stage4（Lv.3+）
+      // 预加载每个精灵「当前实际形态」+ 宝宝体 + 完全体（觉醒后跨形态切换不闪）
+      ...spirits.map((s) => getSpiritImage(s.meta_id, s.level, s.awakened)),
       ...spirits.map((s) => getSpiritImage(s.meta_id, 1)),
-      ...spirits.map((s) => getSpiritImage(s.meta_id, 2)),
-      ...spirits.map((s) => getSpiritImage(s.meta_id, 4)),
+      ...spirits.map((s) => getSpiritImage(s.meta_id, AWAKENED_STAGE)),
     ];
     for (const u of new Set(urls)) {
       const img = new Image();
@@ -143,22 +152,30 @@ export default function BattleFlow({
 
   function pickSpirit(s: SpiritOption) {
     if (s.meta_id === correctMeta) {
+      setPickHint(null);
       setPicked(s);
       hit();
       flash({ kind: "crit", text: "属性克制！", key: Date.now() });
       setTimeout(() => setPhase("solve"), 650);
     } else {
-      flash({ kind: "miss", text: "效果不佳…", key: Date.now() });
+      // 儿童友好提示：说明为什么不对、该用哪个本领
+      setPickHint(
+        `这个本领好像不太对哦～这一题更需要「${correctMetaName ?? "对的"}」的本领，再看看？`
+      );
+      flash({ kind: "miss", text: "再想想～", key: Date.now() });
     }
   }
 
   function pickHelper(s: SpiritOption) {
     if (s.meta_id === missingMeta) {
       setHelpers((hs) => [...hs, s]);
+      setPickHint(null);
       hit();
       flash({ kind: "crit", text: "帮手登场！", key: Date.now() });
     } else {
-      flash({ kind: "miss", text: "这位帮手帮不上…", key: Date.now() });
+      const needName = spirits.find((x) => x.meta_id === missingMeta)?.meta_name ?? "对的";
+      setPickHint(`这位伙伴帮不上忙～这一题需要的是「${needName}」的本领，换一个试试？`);
+      flash({ kind: "miss", text: "换一个帮手～", key: Date.now() });
     }
   }
 
@@ -200,11 +217,21 @@ export default function BattleFlow({
       // 记录错题
       const correctLabel = currentStep.options.find((o) => o.correct)?.label ?? "";
       logMistake(correctMeta, currentStep.prompt, opt.label, correctLabel);
-      // 弹讲解：内置讲解保底，配了 AI 则异步替换为更个性化的讲解
+      // 答错讲解：统一推送到右侧 AI 对话区（AskPanel），不弹独立浮窗
       const base = currentStep.explain ?? "再仔细看看题目，答案就藏在里面哦～";
-      setExplain({ text: base, userAnswer: opt.label, correctAnswer: correctLabel });
+      const note = { text: base, userAnswer: opt.label, correctAnswer: correctLabel };
+      setWrongNote(note);
+      pushPartnerMessage(
+        `🦊 差一点点就对啦！你选了「${opt.label}」，正确答案是「${correctLabel}」。${base}`
+      );
+      // AI 异步补充更个性化讲解（期间 busy 锁定，避免与刷新冲突）
+      setBusy(true);
       explainMistake(currentStep.prompt, correctLabel, opt.label, correctMetaName ?? "").then((ai) => {
-        if (ai) setExplain((e) => (e ? { ...e, text: ai } : e));
+        if (ai) {
+          setWrongNote((n) => (n ? { ...n, text: ai } : n));
+          pushPartnerMessage(`🦊 ${ai}`);
+        }
+        setBusy(false);
       });
     }
   }
@@ -243,7 +270,7 @@ export default function BattleFlow({
               </div>
               {helpers.map((h, i) => (
                 <div key={h.meta_id} className="animate-pop" style={{ marginBottom: 10 + i * 22 }}>
-                  <ImgSprite src={getSpiritImage(h.meta_id)} size={96} />
+                  <ImgSprite src={getSpiritImage(h.meta_id, h.level, h.awakened)} size={96} />
                 </div>
               ))}
             </div>
@@ -279,37 +306,7 @@ export default function BattleFlow({
             )}
           </div>
 
-          {/* 小狐狸助手：选错时在舞台右下独立位置讲解（不遮选项，超高可滚动） */}
-          {explain && (
-            <div className="animate-fox-in absolute bottom-28 right-3 z-30 flex w-[300px] max-w-[calc(100%-1.5rem)] items-end lg:bottom-6">
-              <ImgSprite src={getCompanionImage()} size={72} className="-ml-2 shrink-0 drop-shadow-lg" />
-              <div className="relative ml-1 flex-1 rounded-2xl rounded-bl-none border-2 border-[#f79228] bg-white/95 p-3 shadow-xl">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-black text-[#e2582e]">🦊 差一点点就对啦！</p>
-                  <button
-                    onClick={() => setExplain(null)}
-                    className="rounded-full px-1.5 text-sm font-black text-[#7a8a9a] hover:bg-[#2b3a4a]/10"
-                    aria-label="关闭讲解"
-                  >
-                    ×
-                  </button>
-                </div>
-                <p className="mt-0.5 text-[10px] font-bold text-[#7a8a9a]">
-                  你选了「{explain.userAnswer}」，正确答案是「{explain.correctAnswer}」
-                </p>
-                {/* 限高滚动：AI 讲得再长也能看完，不撑破舞台 */}
-                <p className="mt-1.5 max-h-32 overflow-y-auto text-xs font-bold leading-relaxed text-[#2b3a4a]">
-                  {explain.text}
-                </p>
-                <button
-                  onClick={() => setExplain(null)}
-                  className="mt-2 w-full rounded-xl bg-[#f79228] py-2 text-xs font-black text-white transition-colors hover:bg-[#d97a12]"
-                >
-                  💪 我看懂啦，再试一次
-                </button>
-              </div>
-            </div>
-          )}
+          {/* 答错讲解已统一集成到右侧 AI 对话区（AskPanel），不再弹独立浮窗 */}
 
           {/* 战斗特效飘字 */}
           {effect && (
@@ -432,6 +429,11 @@ export default function BattleFlow({
                   </span>
                   <br />
                   <span className="text-xs font-semibold text-white/60">想一想：这题要用哪个本领？</span>
+                  {pickHint && (
+                    <span className="mt-2 block rounded-lg border border-[#f79228] bg-[#fff3e0] px-3 py-1.5 text-sm font-bold text-[#e2582e]">
+                      🦊 {pickHint}
+                    </span>
+                  )}
                 </>
               )}
               {phase === "solve" && (
@@ -446,6 +448,11 @@ export default function BattleFlow({
                     拆招 {stepIdx + 1} / {total}
                     {missingMeta && " · ⚡ 还需要帮手！"}
                   </span>
+                  {wrongNote && (
+                    <span className="mt-2 block rounded-lg border border-[#f79228] bg-[#fff3e0] px-3 py-1.5 text-sm font-bold text-[#e2582e]">
+                      🦊 答错别急～小狐狸在右边教你啦！你选了「{wrongNote.userAnswer}」，正确答案是「{wrongNote.correctAnswer}」
+                    </span>
+                  )}
                 </>
               )}
               {phase === "result" && (
@@ -496,6 +503,7 @@ export default function BattleFlow({
                   onClick={() => router.push(`/?battle=${monsterId}&r=${Date.now()}`)}
                   height="sm"
                   size="medium"
+                  disabled={busy}
                 >
                   🎲 换一批新题目
                 </UiButton>
@@ -506,7 +514,7 @@ export default function BattleFlow({
               <div className="grid grid-cols-2 gap-3">
                 {spirits.map((s) => (
                   <button key={s.meta_id} onClick={() => pickSpirit(s)} className="btn btn-white flex items-center gap-2 p-2.5 text-left">
-                    <ImgSprite src={getSpiritImage(s.meta_id)} size={44} />
+                    <ImgSprite src={getSpiritImage(s.meta_id, s.level, s.awakened)} size={44} />
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-black">{s.nickname}</span>
                       <span className="block truncate text-xs font-semibold text-[#7a8a9a]">{s.meta_name}</span>
@@ -526,7 +534,7 @@ export default function BattleFlow({
                     .filter((s) => s.meta_id !== picked?.meta_id)
                     .map((s) => (
                       <button key={s.meta_id} onClick={() => pickHelper(s)} className="btn btn-white flex items-center gap-2 p-2 text-left">
-                        <ImgSprite src={getSpiritImage(s.meta_id)} size={40} />
+                        <ImgSprite src={getSpiritImage(s.meta_id, s.level, s.awakened)} size={40} />
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-black">{s.nickname}</span>
                           <span className="block truncate text-xs font-semibold text-[#7a8a9a]">{s.meta_name}</span>
@@ -537,7 +545,7 @@ export default function BattleFlow({
               </div>
             )}
 
-            {phase === "solve" && !missingMeta && !explain && (
+            {phase === "solve" && !missingMeta && (
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
                 {steps[stepIdx].options.map((o) => (
                   <button key={o.label} onClick={() => answer(o)} className="btn btn-green py-4 text-2xl">
@@ -561,6 +569,7 @@ export default function BattleFlow({
                   onClick={() => router.push(`/?battle=${monsterId}&r=${Date.now()}`)}
                   height="sm"
                   size="medium"
+                  disabled={busy}
                 >
                   🔁 再来一场（新题目）
                 </UiButton>

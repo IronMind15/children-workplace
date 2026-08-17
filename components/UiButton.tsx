@@ -44,7 +44,7 @@ export default function UiButton({
   return (
     <button
       type="button"
-      className={`relative flex items-center justify-center overflow-hidden rounded-xl border-3 border-[#2b3a4a] px-5 font-black text-[#2b3a4a] shadow-card transition-transform hover:scale-105 active:translate-y-0.5 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${heightClass[height]} ${
+      className={`relative flex items-center justify-center overflow-hidden rounded-xl border-3 border-[#2b3a4a] px-5 font-black leading-tight text-center text-[#2b3a4a] shadow-card transition-transform hover:scale-105 active:translate-y-0.5 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 ${heightClass[height]} ${
         fullWidth ? "w-full" : ""
       } ${className}`}
       style={{
@@ -91,7 +91,7 @@ export function UiTag({
   const bg = size === "auto" ? getButtonBgByText(text) : getButtonBg(size);
   return (
     <span
-      className={`inline-flex min-w-[3.5rem] items-center justify-center whitespace-nowrap overflow-hidden rounded-xl px-4 py-1 font-black shadow-[0_2px_0_rgba(43,58,74,0.4)] transition-transform group-hover:scale-105 ${
+      className={`inline-flex max-w-[9rem] min-w-[3.5rem] items-center justify-center whitespace-normal break-words text-center leading-tight rounded-xl px-3 py-1 font-black shadow-[0_2px_0_rgba(43,58,74,0.4)] transition-transform group-hover:scale-105 ${
         locked ? "text-[#7a8a9a]" : "text-[#2b3a4a]"
       } ${className}`}
       style={{

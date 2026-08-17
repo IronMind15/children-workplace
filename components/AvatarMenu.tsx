@@ -29,6 +29,7 @@ const MENU_ITEMS = [
   { href: "/mistakes", label: "错题集", iconSrc: getUiIcon("mistakeBook"), desc: "收集错题、复盘弱点" },
   { href: "/parent", label: "家长端", icon: "👨‍👩‍👧", desc: "学习进度、错题、每日总结" },
   { href: "/profile", label: "我的资料", iconSrc: getUiIcon("atlas"), desc: "头衔、火花、净化进度" },
+  { href: "/?tutorial=1", label: "新手引导", icon: "📖", desc: "重看玩法讲解" },
 ];
 
 export default function AvatarMenu({ avatarSrc, rank }: { avatarSrc: string; rank?: AvatarMenuRank }) {

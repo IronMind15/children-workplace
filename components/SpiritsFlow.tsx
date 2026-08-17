@@ -17,7 +17,10 @@ export type SpiritCardData = {
   awakened?: string[]; // 已觉醒的性质名（金纹）
 };
 
-const XP_THRESHOLD = 3; // 与 lib/game.ts 的熟练经验阈值一致
+// 与 lib/game.ts xpToNext 保持一致：升下一级所需经验 = 3 + (level-1)*2（递增曲线）
+function xpToNext(level: number): number {
+  return 3 + (level - 1) * 2;
+}
 
 /** 互动语录（摸摸头 / 击掌 / 喂食） */
 const INTERACTIONS = [
@@ -56,7 +59,8 @@ export default function SpiritsFlow({
     <>
       <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {spirits.map((s) => {
-          const stage = getSpiritStage(s.mastery_level);
+          const awakened = (s.awakened?.length ?? 0) > 0;
+          const stage = getSpiritStage(s.mastery_level, awakened);
           return (
             <button
               key={s.id}
@@ -69,7 +73,7 @@ export default function SpiritsFlow({
             >
               <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
                 <ImgSprite
-                  src={getSimpleSpiritImage(s.meta_id, s.mastery_level)}
+                  src={getSimpleSpiritImage(s.meta_id, s.mastery_level, awakened)}
                   size={stage.size}
                   className={`${stage.crown ? "stage-aura-strong" : stage.aura ? "stage-aura" : ""}`}
                 />
@@ -104,7 +108,7 @@ export default function SpiritsFlow({
                 <span>进化能量</span>
                 <span className="tracking-widest text-[#ffb300]">
                   {"●".repeat(s.mastery_xp)}
-                  {"○".repeat(Math.max(0, XP_THRESHOLD - s.mastery_xp))}
+                  {"○".repeat(Math.max(0, xpToNext(s.mastery_level) - s.mastery_xp))}
                 </span>
               </div>
               <div className="mt-1 text-[10px] font-bold text-[#3fb984]">👣 成长 {s.history.length} 步 · 点击互动</div>
@@ -124,13 +128,14 @@ export default function SpiritsFlow({
             onClick={(e) => e.stopPropagation()}
           >
             {(() => {
-              const stage = getSpiritStage(open.mastery_level);
+              const awakenedDetail = (open.awakened?.length ?? 0) > 0;
+              const stage = getSpiritStage(open.mastery_level, awakenedDetail);
               return (
                 <>
                   <div className="flex items-start justify-between">
                     <div className="relative flex h-32 w-32 items-center justify-center">
                       <ImgSprite
-                        src={getSpiritImage(open.meta_id, open.mastery_level)}
+                        src={getSpiritImage(open.meta_id, open.mastery_level, awakenedDetail)}
                         size={stage.size + 8}
                         className={`${stage.crown ? "stage-aura-strong" : stage.aura ? "stage-aura" : ""}`}
                       />
@@ -220,7 +225,14 @@ export default function SpiritsFlow({
 
                   {!stage.crown && (
                     <p className="mt-3 rounded-lg bg-[#e8f6ef] p-2.5 text-center text-xs font-black text-[#2f9e6e]">
-                      再赢 {XP_THRESHOLD - open.mastery_xp} 场 → {open.mastery_level === 1 ? "成长体（长出光环）" : "完全体（戴上皇冠）"}
+                      再赢 {xpToNext(open.mastery_level) - open.mastery_xp} 场 →{" "}
+                      {open.mastery_level < 2
+                        ? "成长体（长出光环）"
+                        : open.mastery_level < 3
+                          ? "进阶体"
+                          : open.awakened
+                            ? "完全体（已觉醒 👑）"
+                            : "觉醒后进化完全体 👑"}
                     </p>
                   )}
                 </>

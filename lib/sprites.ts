@@ -77,16 +77,39 @@ export type SpiritForm = {
 export const SPIRIT_FORMS: SpiritForm[] = [
   { minLevel: 1, stage: 1, title: "宝宝体", aura: false, crown: false, size: 64 },
   { minLevel: 2, stage: 2, title: "成长体", aura: true, crown: false, size: 76 },
-  { minLevel: 3, stage: 4, title: "完全体", aura: true, crown: true, size: 88 },
+  { minLevel: 3, stage: 3, title: "进阶体", aura: true, crown: false, size: 82 },
 ];
 
-/** 按熟练度等级取当前形态配置（取满足 minLevel ≤ level 的最高档） */
-export function getSpiritStage(level: number): SpiritStage {
+/**
+ * 完全体（stage 4）：最高形态，需「对应性质已觉醒」才展示（与觉醒系统关联）。
+ * 未觉醒时即便熟练度达标，也停在进阶体（stage 3），鼓励先去打知识守卫觉醒。
+ */
+export const AWAKENED_STAGE = 4;
+export const AWAKENED_MIN_LEVEL = 3;
+
+/** 练习形态（仅按熟练度等级，1/2/3），取满足 minLevel ≤ level 的最高档 */
+function practiceStage(level: number): number {
   let result = SPIRIT_FORMS[0];
   for (const f of SPIRIT_FORMS) {
     if (level >= f.minLevel) result = f;
   }
-  return { title: result.title, aura: result.aura, crown: result.crown, size: result.size };
+  return result.stage;
+}
+
+/** 最终形态 stage：觉醒且达标 → 完全体(4)；否则停在练习形态 */
+export function resolveStage(level: number, awakened = false): number {
+  if (awakened && level >= AWAKENED_MIN_LEVEL) return AWAKENED_STAGE;
+  return practiceStage(level);
+}
+
+/** 按熟练度等级 + 觉醒状态取当前形态配置 */
+export function getSpiritStage(level: number, awakened = false): SpiritStage {
+  const stage = resolveStage(level, awakened);
+  if (stage === AWAKENED_STAGE) {
+    return { title: "完全体", aura: true, crown: true, size: 90 };
+  }
+  const f = SPIRIT_FORMS.find((x) => x.stage === stage) ?? SPIRIT_FORMS[0];
+  return { title: f.title, aura: f.aura, crown: f.crown, size: f.size };
 }
 
 // ============ 新插画风精灵：7 群岛 × 4 进化形态（软连接，不硬编码具体文件名） ============
@@ -102,15 +125,6 @@ function clampStage(stage: number): number {
   return Math.max(1, Math.min(SPIRIT_STAGE_COUNT, stage));
 }
 
-/** 等级 → 进化形态 stage（1-4），供图片路径解析 */
-function levelToStage(level: number): number {
-  let result = SPIRIT_FORMS[0];
-  for (const f of SPIRIT_FORMS) {
-    if (level >= f.minLevel) result = f;
-  }
-  return result.stage;
-}
-
 /**
  * 精灵图软连接：只约定「page(1-7) × stage(1-4)」的命名规则，
  * 不 hardcode 文件名。后续替换素材、改格式、改目录时，只需改本函数。
@@ -120,19 +134,20 @@ export function resolveSpiritPath(page: number, stage: number): string {
 }
 
 /**
- * 完整精灵图：按 metaId 所在群岛 + 熟练度等级取对应进化形态。
+ * 完整精灵图：按 metaId 所在群岛 + 熟练度等级 + 觉醒状态取对应进化形态。
  * 用于战斗、详情弹窗、进化动画等需要展示成长差异的场景。
+ * awakened=true 且 level≥3 时展示完全体(4)，否则按练习等级取形态。
  */
-export function getSpiritImage(metaId: string, level = 1): string {
-  return resolveSpiritPath(pageOf(metaId), levelToStage(level));
+export function getSpiritImage(metaId: string, level = 1, awakened = false): string {
+  return resolveSpiritPath(pageOf(metaId), resolveStage(level, awakened));
 }
 
 /**
- * 缩略/列表精灵图：按精灵「实际熟练度等级」取对应进化形态，与详情图保持一致（修复预览恒为形态1）。
+ * 缩略/列表精灵图：按精灵「实际熟练度等级 + 觉醒状态」取对应进化形态，与详情图保持一致。
  * 未传 level（如未解锁占位）默认 stage 1 宝宝体。密集场景仍走同一软连接路径，浏览器缓存友好。
  */
-export function getSimpleSpiritImage(metaId: string, level = 1): string {
-  return resolveSpiritPath(pageOf(metaId), levelToStage(level));
+export function getSimpleSpiritImage(metaId: string, level = 1, awakened = false): string {
+  return resolveSpiritPath(pageOf(metaId), resolveStage(level, awakened));
 }
 
 /** 伙伴狐狸（Boss 战陪伴孩子的精灵）：固定用第 1 群岛的成长体 */

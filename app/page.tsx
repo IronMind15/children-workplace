@@ -5,6 +5,7 @@ import {
   getExplorer,
   getMonsters,
   getInternalizedMetas,
+  getInternalized,
   getBrainSettings,
   getMetas,
   getEvolutionEdges,
@@ -21,12 +22,13 @@ import {
   getAwakenedPropertyIds,
   getExplorerAvatarSrc,
   getExplorerRankInfo,
+  getMetaAwakened,
+  getGuardsByIsland,
 } from "@/lib/repo";
 import { getSparkStats, checkAwakenings, getIslandDifficulty } from "@/lib/game";
 import { getAiConfig } from "@/lib/ai";
 import { generateSteps, guardSteps } from "@/lib/questions";
 import { pickGuardStyle } from "@/lib/guardStyles";
-import { getGuardsByIsland } from "@/lib/repo";
 import { getMinionBattleBg, GUARD_BATTLE_BG, BOSS_BATTLE_BG } from "@/lib/battleArt";
 import { redirect } from "next/navigation";
 import TopShell from "@/components/TopShell";
@@ -190,7 +192,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
   let view: View = { kind: "map" };
   const spiritsAll = getSpiritsForInternalized().map((s) => {
     const meta = getMeta(s.meta_id);
-    return { meta_id: s.meta_id, emoji: s.emoji, nickname: s.nickname ?? "", meta_name: meta?.name ?? "" };
+    const im = getInternalized(s.meta_id);
+    return {
+      meta_id: s.meta_id,
+      emoji: s.emoji,
+      nickname: s.nickname ?? "",
+      meta_name: meta?.name ?? "",
+      level: im?.mastery_level ?? 1,
+      awakened: getMetaAwakened(s.meta_id),
+    };
   });
   let battleData: {
     monsterId: string;
@@ -201,7 +211,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
     mode: "train" | "guard";
     propertyName?: string;
     returnIsland: string;
-    spirits: { meta_id: string; emoji: string; nickname: string; meta_name: string }[];
+    spirits: { meta_id: string; emoji: string; nickname: string; meta_name: string; level: number; awakened: boolean }[];
     /** 守卫外观样式索引（1~6），守卫战渲染对应形象用；非守卫忽略 */
     guardStyleIndex?: number;
     /** v1.2.10 战斗背景图（群岛小怪按 page / 守卫统一） */
