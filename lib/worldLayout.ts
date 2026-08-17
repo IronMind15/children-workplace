@@ -1,4 +1,7 @@
 import { getMetas, getEvolutionEdges } from "./repo";
+import { ISLAND_PAGE_MAP, PAGE_META, pageOf, getArchipelagoBg, PAGE_COUNT } from "./archipelagoLayout";
+// 重新导出 archipelagoLayout 里的所有符号，保持外部调用方不变
+export { ISLAND_PAGE_MAP, PAGE_META, pageOf, getArchipelagoBg, PAGE_COUNT };
 
 export type WorldCoord = { x: number; y: number; depth: number };
 
@@ -8,8 +11,11 @@ export type WorldCoord = { x: number; y: number; depth: number };
  *  - 同层横向均分
  *  - 连线由渲染层按 from/to 的 (x,y) 绘制，呼应「谁的本领进化出谁」
  *
- * 注意：群岛分页（按知识主题 7 群岛）由 ISLAND_PAGE_MAP 决定，不依赖 depth。
+ * 注意：群岛分页（按知识主题 7 群岛）由 archipelagoLayout 的 ISLAND_PAGE_MAP 决定。
  * depth 仅供全览(WorldAtlas)展示「进化层级」用。
+ *
+ * ⚠️ 本模块依赖 ./repo（含 node:sqlite），仅 server / 异步服务端使用；
+ *    client 组件请改用 ./archipelagoLayout（纯数据）。
  */
 export function getWorldLayout(): Record<string, WorldCoord> {
   const metas = getMetas();
@@ -57,74 +63,22 @@ export function getWorldLayout(): Record<string, WorldCoord> {
   return coord;
 }
 
-/* ============================================================
- * 7 群岛分页（按知识主题，2026-08-18 拍板）
- *  - 取代按 depth 切 5 页的分法
- *  - 5+5+4+4+4+4+3 = 29，与 29 个 MK 完全吻合
- *  - 7 群岛的页面 ID = 1~7（1-based）
- *  - getWorldLayout() 仍按 depth 算坐标；分页只看 ISLAND_PAGE_MAP
- * ============================================================ */
-
-export const PAGE_COUNT = 7;
-
-/** 显式「MK id → 群岛页(1~7)」映射表（见 docs/08180008-群岛ui说明.md §四） */
-export const ISLAND_PAGE_MAP: Record<string, number> = {
-  // 1 数与运算 · 整数运算基础（5 岛）
-  "MK-01": 1, "MK-02": 1, "MK-03": 1, "MK-04": 1, "MK-05": 1,
-  // 2 数与运算 · 数的扩充（5 岛）
-  "MK-06": 2, "MK-08": 2, "MK-09": 2, "MK-10": 2, "MK-37": 2,
-  // 3 图形与几何 · 平面图形（4 岛）
-  "MK-15": 3, "MK-16": 3, "MK-17": 3, "MK-18": 3,
-  // 4 图形与几何 · 立体与变换（4 岛；★MK-07 从数与运算调入，与面积/分割关联）
-  "MK-19": 4, "MK-20": 4, "MK-21": 4, "MK-07": 4,
-  // 5 统计与概率（4 岛）
-  "MK-24": 5, "MK-25": 5, "MK-26": 5, "MK-27": 5,
-  // 6 数的关系 + 代数初步（4 岛）
-  "MK-11": 6, "MK-12": 6, "MK-13": 6, "MK-14": 6,
-  // 7 量与测量 + 数学广角（3 岛）
-  "MK-22": 7, "MK-23": 7, "MK-28": 7,
-};
-
-export const PAGE_META: Record<number, { label: string; domain: string; count: number }> = {
-  1: { label: "数与运算 · 整数运算基础", domain: "数与运算", count: 5 },
-  2: { label: "数与运算 · 数的扩充",     domain: "数与运算", count: 5 },
-  3: { label: "图形与几何 · 平面图形",   domain: "图形与几何", count: 4 },
-  4: { label: "图形与几何 · 立体与变换", domain: "图形与几何", count: 4 },
-  5: { label: "统计与概率",              domain: "统计与概率", count: 4 },
-  6: { label: "数的关系 + 代数初步",      domain: "关系+代数",  count: 4 },
-  7: { label: "量与测量 + 数学广角",      domain: "量测+广角",  count: 3 },
-};
-
-/** 取一个 MK 所在的群岛页（1~7），未登记的退回 1 */
-export function pageOf(metaId: string): number {
-  return ISLAND_PAGE_MAP[metaId] ?? 1;
-}
-
-/** 群岛背景图（public/archipelagos/arch_01~07.webp）；用户指定：1=1-1, 2=4-(2), 3=7-1, 4=3-1, 5=5-1, 6=6-1, 7=2-1 */
-export function getArchipelagoBg(page: number): string {
-  const idx = Math.max(1, Math.min(PAGE_COUNT, page));
-  return `/archipelagos/arch_${String(idx).padStart(2, "0")}.webp`;
-}
-
 export type WorldPage = { pageIndex: number; label: string; domain: string; count: number; ids: string[] };
 
 /**
- * 按 ISLAND_PAGE_MAP 归页（取代按 depth 推导）：
+ * 按 ISLAND_PAGE_MAP 归页：
  *  - 7 页固定，每页用 PAGE_META.label / .count
- *  - 顺序：按 ISLAND_PAGE_MAP 中定义的固定页号输出
+ *  - 顺序：1..7
  */
 export function getWorldPages(_coord: Record<string, WorldCoord>): WorldPage[] {
-  // 先按 ISLAND_PAGE_MAP 归类
   const byPage: Record<number, string[]> = {};
   for (const [id, p] of Object.entries(ISLAND_PAGE_MAP)) {
     (byPage[p] ??= []).push(id);
   }
-  // 顺序：1..7
   const pages: WorldPage[] = [];
   for (let p = 1; p <= PAGE_COUNT; p++) {
     const meta = PAGE_META[p];
     const ids = (byPage[p] ?? []).slice();
-    // 让顺序稳定：按 id 数字序（MK-01..MK-37 → CAST(SUBSTR(id,4) AS INTEGER)）
     ids.sort((a, b) => {
       const na = Number(a.replace(/^MK-/, "")) || 0;
       const nb = Number(b.replace(/^MK-/, "")) || 0;

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import ImgSprite from "@/components/ImgSprite";
 import { getIslandThumb } from "@/lib/islandArt";
-import { getArchipelagoBg, pageOf } from "@/lib/worldLayout";
+import { getArchipelagoBg, pageOf } from "@/lib/archipelagoLayout";
 import { travelToIsland } from "@/lib/actions";
 import type { WorldNode } from "./WorldMap";
 

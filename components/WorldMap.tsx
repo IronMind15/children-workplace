@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import IslandBattleMap, { type MapMonster, type MapBoss } from "@/components/IslandBattleMap";
 import WorldAtlas from "@/components/WorldAtlas";
 import { getIslandThumb } from "@/lib/islandArt";
-import { getArchipelagoBg, PAGE_COUNT } from "@/lib/worldLayout";
+import { getArchipelagoBg, PAGE_COUNT } from "@/lib/archipelagoLayout";
 import { travelToIsland } from "@/lib/actions";
 
 export type WorldNode = {
