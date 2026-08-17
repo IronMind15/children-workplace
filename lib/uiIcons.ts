@@ -27,11 +27,13 @@ export function getUiIcon(key: UiIconKey): string {
   return UI_ICONS[key];
 }
 
-/** 按文字长度智能选按键背景图 */
+/** 按文字长度智能选按键背景图。
+ * 为了儿童看清且文字完整覆盖在图案内，短文本也适当放宽：
+ * 1 字 → short，2~3 字 → medium，4 字及以上 → long。 */
 export function getButtonBgByText(text: string): string {
   const len = Array.from(text).length;
-  if (len <= 2) return BUTTON_BGS.short;
-  if (len <= 4) return BUTTON_BGS.medium;
+  if (len <= 1) return BUTTON_BGS.short;
+  if (len <= 3) return BUTTON_BGS.medium;
   return BUTTON_BGS.long;
 }
 
