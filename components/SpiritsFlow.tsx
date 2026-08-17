@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import ImgSprite from "@/components/ImgSprite";
-import { getSpiritImage, getSpiritStage } from "@/lib/sprites";
+import { getSimpleSpiritImage, getSpiritImage, getSpiritStage } from "@/lib/sprites";
 
 export type SpiritCardData = {
   id: string;
@@ -69,7 +69,7 @@ export default function SpiritsFlow({
             >
               <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
                 <ImgSprite
-                  src={getSpiritImage(s.meta_id, s.mastery_level)}
+                  src={getSimpleSpiritImage(s.meta_id)}
                   size={stage.size}
                   className={`${stage.crown ? "stage-aura-strong" : stage.aura ? "stage-aura" : ""}`}
                 />

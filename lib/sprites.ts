@@ -353,28 +353,6 @@ const GUARD_IMAGES = [
   "/guards/guard_06.webp",
 ];
 
-/** 精灵图按「领域」分 7 组，对应设计稿 7 套模板（10-1~10-7），每组 4 个进化形态 */
-const DOMAIN_TEMPLATE: Record<string, number> = {
-  数与运算: 1,
-  数的关系: 2,
-  代数初步: 3,
-  图形与几何: 4,
-  量与测量: 5,
-  统计与概率: 6,
-  数学广角: 7,
-};
-
-/** 7 套模板 × 4 形态（由 scripts/crop_spirits.py 从设计稿裁剪抠图生成） */
-const SPIRIT_IMAGES: Record<number, string[]> = {};
-for (let g = 1; g <= 7; g++) {
-  SPIRIT_IMAGES[g] = [
-    `/sprites/s${g}_1.webp`,
-    `/sprites/s${g}_2.webp`,
-    `/sprites/s${g}_3.webp`,
-    `/sprites/s${g}_4.webp`,
-  ];
-}
-
 /** 怪物 WebP 资源路径：小怪/神秘小怪循环 6 张 cute 图，Boss 循环 6 张 boss 图，守卫用 6 套守卫外观图 */
 export function getMonsterImage(monsterId: string): string {
   const h = hashStr(monsterId);
@@ -386,29 +364,53 @@ export function getMonsterImage(monsterId: string): string {
   return MINION_IMAGES[h % MINION_IMAGES.length];
 }
 
-/** 元认知 → 所属领域（用于精灵按领域分 7 组） */
-const META_DOMAIN: Record<string, string> = {
-  "MK-01": "数与运算", "MK-02": "数与运算", "MK-03": "数与运算", "MK-04": "数与运算",
-  "MK-05": "数与运算", "MK-06": "数与运算", "MK-07": "数与运算", "MK-08": "数与运算",
-  "MK-09": "数与运算", "MK-10": "数与运算", "MK-37": "数与运算",
-  "MK-11": "数的关系", "MK-12": "数的关系",
-  "MK-13": "代数初步", "MK-14": "代数初步",
-  "MK-15": "图形与几何", "MK-16": "图形与几何", "MK-17": "图形与几何", "MK-18": "图形与几何",
-  "MK-19": "图形与几何", "MK-20": "图形与几何", "MK-21": "图形与几何",
-  "MK-22": "量与测量", "MK-23": "量与测量",
-  "MK-24": "统计与概率", "MK-25": "统计与概率", "MK-26": "统计与概率", "MK-27": "统计与概率",
-  "MK-28": "数学广角",
-};
+// ============ 新插画风精灵：7 群岛 × 4 进化形态（软连接，不硬编码具体文件名） ============
 
-/** 精灵 WebP 资源路径：按领域分模板（数与运算/图形几何…），熟练度等级（1-4）分形态 */
-export function getSpiritImage(metaId: string, level = 1): string {
-  const domain = META_DOMAIN[metaId] ?? "数与运算";
-  const tmpl = DOMAIN_TEMPLATE[domain] ?? 1;
-  const arr = SPIRIT_IMAGES[tmpl] ?? SPIRIT_IMAGES[1];
-  return arr[Math.min(Math.max(level, 1), arr.length) - 1];
+import { pageOf } from "./archipelagoLayout";
+
+export const SPIRIT_PAGE_COUNT = 7;
+export const SPIRIT_STAGE_COUNT = 4;
+
+function clampPage(page: number): number {
+  return Math.max(1, Math.min(SPIRIT_PAGE_COUNT, page));
 }
 
-/** 伙伴狐狸（Boss 战陪伴孩子的精灵）：固定用青色第 2 形态 */
+function clampStage(stage: number): number {
+  return Math.max(1, Math.min(SPIRIT_STAGE_COUNT, stage));
+}
+
+function levelToStage(level: number): number {
+  // Lv.1 → stage 1（宝宝体）；Lv.2 → stage 2（成长体）；Lv.3+ → stage 4（完全体/皇冠）
+  if (level >= 3) return 4;
+  if (level === 2) return 2;
+  return 1;
+}
+
+/**
+ * 精灵图软连接：只约定「page(1-7) × stage(1-4)」的命名规则，
+ * 不 hardcode 文件名。后续替换素材、改格式、改目录时，只需改本函数。
+ */
+export function resolveSpiritPath(page: number, stage: number): string {
+  return `/spirits/page_${clampPage(page)}_stage_${clampStage(stage)}.png`;
+}
+
+/**
+ * 完整精灵图：按 metaId 所在群岛 + 熟练度等级取对应进化形态。
+ * 用于战斗、详情弹窗、进化动画等需要展示成长差异的场景。
+ */
+export function getSpiritImage(metaId: string, level = 1): string {
+  return resolveSpiritPath(pageOf(metaId), levelToStage(level));
+}
+
+/**
+ * 简版精灵图：始终取 stage 1 基础形态，文件更小、渲染一致，
+ * 用于精灵列表缩略、未解锁灰态、首页小图标等密集场景，避免同时加载 28 张高阶图导致卡顿。
+ */
+export function getSimpleSpiritImage(metaId: string): string {
+  return resolveSpiritPath(pageOf(metaId), 1);
+}
+
+/** 伙伴狐狸（Boss 战陪伴孩子的精灵）：固定用第 1 群岛的成长体 */
 export function getCompanionImage(): string {
-  return "/sprites/blue_2.webp";
+  return resolveSpiritPath(1, 2);
 }

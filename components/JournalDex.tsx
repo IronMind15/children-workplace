@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import ImgSprite from "@/components/ImgSprite";
-import { getSpiritImage, getSpiritStage } from "@/lib/sprites";
+import { getSimpleSpiritImage, getSpiritImage, getSpiritStage } from "@/lib/sprites";
 
 export type DexSpirit = {
   meta_id: string;
@@ -40,12 +40,12 @@ export default function JournalDex({ spirits }: { spirits: DexSpirit[] }) {
               <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
                 {s.unlocked ? (
                   <ImgSprite
-                    src={getSpiritImage(s.meta_id, s.mastery_level)}
+                    src={getSimpleSpiritImage(s.meta_id)}
                     size={stage.size - 8}
                     className={stage.crown ? "stage-aura-strong" : stage.aura ? "stage-aura" : ""}
                   />
                 ) : (
-                  <ImgSprite src={getSpiritImage(s.meta_id, s.mastery_level)} size={stage.size - 8} className="opacity-20 grayscale" />
+                  <ImgSprite src={getSimpleSpiritImage(s.meta_id)} size={stage.size - 8} className="opacity-20 grayscale" />
                 )}
                 {s.unlocked && stage.crown && <span className="absolute -top-1 left-1/2 -translate-x-1/2 text-lg">👑</span>}
               </div>

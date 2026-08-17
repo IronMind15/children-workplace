@@ -110,9 +110,10 @@ export default function BattleFlow({
     const urls = [
       monsterImage,
       getCompanionImage(),
-      ...spirits.map((s) => getSpiritImage(s.meta_id)),
+      // 精灵只有 3 种实际形态：stage1（Lv.1）/ stage2（Lv.2）/ stage4（Lv.3+）
+      ...spirits.map((s) => getSpiritImage(s.meta_id, 1)),
       ...spirits.map((s) => getSpiritImage(s.meta_id, 2)),
-      ...spirits.map((s) => getSpiritImage(s.meta_id, 3)),
+      ...spirits.map((s) => getSpiritImage(s.meta_id, 4)),
     ];
     for (const u of new Set(urls)) {
       const img = new Image();
