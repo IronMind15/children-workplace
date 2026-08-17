@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { getUiIcon } from "@/lib/uiIcons";
 
 /**
  * 头像下拉菜单（"我的"）
@@ -12,8 +13,9 @@ import { useEffect, useRef, useState } from "react";
  * - 点外部自动关闭
  */
 const MENU_ITEMS = [
-  { href: "/spirits", label: "精灵图鉴", icon: "🃏", desc: "进化路线 + 已得精灵" },
-  { href: "/journal", label: "知识家园", icon: "📚", desc: "岛屿图鉴 + 精灵档案" },
+  { href: "/spirits", label: "精灵图鉴", iconSrc: getUiIcon("spirit"), desc: "进化路线 + 已得精灵" },
+  { href: "/journal", label: "知识家园", iconSrc: getUiIcon("knowledgeHome"), desc: "岛屿图鉴 + 精灵档案" },
+  { href: "/mistakes", label: "错题集", iconSrc: getUiIcon("mistakeBook"), desc: "收集错题、复盘弱点（开发中）" },
   { href: "/parent", label: "家长端", icon: "👨‍👩‍👧", desc: "学习进度、错题、每日总结" },
 ];
 
@@ -69,7 +71,11 @@ export default function AvatarMenu({ avatar }: { avatar: string }) {
                   active ? "bg-[#fff3c4]" : ""
                 }`}
               >
-                <span className="text-2xl">{it.icon}</span>
+                {it.iconSrc ? (
+                  <img src={it.iconSrc} alt="" className="h-9 w-9 object-contain" />
+                ) : (
+                  <span className="text-2xl">{it.icon}</span>
+                )}
                 <span className="flex-1">
                   <span className="block text-base font-black text-[#2b3a4a]">
                     {it.label}

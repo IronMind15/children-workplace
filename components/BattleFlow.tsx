@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { trainWin, logMistake, explainMistake, resolveMistake, guardWinAction } from "@/lib/actions";
 import ImgSprite from "@/components/ImgSprite";
+import UiButton from "@/components/UiButton";
 import { getMonsterImage, getSpiritImage, getSpiritStage, getCompanionImage } from "@/lib/sprites";
 import { getGuardImage } from "@/lib/guardStyles";
 import { battleIntroGuide, winGuide, type BrainSettings } from "@/lib/brain";
@@ -467,19 +468,24 @@ export default function BattleFlow({
                   🦊 {isGuard ? "打败守卫，就能让精灵觉醒新力量！" : battleIntroGuide(brain)}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => setPhase("pick")} className="btn btn-blue py-3 text-lg">
+                  <UiButton onClick={() => setPhase("pick")} height="lg" fullWidth>
                     ⚔️ 派精灵
-                  </button>
-                  <button onClick={() => router.push(returnIsland ? `/?island=${encodeURIComponent(returnIsland)}` : "/")} className="btn btn-white py-3 text-lg">
+                  </UiButton>
+                  <UiButton
+                    onClick={() => router.push(returnIsland ? `/?island=${encodeURIComponent(returnIsland)}` : "/")}
+                    height="lg"
+                    fullWidth
+                  >
                     🏃 先溜走
-                  </button>
+                  </UiButton>
                 </div>
-                <button
+                <UiButton
                   onClick={() => router.push(`/?battle=${monsterId}&r=${Date.now()}`)}
-                  className="btn btn-white py-2 text-sm"
+                  height="sm"
+                  size="medium"
                 >
                   🎲 换一批新题目
-                </button>
+                </UiButton>
               </>
             )}
 
@@ -530,15 +536,21 @@ export default function BattleFlow({
 
             {phase === "result" && (
               <div className="flex flex-col gap-3">
-                <button onClick={() => router.push(returnIsland ? `/?island=${encodeURIComponent(returnIsland)}` : "/")} className="btn btn-green py-4 text-xl">
+                <UiButton
+                  onClick={() => router.push(returnIsland ? `/?island=${encodeURIComponent(returnIsland)}` : "/")}
+                  height="lg"
+                  size="long"
+                  fullWidth
+                >
                   🏝️ 回到{returnIsland ?? "海图"}
-                </button>
-                <button
+                </UiButton>
+                <UiButton
                   onClick={() => router.push(`/?battle=${monsterId}&r=${Date.now()}`)}
-                  className="btn btn-white py-2.5 text-sm"
+                  height="sm"
+                  size="medium"
                 >
                   🔁 再来一场（新题目）
-                </button>
+                </UiButton>
               </div>
             )}
           </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AvatarMenu from "./AvatarMenu";
+import { getUiIcon } from "@/lib/uiIcons";
 
 /**
  * 顶部外壳
@@ -12,7 +13,7 @@ import AvatarMenu from "./AvatarMenu";
  * - 「跟小狐狸聊」作为常驻右栏（AskPanel），不再作 tab（v3 改造）
  */
 const MAIN_TABS = [
-  { href: "/", label: "群岛地图", icon: "🗺️" },
+  { href: "/", label: "群岛地图", iconSrc: getUiIcon("atlas") },
 ];
 
 export default function TopShell({
@@ -50,7 +51,7 @@ export default function TopShell({
                     : "text-[#7a8a9a] hover:bg-white"
                 }`}
               >
-                <span className="text-2xl leading-none">{t.icon}</span>
+                <img src={t.iconSrc} alt="" className="h-7 w-7 object-contain" />
                 <span>{t.label}</span>
               </Link>
             );

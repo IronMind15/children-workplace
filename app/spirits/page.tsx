@@ -9,6 +9,7 @@ import {
 import TestTools from "@/components/TestTools";
 import SpiritsFlow, { type SpiritCardData } from "@/components/SpiritsFlow";
 import PageHeader from "@/components/PageHeader";
+import { getUiIcon } from "@/lib/uiIcons";
 
 export const dynamic = "force-dynamic";
 
@@ -49,7 +50,7 @@ export default function Spirits() {
   return (
     <div className="sky-bg min-h-screen pb-6 pt-2">
       <PageHeader
-        icon="🃏"
+        icon={getUiIcon("spirit")}
         title="我的精灵"
         subtitle="点击精灵看它的成长足迹，还能摸摸头、击掌、喂食互动哦！"
         backHref="/"

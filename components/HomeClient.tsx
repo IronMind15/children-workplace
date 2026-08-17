@@ -16,6 +16,7 @@ import IslandBattleMap from "@/components/IslandBattleMap";
 import BattleFlow from "@/components/BattleFlow";
 import BossFlow from "@/components/BossFlow";
 import AskPanel from "@/components/AskPanel";
+import UiButton from "@/components/UiButton";
 import type { WorldNode, WorldEdge } from "@/components/WorldMap";
 import type { SolveStep } from "@/lib/types";
 import type { ChainNode, ChainEdge } from "@/components/EvolutionModal";
@@ -137,12 +138,9 @@ export default function HomeClient({
     leftContent = (
       <div className="flex h-full flex-col">
         <div className="mb-2 flex items-center gap-2">
-          <button
-            onClick={() => goTo({ kind: "map" })}
-            className="btn btn-white px-4 py-2 text-base"
-          >
-            🌍 返回群岛
-          </button>
+          <UiButton onClick={() => goTo({ kind: "map" })} icon="arrowLeft">
+            返回群岛
+          </UiButton>
           <span className="text-lg font-black text-[#2b3a4a]">{view.island}</span>
           <span className="text-xs font-bold text-[#7a8a9a]">· 点击小怪开始战斗</span>
         </div>

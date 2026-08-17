@@ -5,6 +5,7 @@ import ImgSprite from "@/components/ImgSprite";
 import { getIslandThumb } from "@/lib/islandArt";
 import { getArchipelagoBg, pageOf } from "@/lib/archipelagoLayout";
 import { travelToIsland } from "@/lib/actions";
+import UiButton from "@/components/UiButton";
 import type { WorldNode } from "./WorldMap";
 
 export type WorldEdgeLike = { from: string; to: string };
@@ -58,9 +59,9 @@ export default function WorldAtlas({
             · 29 座 · 7 群岛 · 已点亮 {unlockedCount}
           </span>
         </div>
-        <button onClick={onClose} className="btn btn-white h-12 px-4 text-base">
-          ✕ 返回分页
-        </button>
+        <UiButton onClick={onClose} icon="arrowLeft" size="medium">
+          返回分页
+        </UiButton>
       </div>
 
       {/* 7 群岛分块（每群岛独立背景 + 该群岛节点） */}

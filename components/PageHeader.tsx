@@ -14,6 +14,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
+import UiButton from "@/components/UiButton";
 
 export default function PageHeader({
   title,
@@ -29,6 +30,7 @@ export default function PageHeader({
   backHref?: string;
   onBack?: () => void;
   right?: ReactNode;
+  /** 标题图标：emoji 字符串 或 /ui/xxx.png 图片路径 */
   icon?: string;
 }) {
   const router = useRouter();
@@ -39,17 +41,18 @@ export default function PageHeader({
   }
   return (
     <header className="mx-auto flex max-w-5xl items-center gap-2 px-4 pt-5 lg:px-8">
-      <button
-        type="button"
-        onClick={goBack}
-        aria-label="返回上一级"
-        className="btn btn-white h-12 px-4 text-base"
-      >
-        ← 返回
-      </button>
+      <UiButton onClick={goBack} aria-label="返回上一级" icon="arrowLeft" size="short">
+        返回
+      </UiButton>
       <div className="card flex-1 px-4 py-2.5">
         <h1 className="flex items-center gap-2 font-story text-xl font-black text-[#2b3a4a] lg:text-2xl">
-          {icon && <span className="text-2xl">{icon}</span>}
+          {icon && (
+            icon.startsWith("/") ? (
+              <img src={icon} alt="" className="h-8 w-8 object-contain" />
+            ) : (
+              <span className="text-2xl">{icon}</span>
+            )
+          )}
           {title}
         </h1>
         {subtitle && <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">{subtitle}</p>}

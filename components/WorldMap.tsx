@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import WorldAtlas from "@/components/WorldAtlas";
 import { getArchipelagoBg, PAGE_COUNT } from "@/lib/archipelagoLayout";
 import { travelToIsland } from "@/lib/actions";
+import UiButton from "@/components/UiButton";
+import { getUiIcon } from "@/lib/uiIcons";
 
 export type WorldNode = {
   metaId: string;
@@ -104,10 +106,15 @@ export default function WorldMap({
           </div>
           <button
             onClick={() => setAtlasOpen(true)}
-            className="btn btn-white h-12 px-3 text-base"
+            className="relative flex h-12 items-center gap-1.5 overflow-hidden rounded-xl border-3 border-[#2b3a4a] px-3 text-base font-black text-[#2b3a4a] shadow-card transition-transform hover:scale-105 active:translate-y-0.5 active:scale-95"
+            style={{
+              backgroundImage: `url(/ui/btn_short.png)`,
+              backgroundSize: "100% 100%",
+            }}
             title="查看 29 岛进化总览"
           >
-            🔍 全览
+            <img src="/ui/atlas.png" alt="" className="h-8 w-8 object-contain" />
+            <span>全览</span>
           </button>
         </div>
 
@@ -118,18 +125,18 @@ export default function WorldMap({
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={safePage === 0}
             aria-label="上一页"
-            className="absolute left-2 top-1/2 z-10 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full border-3 border-[#2b3a4a] bg-[#78d8d8] text-3xl text-white shadow-[0_4px_0_rgba(16,24,34,0.4)] transition-all hover:scale-110 active:translate-y-1 active:shadow-[0_2px_0_rgba(16,24,34,0.4)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100"
+            className="absolute left-2 top-1/2 z-10 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full border-3 border-[#2b3a4a] bg-white/90 p-2 shadow-[0_4px_0_rgba(16,24,34,0.4)] transition-all hover:scale-110 active:translate-y-1 active:shadow-[0_2px_0_rgba(16,24,34,0.4)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100"
           >
-            ◀
+            <img src={getUiIcon("arrowLeft")} alt="上一页" className="h-full w-full object-contain" />
           </button>
           {/* 右箭头 */}
           <button
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={safePage >= totalPages - 1}
             aria-label="下一页"
-            className="absolute right-2 top-1/2 z-10 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full border-3 border-[#2b3a4a] bg-[#78d8d8] text-3xl text-white shadow-[0_4px_0_rgba(16,24,34,0.4)] transition-all hover:scale-110 active:translate-y-1 active:shadow-[0_2px_0_rgba(16,24,34,0.4)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100"
+            className="absolute right-2 top-1/2 z-10 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full border-3 border-[#2b3a4a] bg-white/90 p-2 shadow-[0_4px_0_rgba(16,24,34,0.4)] transition-all hover:scale-110 active:translate-y-1 active:shadow-[0_2px_0_rgba(16,24,34,0.4)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100"
           >
-            ▶
+            <img src={getUiIcon("arrowRight")} alt="下一页" className="h-full w-full object-contain" />
           </button>
 
           {/* 群岛背景：minHeight 兜底保证最小高度（父链塌缩时背景仍可见） */}

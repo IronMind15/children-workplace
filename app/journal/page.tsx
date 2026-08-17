@@ -17,6 +17,7 @@ import TestTools from "@/components/TestTools";
 import JournalDex, { type DexSpirit } from "@/components/JournalDex";
 import EvolutionTree, { type TreeNode, type TreeEdge } from "@/components/EvolutionTree";
 import PageHeader from "@/components/PageHeader";
+import { getUiIcon } from "@/lib/uiIcons";
 
 export const dynamic = "force-dynamic";
 
@@ -96,8 +97,8 @@ export default function Journal() {
   return (
     <div className="sky-bg min-h-screen pb-6 pt-2">
       <PageHeader
-        icon="📚"
-        title="世界图鉴"
+        icon={getUiIcon("knowledgeHome")}
+        title="知识家园"
         subtitle="岛屿、精灵的档案全在这里；点精灵看它的故事和本领"
         backHref="/"
       />

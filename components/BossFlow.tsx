@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { purifyMonster, logMistake, explainMistake, resolveMistake, bossFail } from "@/lib/actions";
 import ImgSprite from "@/components/ImgSprite";
+import UiButton from "@/components/UiButton";
 import EvolutionModal, { type ChainNode, type ChainEdge } from "@/components/EvolutionModal";
 import { getMonsterImage, getCompanionImage } from "@/lib/sprites";
 import { bossIntroGuide, type BrainSettings } from "@/lib/brain";
@@ -288,12 +289,12 @@ export default function BossFlow({
                   🦊 {bossIntroGuide(brain)}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => setPhase("solve")} className="btn py-3 text-lg">
+                  <UiButton onClick={() => setPhase("solve")} height="lg" fullWidth>
                     ⚡ 挑战 Boss
-                  </button>
-                  <button onClick={goBack} className="btn btn-white py-3 text-lg">
+                  </UiButton>
+                  <UiButton onClick={goBack} height="lg" fullWidth>
                     🏃 回岛上
-                  </button>
+                  </UiButton>
                 </div>
               </>
             )}
@@ -309,12 +310,9 @@ export default function BossFlow({
                     <p className="mt-1 text-xs font-bold text-[#e2582e]">
                       ✨ 先去觉醒「{stuck.nextName}」，回来再战就简单啦！
                     </p>
-                    <button
-                      onClick={goBack}
-                      className="mt-2 w-full rounded-xl bg-[#1d9e75] py-2 text-sm font-black text-white transition-colors hover:bg-[#176e52]"
-                    >
+                    <UiButton onClick={goBack} height="sm" size="long" fullWidth className="mt-2">
                       ✨ 去觉醒（回地图）
-                    </button>
+                    </UiButton>
                   </div>
                 )}
                 {!stuck && (
@@ -330,9 +328,9 @@ export default function BossFlow({
             )}
 
             {phase === "result" && !result?.ok && (
-              <button onClick={goBack} className="btn btn-white py-4 text-xl">
+              <UiButton onClick={goBack} height="lg" size="medium" fullWidth>
                 🏝️ 回地图
-              </button>
+              </UiButton>
             )}
           </div>
         </div>
