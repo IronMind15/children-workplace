@@ -54,3 +54,32 @@ export function getWorldLayout(): Record<string, WorldCoord> {
   }
   return coord;
 }
+
+/**
+ * 地图分页（PR3）
+ * - 按 depth 切页：depth0 独立为「起点页」，depth1/2/3 各一页，depth4+5 合并
+ * - 共 5 页，每页 2-8 岛
+ */
+export type WorldPage = { pageIndex: number; label: string; ids: string[] };
+
+export function getWorldPages(coord: Record<string, WorldCoord>): WorldPage[] {
+  const ids = Object.keys(coord);
+  const byDepth = new Map<number, string[]>();
+  for (const id of ids) {
+    const d = coord[id].depth;
+    if (!byDepth.has(d)) byDepth.set(d, []);
+    byDepth.get(d)!.push(id);
+  }
+  const pages: WorldPage[] = [];
+  // 页 0：起点页（depth0 双起点）
+  pages.push({ pageIndex: 0, label: "起点", ids: (byDepth.get(0) ?? []).slice() });
+  // 页 1-3：depth1/2/3 各一页
+  for (const d of [1, 2, 3]) {
+    const list = byDepth.get(d) ?? [];
+    if (list.length) pages.push({ pageIndex: pages.length, label: `第 ${d} 层`, ids: list });
+  }
+  // 页 4：depth4+5 合并
+  const merged = [...(byDepth.get(4) ?? []), ...(byDepth.get(5) ?? [])];
+  if (merged.length) pages.push({ pageIndex: pages.length, label: "顶尖", ids: merged });
+  return pages;
+}

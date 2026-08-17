@@ -1,5 +1,5 @@
 import { seedIfEmpty } from "@/lib/seed";
-import { getWorldLayout } from "@/lib/worldLayout";
+import { getWorldLayout, getWorldPages } from "@/lib/worldLayout";
 import {
   getExplorer,
   getMonsters,
@@ -159,6 +159,7 @@ export default function Home() {
           islandData={islandData}
           avatar={avatar}
           initialIsland={island}
+          pageLabels={getWorldPages(layout).map((p) => p.label)}
         />
 
         {/* 伙伴引导 */}
