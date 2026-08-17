@@ -60,6 +60,7 @@
 
 ## 已完成（最近）
 
+- [x] 精灵形象一致性修复（2026-08-18）：精灵图鉴/知识家园的列表预览图（`getSimpleSpiritImage`）原恒为形态1，与详情（`getSpiritImage(meta_id, mastery_level)`）不一致；改为按真实 `mastery_level` 解析形态，预览=详情。等级→形态映射抽成可配置 `SPIRIT_FORMS` 表（`getSpiritStage`/`levelToStage` 读表）；`trainWin` 显式 revalidate `/spirits`、`/journal` 保证进化后自动刷新。`tsc` + `next build` 通过。
 - [x] 第三轮·成长主线地基（2026-08-18）：`explorer` 表扩展 `gender/avatar_id/level/xp/title`（幂等 ALTER，老库兼容）；`lib/ranks.ts` 的 `computeRankLevel/getRankByLevel/getNextRank/formatRankProgress` 接入 `checkAndPromote`，并在 `purifyMonster/askQuestion/askFree` 后触发；化身落地 onboarding 选角 + WorldMap/BattleFlow/BossFlow 换图 + AvatarMenu/TopShell 头部；新建 `/profile` 资料页（大头像/头衔/火花进度/已净化/换头像 `updateExplorerAvatar`）；`tsc` + `next build` 通过
 - [x] v1.2.16 单岛场景背景替换：19 张 2.5D 顶视图岛屿背景入 `public/islands/battle_bg_01~19.png`；`lib/islandArt.ts` 按 29 岛 MK 顺序循环分配；`IslandBattleMap` 清理像素风 emoji/路牌
 - [x] v1.2.15 精灵资源全量替换：28 张新图入 `public/spirits/`，`lib/sprites.ts` 改为 page + stage 软连接；新增 `getSimpleSpiritImage` 简版优化列表性能

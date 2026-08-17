@@ -69,7 +69,7 @@ export default function SpiritsFlow({
             >
               <div className="relative mx-auto flex h-24 w-24 items-center justify-center">
                 <ImgSprite
-                  src={getSimpleSpiritImage(s.meta_id)}
+                  src={getSimpleSpiritImage(s.meta_id, s.mastery_level)}
                   size={stage.size}
                   className={`${stage.crown ? "stage-aura-strong" : stage.aura ? "stage-aura" : ""}`}
                 />

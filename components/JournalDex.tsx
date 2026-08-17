@@ -40,7 +40,7 @@ export default function JournalDex({ spirits }: { spirits: DexSpirit[] }) {
               <div className="relative mx-auto flex h-20 w-20 items-center justify-center">
                 {s.unlocked ? (
                   <ImgSprite
-                    src={getSimpleSpiritImage(s.meta_id)}
+                    src={getSimpleSpiritImage(s.meta_id, s.mastery_level)}
                     size={stage.size - 8}
                     className={stage.crown ? "stage-aura-strong" : stage.aura ? "stage-aura" : ""}
                   />

@@ -58,11 +58,35 @@ export function getMonsterImage(monsterId: string): string {
 // ============ 精灵进化阶段（熟练度等级 → 形态） ============
 export type SpiritStage = { title: string; aura: boolean; crown: boolean; size: number };
 
-/** Lv.1 宝宝体 → Lv.2 成长体（光环）→ Lv.3+ 完全体（皇冠） */
+/**
+ * 精灵形态配置表（数据驱动，满足「可设定等级 → 对应形象」需求）。
+ * 调整/扩展形态只需改这张表，渲染逻辑无需变动：
+ * - minLevel：达到该熟练度等级即进入此形态（取满足 minLevel ≤ level 的最高档）
+ * - stage：对应插画形态（1-4，与 public/spirits/page_X_stage_Y.png 命名对齐）
+ * - title/aura/crown/size：展示用元数据（形态名、光环、皇冠、尺寸）
+ */
+export type SpiritForm = {
+  minLevel: number;
+  stage: number;
+  title: string;
+  aura: boolean;
+  crown: boolean;
+  size: number;
+};
+
+export const SPIRIT_FORMS: SpiritForm[] = [
+  { minLevel: 1, stage: 1, title: "宝宝体", aura: false, crown: false, size: 64 },
+  { minLevel: 2, stage: 2, title: "成长体", aura: true, crown: false, size: 76 },
+  { minLevel: 3, stage: 4, title: "完全体", aura: true, crown: true, size: 88 },
+];
+
+/** 按熟练度等级取当前形态配置（取满足 minLevel ≤ level 的最高档） */
 export function getSpiritStage(level: number): SpiritStage {
-  if (level >= 3) return { title: "完全体", aura: true, crown: true, size: 88 };
-  if (level === 2) return { title: "成长体", aura: true, crown: false, size: 76 };
-  return { title: "宝宝体", aura: false, crown: false, size: 64 };
+  let result = SPIRIT_FORMS[0];
+  for (const f of SPIRIT_FORMS) {
+    if (level >= f.minLevel) result = f;
+  }
+  return { title: result.title, aura: result.aura, crown: result.crown, size: result.size };
 }
 
 // ============ 新插画风精灵：7 群岛 × 4 进化形态（软连接，不硬编码具体文件名） ============
@@ -78,11 +102,13 @@ function clampStage(stage: number): number {
   return Math.max(1, Math.min(SPIRIT_STAGE_COUNT, stage));
 }
 
+/** 等级 → 进化形态 stage（1-4），供图片路径解析 */
 function levelToStage(level: number): number {
-  // Lv.1 → stage 1（宝宝体）；Lv.2 → stage 2（成长体）；Lv.3+ → stage 4（完全体/皇冠）
-  if (level >= 3) return 4;
-  if (level === 2) return 2;
-  return 1;
+  let result = SPIRIT_FORMS[0];
+  for (const f of SPIRIT_FORMS) {
+    if (level >= f.minLevel) result = f;
+  }
+  return result.stage;
 }
 
 /**
@@ -102,11 +128,11 @@ export function getSpiritImage(metaId: string, level = 1): string {
 }
 
 /**
- * 简版精灵图：始终取 stage 1 基础形态，文件更小、渲染一致，
- * 用于精灵列表缩略、未解锁灰态、首页小图标等密集场景，避免同时加载 28 张高阶图导致卡顿。
+ * 缩略/列表精灵图：按精灵「实际熟练度等级」取对应进化形态，与详情图保持一致（修复预览恒为形态1）。
+ * 未传 level（如未解锁占位）默认 stage 1 宝宝体。密集场景仍走同一软连接路径，浏览器缓存友好。
  */
-export function getSimpleSpiritImage(metaId: string): string {
-  return resolveSpiritPath(pageOf(metaId), 1);
+export function getSimpleSpiritImage(metaId: string, level = 1): string {
+  return resolveSpiritPath(pageOf(metaId), levelToStage(level));
 }
 
 /** 伙伴狐狸（Boss 战陪伴孩子的精灵）：固定用第 1 群岛的成长体 */

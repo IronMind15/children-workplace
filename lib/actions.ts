@@ -37,6 +37,9 @@ export async function trainWin(metaId: string, stars: number) {
   seedIfEmpty();
   const r = doTrainWin(metaId, stars);
   revalidatePath("/");
+  // 精灵进化后，图鉴/知识家园的预览缩略图需同步刷新（形态随 mastery_level 变化）
+  revalidatePath("/spirits");
+  revalidatePath("/journal");
   return r;
 }
 
