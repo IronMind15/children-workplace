@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import AvatarMenu from "./AvatarMenu";
+import AvatarMenu, { type AvatarMenuRank } from "./AvatarMenu";
 import { getUiIcon } from "@/lib/uiIcons";
 
 /**
@@ -17,11 +17,13 @@ const MAIN_TABS = [
 ];
 
 export default function TopShell({
-  avatar,
+  avatarSrc,
   sparks,
+  rank,
 }: {
-  avatar: string;
+  avatarSrc: string;
   sparks: number;
+  rank?: AvatarMenuRank;
 }) {
   const pathname = usePathname();
 
@@ -66,7 +68,7 @@ export default function TopShell({
           >
             ✨ {sparks}
           </span>
-          <AvatarMenu avatar={avatar} />
+          <AvatarMenu avatarSrc={avatarSrc} rank={rank} />
         </div>
       </div>
     </nav>

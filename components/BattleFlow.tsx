@@ -58,6 +58,7 @@ export default function BattleFlow({
   returnIsland,
   guardStyleIndex,
   bgUrl,
+  avatarSrc,
   embedded = false,
 }: {
   monsterId: string;
@@ -75,6 +76,8 @@ export default function BattleFlow({
   guardStyleIndex?: number;
   /** v1.2.10 战斗背景图 URL（群岛小怪按 page / 守卫统一） */
   bgUrl: string;
+  /** 探险家头像（玩家化身），战斗中显示在精灵旁 */
+  avatarSrc?: string;
   /** v1.2.3 嵌入主界面左侧：去掉 min-h-screen / 外层衬底，避免超高 */
   embedded?: boolean;
 }) {
@@ -248,6 +251,15 @@ export default function BattleFlow({
             <div className="absolute left-[14%] bottom-[22%] flex h-[132px] w-[132px] items-center justify-center rounded-full border-4 border-dashed border-white/70 text-4xl font-black text-white/80">
               ?
             </div>
+          )}
+
+          {/* 探险家化身：站在精灵旁（玩家自己） */}
+          {avatarSrc && (
+            <img
+              src={avatarSrc}
+              alt="我的探险家"
+              className="absolute bottom-[26%] left-[5%] z-10 h-12 w-12 rounded-full border-4 border-[#2b3a4a] bg-white object-cover shadow-card"
+            />
           )}
 
           {/* 我方信息框：右下 */}

@@ -41,7 +41,7 @@ export default function HomeClient({
   view,
   worldNodes,
   worldEdges,
-  avatar,
+  avatarSrc,
   initialIsland,
   pageLabels,
   islandData,
@@ -60,7 +60,7 @@ export default function HomeClient({
   view: View;
   worldNodes: WorldNode[];
   worldEdges: WorldEdge[];
-  avatar: string;
+  avatarSrc: string;
   initialIsland: string;
   pageLabels: string[];
   islandData: Record<string, IslandData>;
@@ -126,7 +126,7 @@ export default function HomeClient({
       <WorldMap
         nodes={worldNodes}
         edges={worldEdges}
-        avatar={avatar}
+        avatarSrc={avatarSrc}
         initialIsland={initialIsland}
         pageLabels={pageLabels}
         onPickIsland={(island) => goTo({ kind: "island", island })}
@@ -174,6 +174,7 @@ export default function HomeClient({
           returnIsland={battleData.returnIsland}
           guardStyleIndex={battleData.guardStyleIndex}
           bgUrl={battleData.battleBg}
+          avatarSrc={avatarSrc}
           embedded
         />
       </div>
@@ -193,6 +194,7 @@ export default function HomeClient({
           metaName={bossData.metaName}
           returnIsland={bossData.returnIsland}
           bgUrl={bossData.battleBg}
+          avatarSrc={avatarSrc}
           embedded
         />
       </div>

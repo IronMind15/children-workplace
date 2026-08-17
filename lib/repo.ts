@@ -2,6 +2,8 @@ import db from "./db";
 import type { MetaCognition, Monster, Spirit, Explorer, InternalizedMeta, GrowthLog, EvolutionEdge, Mistake, Property, Strategy, ConfigEntry, BossProgress, IslandLevel } from "./types";
 import { parseBrainSettings, type BrainSettings } from "./brain";
 import { cache } from "react";
+import { computeRankLevel, getRankByLevel, getNextRank, formatRankProgress } from "./ranks";
+import { getExplorerImage, getExplorerById } from "./explorers";
 
 // ============ 性能：高频只读查询用 React cache() 做「同请求去重」 ============
 // 首页/图鉴等会对同一数据查多次（getMetas/getIslands/getEvolutionEdges…），
@@ -28,6 +30,74 @@ export function getBrainSettings(): BrainSettings {
 
 export function setBrainSettings(s: BrainSettings) {
   db.prepare("UPDATE explorer SET brain_settings = ? WHERE id = 'default'").run(JSON.stringify(s));
+}
+
+// ============ 探险家 · 身份 / 等级 / 头衔 / 头像（第三轮） ============
+
+/** 已净化 Boss 数（= 已内化元认知数，含 2 个初始起点岛） */
+export function getPurifiedBossCount(): number {
+  return (db.prepare("SELECT COUNT(*) AS c FROM internalized_meta").get() as { c: number }).c;
+}
+
+/** 设置探险家性别 + 头像 id（onboarding 选角用） */
+export function setExplorerGenderAvatar(gender: string, avatarId: string): void {
+  db.prepare("UPDATE explorer SET gender = ?, avatar_id = ? WHERE id = 'default'").run(gender, avatarId);
+}
+
+/** 设置探险家等级 + 头衔（晋升用） */
+export function setExplorerLevelTitle(level: number, title: string): void {
+  db.prepare("UPDATE explorer SET level = ?, title = ? WHERE id = 'default'").run(level, title);
+}
+
+/** 探险家头像图片路径（按 gender + avatar_id 解析；缺省兜底 boy_1） */
+export function getExplorerAvatarSrc(explorer?: Explorer | null): string {
+  const id = explorer?.avatar_id ?? null;
+  if (id) {
+    const found = getExplorerById(id);
+    if (found) return found.path;
+  }
+  const gender = (explorer?.gender as "boy" | "girl") ?? "boy";
+  const idx = explorer?.avatar_id ? parseInt(explorer.avatar_id.split("_").pop() ?? "1", 10) || 1 : 1;
+  return getExplorerImage(gender, idx);
+}
+
+export type ExplorerRankInfo = {
+  level: number;
+  title: string;
+  purifiedBosses: number;
+  sparks: number;
+  next: ReturnType<typeof getNextRank>;
+  progressText: string;
+  /** 当前等级 → 下一级的进度百分比（0~100；满级=100） */
+  progressPct: number;
+};
+
+/** 探险家等级 / 头衔 / 进度汇总（供 AvatarMenu / TopShell / 资料页读取） */
+export function getExplorerRankInfo(): ExplorerRankInfo {
+  const e = getExplorer();
+  const purifiedBosses = getPurifiedBossCount();
+  const sparks = (db.prepare("SELECT COALESCE(SUM(sparks), 0) AS s FROM curiosity_log").get() as { s: number }).s;
+  const currentLevel = e?.level ?? 1;
+  const rank = getRankByLevel(currentLevel);
+  const next = getNextRank(currentLevel);
+  let progressPct = 100;
+  if (next) {
+    const bossSpan = next.threshold.purifiedBosses - rank.threshold.purifiedBosses;
+    const sparkSpan = next.threshold.sparks - rank.threshold.sparks;
+    const bossPct = bossSpan > 0 ? Math.min(100, ((purifiedBosses - rank.threshold.purifiedBosses) / bossSpan) * 100) : 100;
+    const sparkPct = sparkSpan > 0 ? Math.min(100, ((sparks - rank.threshold.sparks) / sparkSpan) * 100) : 100;
+    // 双轨：满足任一阈值即晋升 → 取两条进度中较大者
+    progressPct = Math.max(0, Math.min(100, Math.max(bossPct, sparkPct)));
+  }
+  return {
+    level: currentLevel,
+    title: e?.title ?? rank.title,
+    purifiedBosses,
+    sparks,
+    next,
+    progressText: formatRankProgress(purifiedBosses, sparks),
+    progressPct,
+  };
 }
 
 // ============ 元认知 ============

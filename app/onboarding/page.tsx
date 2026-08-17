@@ -3,21 +3,29 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createExplorer } from "@/lib/actions";
+import { EXPLORER_AVATARS, getExplorerImage, type ExplorerGender } from "@/lib/explorers";
 import Guide from "@/components/Guide";
 import Button from "@/components/Button";
 
 const names = ["小探险家", "小勇士", "小博士", "小精灵", "小岛主", "小船长"];
-const avatars = ["🧑‍🚀", "🧒", "👧", "🦸", "🧙", "🐻"];
 
 export default function Onboarding() {
   const [name, setName] = useState(names[0]);
-  const [avatar, setAvatar] = useState(avatars[0]);
+  const [gender, setGender] = useState<ExplorerGender>("boy");
+  const [avatarId, setAvatarId] = useState<string>(EXPLORER_AVATARS.boy.options[0].id);
   const [pending, setPending] = useState(false);
   const router = useRouter();
 
+  const options = EXPLORER_AVATARS[gender].options;
+
+  function selectGender(g: ExplorerGender) {
+    setGender(g);
+    setAvatarId(EXPLORER_AVATARS[g].options[0].id);
+  }
+
   async function submit() {
     setPending(true);
-    await createExplorer(name + " " + avatar);
+    await createExplorer(name, gender, avatarId);
     router.push("/");
   }
 
@@ -48,17 +56,35 @@ export default function Onboarding() {
       </div>
 
       <div className="mt-8">
-        <h2 className="text-lg font-bold">② 选一个形象</h2>
-        <div className="mt-3 grid grid-cols-6 gap-2">
-          {avatars.map((a) => (
+        <h2 className="text-lg font-bold">② 选性别</h2>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {(["boy", "girl"] as ExplorerGender[]).map((g) => (
             <button
-              key={a}
-              onClick={() => setAvatar(a)}
-              className={`flex aspect-square items-center justify-center rounded-card text-3xl shadow-card transition-transform active:scale-95 ${
-                avatar === a ? "bg-primary-soft ring-2 ring-primary" : "bg-white"
+              key={g}
+              onClick={() => selectGender(g)}
+              className={`flex items-center justify-center gap-2 rounded-card bg-white px-3 py-3 text-base font-black shadow-card transition-transform active:scale-95 ${
+                gender === g ? "ring-2 ring-primary bg-primary-soft" : ""
               }`}
             >
-              {a}
+              <img src={getExplorerImage(g, 1)} alt="" className="h-10 w-10 object-contain" />
+              {EXPLORER_AVATARS[g].label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8">
+        <h2 className="text-lg font-bold">③ 选造型</h2>
+        <div className="mt-3 grid grid-cols-3 gap-3">
+          {options.map((o) => (
+            <button
+              key={o.id}
+              onClick={() => setAvatarId(o.id)}
+              className={`flex aspect-square items-center justify-center rounded-card bg-white p-2 shadow-card transition-transform active:scale-95 ${
+                avatarId === o.id ? "ring-2 ring-primary bg-primary-soft" : ""
+              }`}
+            >
+              <img src={o.path} alt={o.name} className="h-full w-full object-contain" />
             </button>
           ))}
         </div>

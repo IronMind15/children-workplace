@@ -49,6 +49,11 @@ export type Explorer = {
   brain_settings: string | null;  // JSON
   current_island: string;
   difficulty_bias?: number;        // 难度微调偏置（手动调整整体难度）
+  gender?: string | null;         // 探险家性别（boy / girl），选角用
+  avatar_id?: string | null;      // 探险家头像 id（boy_1~3 / girl_1~3）
+  level?: number | null;          // 探险家等级（1~6，对应头衔）
+  xp?: number | null;             // 预留经验值
+  title?: string | null;          // 当前头衔（冗余存列，便于直接读取）
 };
 
 export type InternalizedMeta = {

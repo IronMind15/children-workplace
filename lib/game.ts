@@ -2,9 +2,10 @@ import db from "./db";
 import {
   getMonster, getMeta, isInternalized, getInternalized, getExplorer, getIslands, getEvolutionEdges, getMetas,
   getProperty, getNextAwakenable, recordAwakening, isPropertyAwakened, getGuard, getGuardsByIsland,
-  getConfigNum, bumpIslandLevel, bumpBossAttempt,
+  getConfigNum, bumpIslandLevel, bumpBossAttempt, getPurifiedBossCount, setExplorerLevelTitle,
 } from "./repo";
 import type { GuardInfo, Property } from "./types";
+import { computeRankLevel, getRankByLevel } from "./ranks";
 
 /**
  * 训练胜利：该元认知熟练经验 +1，满阈值则熟练等级 +1（= 精灵进化），并写成长日志。
@@ -261,4 +262,32 @@ export function bossFail(
     if (next) return { attempts, stuck: true, guideMeta: m, nextProperty: next };
   }
   return { attempts, stuck: true };
+}
+
+// ============ 探险家等级晋升（第三轮） ============
+
+/**
+ * 探险家等级晋升检测：按「净化 Boss 数 或 火花数」双轨判断（见 lib/ranks.ts）。
+ * 若算出应处等级高于当前等级，则升级 + 写成长日志，并返回晋升信息（供前端庆祝）。
+ * 在 purifyMonster（Boss 数↑）与 askQuestion/askFree（火花↑）后调用。
+ */
+export function checkAndPromote(
+  explorerId = "default"
+): { promoted: boolean; fromLevel: number; toLevel: number; title: string } {
+  const e = getExplorer();
+  if (!e) return { promoted: false, fromLevel: 1, toLevel: 1, title: getRankByLevel(1).title };
+  const purifiedBosses = getPurifiedBossCount();
+  const sparks = (db.prepare("SELECT COALESCE(SUM(sparks), 0) AS s FROM curiosity_log").get() as { s: number }).s;
+  const targetLevel = computeRankLevel(purifiedBosses, sparks);
+  const fromLevel = e.level ?? 1;
+  if (targetLevel > fromLevel) {
+    const title = getRankByLevel(targetLevel).title;
+    setExplorerLevelTitle(targetLevel, title);
+    db.prepare("INSERT INTO growth_log (event, detail) VALUES (?, ?)").run(
+      "promote",
+      JSON.stringify({ from: fromLevel, to: targetLevel, title })
+    );
+    return { promoted: true, fromLevel, toLevel: targetLevel, title };
+  }
+  return { promoted: false, fromLevel, toLevel: fromLevel, title: e.title ?? getRankByLevel(fromLevel).title };
 }

@@ -198,3 +198,30 @@ try {
   /* 已存在 */
 }
 
+// 老库兼容：探险家身份与等级（第三轮 · 头像选角 + 等级头衔）
+try {
+  db.exec("ALTER TABLE explorer ADD COLUMN gender TEXT");
+} catch {
+  /* 已存在 */
+}
+try {
+  db.exec("ALTER TABLE explorer ADD COLUMN avatar_id TEXT");
+} catch {
+  /* 已存在 */
+}
+try {
+  db.exec("ALTER TABLE explorer ADD COLUMN level INTEGER NOT NULL DEFAULT 1");
+} catch {
+  /* 已存在 */
+}
+try {
+  db.exec("ALTER TABLE explorer ADD COLUMN xp INTEGER NOT NULL DEFAULT 0");
+} catch {
+  /* 已存在 */
+}
+try {
+  db.exec("ALTER TABLE explorer ADD COLUMN title TEXT");
+} catch {
+  /* 已存在 */
+}
+

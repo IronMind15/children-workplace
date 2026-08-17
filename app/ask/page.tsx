@@ -1,7 +1,7 @@
 import { seedIfEmpty } from "@/lib/seed";
 import { getSparkStats } from "@/lib/game";
 import { QUESTIONS, AI_TIPS, RECOMMEND_BY_META } from "@/lib/askBank";
-import { getMonstersByIsland, getExplorer, getInternalizedMetas, getIslands, getMeta } from "@/lib/repo";
+import { getMonstersByIsland, getExplorer, getInternalizedMetas, getIslands, getMeta, getExplorerAvatarSrc } from "@/lib/repo";
 import { getAiConfig } from "@/lib/ai";
 import { redirect } from "next/navigation";
 import AskFlow from "@/components/AskFlow";
@@ -17,7 +17,7 @@ export default function Ask() {
 
   const stats = getSparkStats();
   const ai = getAiConfig();
-  const avatar = explorer.name.split(" ").pop() ?? "🧭";
+  const avatar = getExplorerAvatarSrc(explorer);
 
   // ---- 每日推荐：按闯关进度挑问题 + AI 小贴士 ----
   const mastered = getInternalizedMetas().map((m) => m.id);
@@ -47,7 +47,7 @@ export default function Ask() {
 
   return (
     <div className="sky-bg min-h-screen pb-6 pt-20">
-      <TopShell avatar={avatar} sparks={stats.total} />
+      <TopShell avatarSrc={avatar} sparks={stats.total} />
       <AskFlow
         questions={questions}
         sparks={stats.total}

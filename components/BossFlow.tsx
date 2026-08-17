@@ -27,6 +27,7 @@ export default function BossFlow({
   metaName,
   returnIsland,
   bgUrl,
+  avatarSrc,
   embedded = false,
 }: {
   monsterId: string;
@@ -42,6 +43,8 @@ export default function BossFlow({
   returnIsland?: string;
   /** v1.2.10 Boss 战斗背景图（统一 boss.png） */
   bgUrl: string;
+  /** 探险家头像（玩家化身），战斗中显示在伙伴旁 */
+  avatarSrc?: string;
   /** v1.2.3 嵌入主界面左侧：去掉 min-h-screen，避免超高 */
   embedded?: boolean;
 }) {
@@ -187,6 +190,15 @@ export default function BossFlow({
           <div className={`absolute left-[14%] bottom-[18%] ${shake ? "animate-lunge" : "animate-float"}`}>
             <ImgSprite src={companion} size={132} />
           </div>
+
+          {/* 探险家化身：显示在伙伴旁（玩家出场标识） */}
+          {avatarSrc && (
+            <img
+              src={avatarSrc}
+              alt="我的探险家"
+              className="absolute bottom-[26%] left-[5%] z-10 h-12 w-12 rounded-full border-4 border-[#2b3a4a] bg-white object-cover shadow-card"
+            />
+          )}
 
           {/* 伙伴信息框：右下 */}
           <div className="card absolute bottom-4 right-4 w-52 p-2.5 lg:w-60">

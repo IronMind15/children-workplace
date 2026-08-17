@@ -31,7 +31,7 @@ export type WorldEdge = { from: string; to: string };
 export default function WorldMap({
   nodes,
   edges,
-  avatar,
+  avatarSrc,
   initialIsland,
   pageLabels,
   onPickIsland,
@@ -39,7 +39,7 @@ export default function WorldMap({
 }: {
   nodes: WorldNode[];
   edges: WorldEdge[];
-  avatar: string;
+  avatarSrc: string;
   initialIsland: string;
   pageLabels: string[];
   onPickIsland: (island: string) => void;
@@ -192,12 +192,12 @@ export default function WorldMap({
                 currentPageNodes.find((n) => n.isCurrent);
               if (!cur) return null;
               return (
-                <span
-                  className="pointer-events-none absolute z-20 -translate-x-1/2 translate-y-7 text-2xl drop-shadow"
+                <img
+                  src={avatarSrc}
+                  alt="我的探险家"
+                  className="pointer-events-none absolute z-20 h-10 w-10 -translate-x-1/2 translate-y-6 rounded-full border-2 border-[#2b3a4a] bg-white object-cover drop-shadow"
                   style={{ left: `${cur.x}%`, top: `${cur.y}%` }}
-                >
-                  {avatar}
-                </span>
+                />
               );
             })()}
           </div>

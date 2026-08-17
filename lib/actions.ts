@@ -1,19 +1,28 @@
 "use server";
 
 import { seedIfEmpty } from "./seed";
-import { setExplorerName, setBrainSettings, setExplorerIsland, getIslands, getExplorer, getMeta, getInternalizedMetas, getMetas, getProperties, setIslandLevel, setConfig, getAllConfig, getInternalizedStrategies, recordAwakening } from "./repo";
-import { trainWin as doTrainWin, purify as doPurify, addSpark, getSparkStats, clearSparks, resetAllProgress, getDifficultyLevel, adjustDifficultyBias, recordMistake as doRecordMistake, resolveMistakes as doResolveMistakes, guardWin as doGuardWin, checkAwakenings, getVisibleGuardsByIsland, bossFail as doBossFail } from "./game";
+import { setExplorerName, setBrainSettings, setExplorerIsland, getIslands, getExplorer, getMeta, getInternalizedMetas, getMetas, getProperties, setIslandLevel, setConfig, getAllConfig, getInternalizedStrategies, recordAwakening, setExplorerGenderAvatar } from "./repo";
+import { trainWin as doTrainWin, purify as doPurify, addSpark, getSparkStats, clearSparks, resetAllProgress, getDifficultyLevel, adjustDifficultyBias, recordMistake as doRecordMistake, resolveMistakes as doResolveMistakes, guardWin as doGuardWin, checkAwakenings, getVisibleGuardsByIsland, bossFail as doBossFail, checkAndPromote } from "./game";
 import db from "./db";
 import { getQuestionById, getTipById } from "./askBank";
 import { askAi, saveAiConfig, clearAiConfig, explainWrong, feynmanChat } from "./ai";
 import { revalidatePath } from "next/cache";
 import type { BrainSettings } from "./brain";
 
-/** 创建/更新探险家名字 */
-export async function createExplorer(name: string) {
+/** 创建/更新探险家：名字 + 性别 + 头像（onboarding 选角；第三轮） */
+export async function createExplorer(name: string, gender = "boy", avatarId = "boy_1") {
   seedIfEmpty();
   setExplorerName(name);
+  setExplorerGenderAvatar(gender, avatarId);
   revalidatePath("/");
+}
+
+/** 资料页换头像（第三轮）：更新性别 + 头像 id，并重验首页/资料页 */
+export async function updateExplorerAvatar(gender: string, avatarId: string) {
+  seedIfEmpty();
+  setExplorerGenderAvatar(gender, avatarId);
+  revalidatePath("/");
+  revalidatePath("/profile");
 }
 
 /** 大脑编辑器：保存探险家风格/偏好（立即生效） */
@@ -31,10 +40,11 @@ export async function trainWin(metaId: string, stars: number) {
   return r;
 }
 
-/** 渡海 Boss 净化：内化元认知 + 解锁新岛 */
+/** 渡海 Boss 净化：内化元认知 + 解锁新岛 + 等级晋升检测 */
 export async function purifyMonster(monsterId: string) {
   seedIfEmpty();
   const r = doPurify(monsterId);
+  if (r.ok) checkAndPromote();
   revalidatePath("/");
   return r;
 }
@@ -58,6 +68,7 @@ export async function askQuestion(questionId: string) {
   const ai = await askAi(q.label, kidName);
   if (ai) answer = ai;
   const r = addSpark(q.id, q.label);
+  checkAndPromote();
   revalidatePath("/");
   return { ...r, answer };
 }
@@ -77,6 +88,7 @@ export async function askFree(question: string) {
     };
   }
   const r = addSpark(`free-${Date.now()}`, text);
+  checkAndPromote();
   revalidatePath("/");
   return { ...r, answer: ai };
 }

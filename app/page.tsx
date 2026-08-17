@@ -19,6 +19,8 @@ import {
   getSpiritsForInternalized,
   getIslandLevel,
   getAwakenedPropertyIds,
+  getExplorerAvatarSrc,
+  getExplorerRankInfo,
 } from "@/lib/repo";
 import { getSparkStats, checkAwakenings, getIslandDifficulty } from "@/lib/game";
 import { getAiConfig } from "@/lib/ai";
@@ -277,11 +279,20 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
     }
   }
 
-  const avatar = explorer.name.split(" ").pop() ?? "🧭";
+  const avatarSrc = getExplorerAvatarSrc(explorer);
+  const rank = getExplorerRankInfo();
+  const rankForUi = {
+    level: rank.level,
+    title: rank.title,
+    sparks: rank.sparks,
+    nextTitle: rank.next?.title ?? null,
+    nextCondition: rank.next?.condition ?? null,
+    progressPct: rank.progressPct,
+  };
 
   return (
     <div className="sky-bg min-h-screen pb-6 pt-20">
-      <TopShell avatar={avatar} sparks={sparks.total} />
+      <TopShell avatarSrc={avatarSrc} sparks={sparks.total} rank={rankForUi} />
       <AwakeningToast
         awakenings={awakenings.map((g) => ({
           propertyName: g.property_name,
@@ -295,7 +306,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
           view={view}
           worldNodes={worldNodes}
           worldEdges={worldEdges}
-          avatar={avatar}
+          avatarSrc={avatarSrc}
           initialIsland={island}
           pageLabels={pageLabels}
           islandData={islandData}
