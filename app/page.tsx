@@ -1,5 +1,6 @@
 import { seedIfEmpty } from "@/lib/seed";
 import { getWorldLayout, getWorldPages } from "@/lib/worldLayout";
+import { QUESTIONS, AI_TIPS, RECOMMEND_BY_META } from "@/lib/askBank";
 import {
   getExplorer,
   getMonsters,
@@ -25,6 +26,8 @@ import TestTools from "@/components/TestTools";
 import WorldMap from "@/components/WorldMap";
 import AwakeningToast from "@/components/AwakeningToast";
 import EvolutionPathButton from "@/components/EvolutionPathButton";
+import LayoutSwitcher from "@/components/LayoutSwitcher";
+import AskInline from "@/components/AskInline";
 import type { ChainNode, ChainEdge } from "@/components/EvolutionModal";
 import type { WorldNode, IslandBattleData } from "@/components/WorldMap";
 
@@ -111,6 +114,21 @@ export default function Home() {
   const brain = getBrainSettings();
   const avatar = explorer.name.split(" ").pop() ?? "🧭";
 
+  // L1 分屏右侧 AI 聊的推荐问题（按闯关进度挑选前 3）
+  const masteredIds = new Set(metas.map((m) => m.id));
+  const recIds = new Set(metas.flatMap((m) => RECOMMEND_BY_META[m.id] ?? []));
+  const askQuestions = [...QUESTIONS, ...AI_TIPS]
+    .filter((q) => recIds.has(q.id))
+    .slice(0, 6)
+    .map((q) => ({ id: q.id, emoji: q.emoji, label: q.label, category: q.category as string }));
+  if (askQuestions.length < 3) {
+    askQuestions.push(
+      ...QUESTIONS.slice(0, 3 - askQuestions.length).map((q) => ({
+        id: q.id, emoji: q.emoji, label: q.label, category: q.category as string,
+      })),
+    );
+  }
+
   // 进化路线数据（谱系树）：锁定的本领写清去哪里解锁
   const nodes: ChainNode[] = allMetas.map((m) => {
     const boss = getBossByTarget(m.id);
@@ -151,21 +169,32 @@ export default function Home() {
         broadcastOn={getConfig("broadcast", "1") === "1"}
       />
 
-      {/* 世界地图：全宽（充分利用屏幕，tab 已在顶部） */}
-      <main className="mx-auto mt-3 max-w-[1500px] px-2 lg:px-4">
-        <WorldMap
-          nodes={worldNodes}
-          edges={worldEdges}
-          islandData={islandData}
-          avatar={avatar}
-          initialIsland={island}
-          pageLabels={getWorldPages(layout).map((p) => p.label)}
+      {/* 世界地图：按 layout_mode 切换（auto 单栏/分屏；tabs 单栏；split 双栏） */}
+      <main className="mx-auto mt-3 max-w-[1500px]">
+        <LayoutSwitcher
+          mode={(getConfig("layout_mode", "auto") as "auto" | "tabs" | "split")}
+          map={
+            <div>
+              <WorldMap
+                nodes={worldNodes}
+                edges={worldEdges}
+                islandData={islandData}
+                avatar={avatar}
+                initialIsland={island}
+                pageLabels={getWorldPages(layout).map((p) => p.label)}
+              />
+              <div className="mt-4 px-3 lg:px-0">
+                <Guide message={welcomeGuide(explorer.name.split(" ")[0], island, brain)} />
+              </div>
+            </div>
+          }
+          ai={
+            <AskInline
+              questions={askQuestions}
+              sparks={sparks.total}
+            />
+          }
         />
-
-        {/* 伙伴引导 */}
-        <div className="mt-4">
-          <Guide message={welcomeGuide(explorer.name.split(" ")[0], island, brain)} />
-        </div>
       </main>
 
       {/* 设置入口：长按进入家长端·伙伴日记（REQ-PARENT-01 隐藏入口） */}

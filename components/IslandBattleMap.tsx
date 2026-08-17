@@ -2,9 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import PixelSprite from "@/components/PixelSprite";
 import ImgSprite from "@/components/ImgSprite";
-import { getMonsterImage, getDecorSprite } from "@/lib/sprites";
+import { getMonsterImage } from "@/lib/sprites";
 import { getIslandBg } from "@/lib/islandArt";
 import { themeOf } from "@/lib/islandTheme";
 
@@ -117,23 +116,7 @@ function GuardMonster({ monster, index }: { monster: MapMonster; index: number }
   );
 }
 
-/** 装饰物：树 / 灌木 / 石头 / 花，固定在草地上 */
-function Decor({ kind, x, y, size = 64 }: { kind: "tree" | "bush" | "rock" | "flower"; x: number; y: number; size?: number }) {
-  const sprite = getDecorSprite(kind);
-  return (
-    <div className="pointer-events-none absolute z-0" style={{ left: `${x}%`, top: `${y}%` }}>
-      <PixelSprite rows={sprite.rows} palette={sprite.palette} size={size} />
-    </div>
-  );
-}
-
-/** 棋盘格背景样式 */
-const checkerStyle = (a: string, b: string, size = 32): React.CSSProperties => ({
-  backgroundImage: `repeating-conic-gradient(${a} 0% 25%, ${b} 0% 50%)`,
-  backgroundSize: `${size}px ${size}px`,
-});
-
-/** 海面条纹背景样式 */
+/** 海面条纹背景样式（保留兼容） */
 const seaStyle = (a: string, b: string): React.CSSProperties => ({
   backgroundImage: `repeating-linear-gradient(180deg, ${a} 0 26px, ${b} 26px 52px)`,
 });
@@ -177,72 +160,46 @@ export default function IslandBattleMap({
           </span>
         )}
       </div>
-      {/* 海面（主题色） */}
-      <div className="relative h-[440px] overflow-hidden rounded-md lg:h-[540px]" style={seaStyle(...theme.sea)}>
-        {/* 像素云 */}
-        <div className="absolute left-[8%] top-4 flex items-end gap-1 opacity-90">
-          <div className="h-5 w-10 rounded-sm bg-white" />
-          <div className="h-8 w-12 rounded-sm bg-white" />
-          <div className="h-5 w-10 rounded-sm bg-white" />
-        </div>
-        <div className="absolute right-[14%] top-10 flex items-end gap-1 opacity-80">
-          <div className="h-5 w-8 rounded-sm bg-white" />
-          <div className="h-7 w-10 rounded-sm bg-white" />
-          <div className="h-4 w-8 rounded-sm bg-white" />
-        </div>
+      {/* 海面：用 113背景 海图（设计稿风格） */}
+      <div className="relative h-[440px] overflow-hidden rounded-md lg:h-[540px]">
+        {/* 113背景 底图 */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${bg})` }}
+        />
+        {/* 边缘柔化（让小怪/化身浮在岛上不显突兀） */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/5" />
 
-        {/* 岛屿主体 */}
-        <div className="absolute inset-x-4 inset-y-10 lg:inset-x-8">
-          {/* 沙滩描边（主题色） */}
-          <div className="h-full w-full rounded-[36px] border-8 p-2 shadow-[0_10px_0_rgba(16,24,34,0.25)]" style={{ borderColor: theme.beach }}>
-            <div
-              className="relative h-full w-full overflow-hidden rounded-[28px]"
-              style={{ backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center" }}
+        {/* 岛屿内容直接铺在海图上（不再用内嵌"岛屿主体"小框） */}
+        <div className="relative h-full w-full">
+          {/* 主题点缀 emoji（仅保留自然元素，避免人造装饰物） */}
+          {theme.accents.map((a, i) => (
+            <span
+              key={i}
+              className="pointer-events-none absolute select-none opacity-90"
+              style={{ left: `${a.x}%`, top: `${a.y}%`, fontSize: a.size ?? 24 }}
             >
-              {/* 泥土小路：横穿草地 */}
-              <div
-                className="absolute left-[6%] right-[24%] top-[46%] h-12 rounded-full border-4 lg:h-14"
-                style={{ ...checkerStyle(...theme.path, 20), borderColor: theme.pathBorder }}
-              />
-              {/* 码头：Boss 的地盘 */}
-              <div
-                className="absolute bottom-[8%] right-[2%] h-28 w-36 rounded-2xl border-4 lg:h-32 lg:w-44"
-                style={{ ...checkerStyle(...theme.path, 20), borderColor: theme.pathBorder }}
-              />
+              {a.emoji}
+            </span>
+          ))}
 
-              {/* 装饰（每岛不同布局） */}
-              {theme.decors.map((d, i) => (
-                <Decor key={i} {...d} />
-              ))}
+          {/* 溜达的小怪 */}
+          {minions.map((m, i) => (
+            <WanderingMonster key={m.id} monster={m} index={i} />
+          ))}
 
-              {/* 主题点缀 emoji */}
-              {theme.accents.map((a, i) => (
-                <span
-                  key={i}
-                  className="pointer-events-none absolute select-none opacity-90"
-                  style={{ left: `${a.x}%`, top: `${a.y}%`, fontSize: a.size ?? 20 }}
-                >
-                  {a.emoji}
-                </span>
-              ))}
+          {/* 知识守卫（觉醒载体） */}
+          {guards.map((m, i) => (
+            <GuardMonster key={m.id} monster={m} index={i} />
+          ))}
 
-              {/* 溜达的小怪 */}
-              {minions.map((m, i) => (
-                <WanderingMonster key={m.id} monster={m} index={i} />
-              ))}
+          {/* 神秘小怪（好奇心火花解锁） */}
+          {hiddenMonsters.map((m, i) => (
+            <WanderingMonster key={m.id} monster={m} index={i + 3} mystery />
+          ))}
 
-              {/* 知识守卫（觉醒载体）：金纹徽章，点击进守卫战 */}
-              {guards.map((m, i) => (
-                <GuardMonster key={m.id} monster={m} index={i} />
-              ))}
-
-              {/* 神秘小怪（好奇心火花解锁） */}
-              {hiddenMonsters.map((m, i) => (
-                <WanderingMonster key={m.id} monster={m} index={i + 3} mystery />
-              ))}
-
-              {/* Boss 们：守在码头（已净化的灰色石化） */}
-              {bosses.map((b, i) => {
+          {/* Boss 们（已净化灰化） */}
+          {bosses.map((b, i) => {
                 const image = getMonsterImage(b.id);
                 const inner = (
                   <>
@@ -280,30 +237,28 @@ export default function IslandBattleMap({
                 );
               })}
 
-              {/* 无 Boss 岛屿的告示牌：右上角路牌，不挡路 */}
-              {bosses.length === 0 && (
-                <div className="pointer-events-none absolute right-[3%] top-[6%] z-10">
-                  <div className="rounded-lg border-4 border-[#8a6a3e] bg-[#fff8e1] px-3 py-2 text-center shadow-[0_4px_0_rgba(43,58,74,0.25)]">
-                    <div className="text-xl">🗿</div>
-                    <p className="mt-0.5 text-xs font-black text-[#2b3a4a]">风平浪静</p>
-                    <p className="mt-0.5 text-[10px] font-bold text-[#7a8a9a]">无 Boss</p>
-                  </div>
-                </div>
-              )}
-
-              {/* 空岛提示 */}
-              {minions.length === 0 && bosses.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="card px-6 py-4 text-center font-bold text-[#2b3a4a]">
-                    这座岛风平浪静，去别处逛逛吧！
-                  </div>
-                </div>
-              )}
+          {/* 无 Boss 岛屿的告示牌：右上角路牌 */}
+          {bosses.length === 0 && (
+            <div className="pointer-events-none absolute right-[3%] top-[6%] z-10">
+              <div className="rounded-lg border-4 border-[#8a6a3e] bg-[#fff8e1] px-3 py-2 text-center shadow-[0_4px_0_rgba(43,58,74,0.25)]">
+                <div className="text-xl">🗿</div>
+                <p className="mt-0.5 text-xs font-black text-[#2b3a4a]">风平浪静</p>
+                <p className="mt-0.5 text-[10px] font-bold text-[#7a8a9a]">无 Boss</p>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* 空岛提示 */}
+          {minions.length === 0 && bosses.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="card px-6 py-4 text-center font-bold text-[#2b3a4a]">
+                这座岛风平浪静，去别处逛逛吧！
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* 玩家化身：站在岛左上角入口 */}
+        {/* 玩家化身：站在岛中上 */}
         <div className="absolute left-[10%] top-[6%] z-20 flex flex-col items-center">
           <span className="mb-1 rounded-md border-2 border-[#2b3a4a] bg-white px-2 py-0.5 text-xs font-bold text-[#2b3a4a] shadow-[0_2px_0_rgba(43,58,74,0.4)]">
             我

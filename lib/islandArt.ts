@@ -75,3 +75,33 @@ export function getIslandBg(island: string): string {
   if (exact) return exact.bg;
   return ISLAND_BGS[hashStr(island) % COUNT];
 }
+
+/**
+ * L1 世界地图海图背景（统一一张，按岛屿当前页主色取对应 bg）。
+ * 113背景 本身就是 2.5D 海面俯视图，与 L1 海图需求一致；用岛屿所在页第一张岛的 bg 图作为整页海图氛围。
+ */
+export function getWorldSea(islandHint?: string): string {
+  if (islandHint) {
+    const exact = ISLAND_ART[islandHint];
+    if (exact) return exact.bg;
+    const idx = hashStr(islandHint) % COUNT;
+    return ISLAND_BGS[idx];
+  }
+  return ISLAND_BGS[0];
+}
+
+/**
+ * L3 战斗舞台雾效层（用同张 bg 图做半透明叠层 + 多层径向渐变模拟"云雾遮挡小岛"）。
+ * 返回一组 CSS 背景样式：动态云雾（CSS keyframes 多层径向渐变飘动）。
+ */
+export function fogOverlay(): React.CSSProperties {
+  return {
+    backgroundImage: [
+      // 三层径向雾团（柔白）
+      "radial-gradient(ellipse 80% 60% at 20% 30%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 60%)",
+      "radial-gradient(ellipse 70% 50% at 80% 70%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%)",
+      "radial-gradient(ellipse 90% 70% at 50% 90%, rgba(220,235,245,0.5) 0%, rgba(220,235,245,0) 70%)",
+    ].join(", "),
+    animation: "fog-drift 22s ease-in-out infinite",
+  };
+}

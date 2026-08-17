@@ -50,6 +50,7 @@ export default async function Boss({ params }: { params: Promise<{ id: string }>
       edges={edges}
       targetMeta={monster.target_meta ?? undefined}
       metaName={monster.target_meta ? (getMeta(monster.target_meta)?.name ?? monster.name) : monster.name}
+      returnIsland={monster.island}
     />
   );
 }

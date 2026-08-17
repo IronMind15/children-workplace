@@ -1,11 +1,47 @@
 "use client";
 
-import { useState } from "react";
-import { saveBrainSettings } from "@/lib/actions";
+import { useState, useEffect } from "react";
+import { saveBrainSettings, setConfigAction, getConfigAction } from "@/lib/actions";
 import { HELP_LEVEL_LABELS, missGuide, winGuide, type BrainSettings } from "@/lib/brain";
 import Guide from "@/components/Guide";
 import AiSettingsPanel from "@/components/AiSettingsPanel";
 import Link from "next/link";
+
+/** 主界面布局切换控件（PR6） */
+function LayoutModeSelector({ value, onChange }: { value: "auto" | "tabs" | "split"; onChange: (v: "auto" | "tabs" | "split") => void }) {
+  const options: { v: "auto" | "tabs" | "split"; label: string; hint: string; emoji: string }[] = [
+    { v: "auto", label: "自动", hint: "窄屏单栏，宽屏左地图+右 AI", emoji: "📱💻" },
+    { v: "tabs", label: "单栏（双 tab）", hint: "始终单栏，主区切地图/AI 聊", emoji: "📱" },
+    { v: "split", label: "分屏（地图+AI）", hint: "始终左地图+右 AI 聊", emoji: "🖥️" },
+  ];
+  return (
+    <div className="rounded-card bg-white p-4 shadow-card">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-lg font-bold">🖼️ 主界面布局</span>
+        <span className="rounded-input bg-primary-soft px-3 py-1 text-sm font-bold text-primary">
+          当前：{options.find((o) => o.v === value)?.label}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 gap-2 lg:grid-cols-3">
+        {options.map((o) => (
+          <button
+            key={o.v}
+            onClick={() => onChange(o.v)}
+            className={`flex flex-col items-start gap-1 rounded-2xl border-3 p-3 text-left transition-all active:scale-95 ${
+              value === o.v
+                ? "border-[#f79228] bg-[#fff3c4] shadow-[0_2px_0_#f79228]"
+                : "border-[#d7dee4] bg-white hover:border-[#f79228]"
+            }`}
+          >
+            <span className="text-2xl">{o.emoji}</span>
+            <span className="text-base font-black text-[#2b3a4a]">{o.label}</span>
+            <span className="text-xs text-[#7a8a9a]">{o.hint}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /** 开关：大触控目标（≥44px），儿童友好 */
 function Toggle({
@@ -59,12 +95,28 @@ export default function BrainEditor({
 }) {
   const [brain, setBrain] = useState<BrainSettings>(initial);
   const [saved, setSaved] = useState(true);
+  const [layoutMode, setLayoutMode] = useState<"auto" | "tabs" | "split">("auto");
+  const [layoutSaved, setLayoutSaved] = useState(true);
+
+  // 加载 layout_mode
+  useEffect(() => {
+    getConfigAction().then((all) => {
+      const v = all["layout_mode"];
+      if (v === "tabs" || v === "split" || v === "auto") setLayoutMode(v);
+    });
+  }, []);
 
   function update(patch: Partial<BrainSettings>) {
     const next = { ...brain, ...patch };
     setBrain(next);
     setSaved(false);
     saveBrainSettings(next).then(() => setSaved(true));
+  }
+
+  function updateLayout(v: "auto" | "tabs" | "split") {
+    setLayoutMode(v);
+    setLayoutSaved(false);
+    setConfigAction("layout_mode", v).then(() => setLayoutSaved(true));
   }
 
   return (
@@ -118,6 +170,11 @@ export default function BrainEditor({
         </div>
       </div>
 
+      {/* 主界面布局切换（PR6） */}
+      <div className="mt-4">
+        <LayoutModeSelector value={layoutMode} onChange={updateLayout} />
+      </div>
+
       {/* AI 连接设置（给大人）：DeepSeek */}
       <div className="mt-4">
         <AiSettingsPanel configured={ai.configured} model={ai.model} />
@@ -134,11 +191,11 @@ export default function BrainEditor({
 
       <p
         className={`mt-6 text-center text-sm transition-opacity ${
-          saved ? "text-mint opacity-100" : "text-ink-soft opacity-60"
+          saved && layoutSaved ? "text-mint opacity-100" : "text-ink-soft opacity-60"
         }`}
         role="status"
       >
-        {saved ? "已保存 ✓" : "保存中…"}
+        {saved && layoutSaved ? "已保存 ✓" : "保存中…"}
       </p>
     </div>
   );

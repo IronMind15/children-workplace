@@ -5,7 +5,7 @@ import { getMonstersByIsland, getExplorer, getInternalizedMetas, getIslands, get
 import { getAiConfig } from "@/lib/ai";
 import { redirect } from "next/navigation";
 import AskFlow from "@/components/AskFlow";
-import BottomNav from "@/components/BottomNav";
+import TopShell from "@/components/TopShell";
 import TestTools from "@/components/TestTools";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +17,7 @@ export default function Ask() {
 
   const stats = getSparkStats();
   const ai = getAiConfig();
+  const avatar = explorer.name.split(" ").pop() ?? "🧭";
 
   // ---- 每日推荐：按闯关进度挑问题 + AI 小贴士 ----
   const mastered = getInternalizedMetas().map((m) => m.id);
@@ -45,7 +46,8 @@ export default function Ask() {
     .sort((a, b) => a.required - b.required);
 
   return (
-    <div className="sky-bg min-h-screen pb-6 pt-16">
+    <div className="sky-bg min-h-screen pb-6 pt-20">
+      <TopShell avatar={avatar} sparks={stats.total} />
       <AskFlow
         questions={questions}
         sparks={stats.total}
@@ -57,7 +59,6 @@ export default function Ask() {
           .reverse()
           .map((m) => ({ id: m.id, name: getMeta(m.id)?.name ?? m.id }))}
       />
-      <BottomNav />
       <TestTools />
     </div>
   );

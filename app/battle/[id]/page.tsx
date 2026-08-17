@@ -56,6 +56,7 @@ export default async function Battle({ params }: { params: Promise<{ id: string 
       brain={getBrainSettings()}
       mode={mode}
       propertyName={propertyName}
+      returnIsland={monster.island}
     />
   );
 }

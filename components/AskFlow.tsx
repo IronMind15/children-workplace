@@ -82,7 +82,7 @@ export default function AskFlow({
       {/* 顶部 */}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="card px-4 py-2.5">
-          <h1 className="text-xl font-black text-[#2b3a4a] lg:text-2xl">✨ 好奇心营地</h1>
+          <h1 className="font-story text-xl font-black text-[#2b3a4a] lg:text-2xl">💬 跟小狐狸聊</h1>
           <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">会提问的孩子最厉害！问问伙伴，赢取火花</p>
         </div>
         <div className="flex items-center gap-2">

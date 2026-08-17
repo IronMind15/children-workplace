@@ -3,28 +3,42 @@
 import { ReactNode } from "react";
 
 /**
- * PR2 · 布局切换器
- * - <1280px：单栏，主 tab 二选一全宽（地图 / AI）
- * - ≥1280px：左 60% 地图 + 右 40% AI 聊
- * 后续：可在 /brain 设置里加"强制单栏"开关，临时覆盖。
+ * PR6 布局切换器
+ * - mode="auto"（默认）：<1280px 单栏，≥1280px 自动左地图+右 AI
+ * - mode="tabs"：始终单栏（窄屏友好）
+ * - mode="split"：始终左地图+右 AI（宽屏友好，<1280px 也强制横排滚动）
+ * 模式由 config.layout_mode 决定（"/brain" 设置可改）
  */
 export default function LayoutSwitcher({
   map,
   ai,
+  mode = "auto",
 }: {
   map: ReactNode;
   ai: ReactNode;
+  mode?: "auto" | "tabs" | "split";
 }) {
+  // auto：CSS-only 断点（不读 config）
+  if (mode === "auto") {
+    return (
+      <>
+        <div className="hidden gap-4 px-3 lg:flex lg:px-6 xl:max-w-[1500px] xl:mx-auto">
+          <div className="w-[60%] min-w-0">{map}</div>
+          <div className="w-[40%] min-w-0">{ai}</div>
+        </div>
+        <div className="block lg:hidden">{map}</div>
+      </>
+    );
+  }
+  // 强制单栏
+  if (mode === "tabs") {
+    return <div className="px-3 lg:px-6 xl:max-w-[1500px] xl:mx-auto">{map}</div>;
+  }
+  // 强制双栏
   return (
-    <>
-      {/* 宽屏：双栏 */}
-      <div className="hidden gap-4 px-3 lg:flex lg:px-6 xl:max-w-[1500px] xl:mx-auto">
-        <div className="w-[60%] min-w-0">{map}</div>
-        <div className="w-[40%] min-w-0">{ai}</div>
-      </div>
-
-      {/* 窄屏：单栏（页面里用 tab 切换，下一轮 PR 接入） */}
-      <div className="block lg:hidden">{map}</div>
-    </>
+    <div className="flex gap-4 px-3 lg:px-6 xl:max-w-[1500px] xl:mx-auto">
+      <div className="w-[60%] min-w-0">{map}</div>
+      <div className="w-[40%] min-w-0">{ai}</div>
+    </div>
   );
 }

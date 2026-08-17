@@ -292,6 +292,32 @@ h2, .text-h2 { font-size: var(--fs-h2); font-weight: 600; line-height: 1.4; }
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(4px); }
 }
+
+/* ===== 地图 L1 雾效（云雾遮挡小岛）
+   - 三层径向渐变 + 慢速漂移
+   - .fog-heavy：未解锁，重雾 60%+ 🔒
+   - .fog-light：部分解锁，轻雾 25%
+   - 未应用：已解锁，清晰   ===== */
+@keyframes fogDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(2%, -1.5%) scale(1.04); }
+  66% { transform: translate(-1.5%, 1.5%) scale(0.97); }
+}
+.fog-overlay { animation: fogDrift 22s ease-in-out infinite; pointer-events: none; }
+.fog-heavy {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 25% 35%, rgba(255,255,255,0.78) 0%, rgba(255,255,255,0) 65%),
+    radial-gradient(ellipse 60% 50% at 75% 70%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 60%),
+    radial-gradient(ellipse 90% 80% at 50% 100%, rgba(220,235,245,0.7) 0%, rgba(220,235,245,0) 80%);
+  backdrop-filter: blur(3px);
+}
+.fog-light {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 90% 70% at 30% 30%, rgba(255,255,255,0.25) 0%, transparent 70%),
+    radial-gradient(ellipse 80% 60% at 70% 80%, rgba(255,255,255,0.2) 0%, transparent 70%);
+}
 .animate-arrow { animation: arrowBounce 0.8s steps(2, jump-none) infinite; }
 
 /* 高亮节点脉冲 */

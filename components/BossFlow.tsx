@@ -24,6 +24,7 @@ export default function BossFlow({
   edges,
   targetMeta,
   metaName,
+  returnIsland,
 }: {
   monsterId: string;
   name: string;
@@ -34,8 +35,11 @@ export default function BossFlow({
   edges: ChainEdge[];
   targetMeta?: string;
   metaName: string;
+  /** 退出时返回该岛（聚焦态），而非 L1 世界地图 */
+  returnIsland?: string;
 }) {
   const router = useRouter();
+  const goBack = () => router.push(returnIsland ? `/?focus=${encodeURIComponent(returnIsland)}` : "/");
   const [phase, setPhase] = useState<"intro" | "solve" | "purifying" | "result">("intro");
   const [stepIdx, setStepIdx] = useState(0);
   const [mistakes, setMistakes] = useState(0);
@@ -277,7 +281,7 @@ export default function BossFlow({
                   <button onClick={() => setPhase("solve")} className="btn py-3 text-lg">
                     ⚡ 挑战 Boss
                   </button>
-                  <button onClick={() => router.push("/")} className="btn btn-white py-3 text-lg">
+                  <button onClick={goBack} className="btn btn-white py-3 text-lg">
                     🏃 回岛上
                   </button>
                 </div>
@@ -296,7 +300,7 @@ export default function BossFlow({
                       ✨ 先去觉醒「{stuck.nextName}」，回来再战就简单啦！
                     </p>
                     <button
-                      onClick={() => router.push("/")}
+                      onClick={goBack}
                       className="mt-2 w-full rounded-xl bg-[#1d9e75] py-2 text-sm font-black text-white transition-colors hover:bg-[#176e52]"
                     >
                       ✨ 去觉醒（回地图）
@@ -316,7 +320,7 @@ export default function BossFlow({
             )}
 
             {phase === "result" && !result?.ok && (
-              <button onClick={() => router.push("/")} className="btn btn-white py-4 text-xl">
+              <button onClick={goBack} className="btn btn-white py-4 text-xl">
                 🏝️ 回地图
               </button>
             )}
@@ -332,7 +336,7 @@ export default function BossFlow({
         highlight={result?.targetMeta ?? null}
         celebrate
         ctaLabel={`🚀 去新岛探索`}
-        onCta={() => router.push("/")}
+        onCta={goBack}
       />
     </div>
   );

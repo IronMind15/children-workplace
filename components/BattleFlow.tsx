@@ -53,6 +53,7 @@ export default function BattleFlow({
   brain,
   mode = "train",
   propertyName,
+  returnIsland,
 }: {
   monsterId: string;
   name: string;
@@ -63,6 +64,8 @@ export default function BattleFlow({
   brain: BrainSettings;
   mode?: "train" | "guard";
   propertyName?: string;
+  /** 退出时返回该岛（聚焦态），而非 L1 世界地图 */
+  returnIsland?: string;
 }) {
   const router = useRouter();
   const [phase, setPhase] = useState<"intro" | "pick" | "solve" | "result">("intro");
@@ -459,7 +462,7 @@ export default function BattleFlow({
                   <button onClick={() => setPhase("pick")} className="btn btn-blue py-3 text-lg">
                     ⚔️ 派精灵
                   </button>
-                  <button onClick={() => router.push("/")} className="btn btn-white py-3 text-lg">
+                  <button onClick={() => router.push(returnIsland ? `/?focus=${encodeURIComponent(returnIsland)}` : "/")} className="btn btn-white py-3 text-lg">
                     🏃 先溜走
                   </button>
                 </div>
@@ -519,8 +522,8 @@ export default function BattleFlow({
 
             {phase === "result" && (
               <div className="flex flex-col gap-3">
-                <button onClick={() => router.push("/")} className="btn btn-green py-4 text-xl">
-                  🏝️ 继续探索
+                <button onClick={() => router.push(returnIsland ? `/?focus=${encodeURIComponent(returnIsland)}` : "/")} className="btn btn-green py-4 text-xl">
+                  🏝️ 回到{returnIsland ?? "海图"}
                 </button>
                 <button
                   onClick={() => router.push(`/battle/${monsterId}?r=${Date.now()}`)}

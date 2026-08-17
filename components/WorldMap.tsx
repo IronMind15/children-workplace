@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import IslandBattleMap, { type MapMonster, type MapBoss } from "@/components/IslandBattleMap";
 import WorldAtlas from "@/components/WorldAtlas";
 import ImgSprite from "@/components/ImgSprite";
-import { getIslandThumb } from "@/lib/islandArt";
+import { getIslandThumb, getWorldSea } from "@/lib/islandArt";
 import { travelToIsland } from "@/lib/actions";
 
 export type WorldNode = {
@@ -27,7 +28,7 @@ export type IslandBattleData = {
   islandLevel?: number;
 };
 
-/** 海面条纹背景（统一青绿海域） */
+/** 海面条纹背景（已弃用：现在用 113背景 图作为 L1 海图） */
 const seaStyle = (a: string, b: string): React.CSSProperties => ({
   backgroundImage: `repeating-linear-gradient(180deg, ${a} 0 26px, ${b} 26px 52px)`,
 });
@@ -60,6 +61,13 @@ export default function WorldMap({
   const [focused, setFocused] = useState<string | null>(null);
   const [atlasOpen, setAtlasOpen] = useState(false);
   const [lockedHint, setLockedHint] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  // 战斗退出回岛：?focus=islandName → 自动 setFocused
+  useEffect(() => {
+    const f = searchParams?.get("focus");
+    if (f) setFocused(f);
+  }, [searchParams]);
 
   const totalPages = pageLabels.length;
   const safePage = Math.min(page, totalPages - 1);
@@ -192,10 +200,10 @@ export default function WorldMap({
             ▶
           </button>
 
-          {/* 海面 */}
+          {/* 海面：113背景 海图（设计稿 2.5D 俯视图，对齐设计稿风） */}
           <div
-            className="relative h-[60vh] min-h-[480px] w-full overflow-hidden rounded-xl"
-            style={seaStyle("#90d8d8", "#78d8d8")}
+            className="relative h-[60vh] min-h-[480px] w-full overflow-hidden rounded-xl bg-cover bg-center"
+            style={{ backgroundImage: `url(${getWorldSea(currentPageNodes[0]?.island)})` }}
           >
             {/* 进化连线层 */}
             <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -244,12 +252,16 @@ export default function WorldMap({
                     }`}
                   >
                     <ImgSprite src={thumb} size={80} className="h-full w-full" />
+                    {/* 动态雾效：未解锁重雾+🔒；部分解锁轻雾 */}
                     {locked && (
-                      <span className="absolute inset-0 flex items-center justify-center bg-white/55 backdrop-blur-[2px]">
-                        <span className="text-lg">🔒</span>
-                      </span>
+                      <>
+                        <span className="fog-overlay fog-heavy" />
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-2xl drop-shadow">🔒</span>
+                        </span>
+                      </>
                     )}
-                    {partial && <span className="absolute inset-0 bg-white/30" />}
+                    {partial && <span className="fog-overlay fog-light" />}
                   </span>
                   <span
                     className={`mt-1 max-w-[88px] truncate rounded bg-white/85 px-1.5 py-0.5 text-xs font-black ${
