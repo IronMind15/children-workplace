@@ -129,18 +129,6 @@ export function getWorldSea(islandHint?: string): string {
   return ISLAND_BGS[0];
 }
 
-/**
- * L3 战斗舞台雾效层（用同张 bg 图做半透明叠层 + 多层径向渐变模拟"云雾遮挡小岛"）。
- * 返回一组 CSS 背景样式：动态云雾（CSS keyframes 多层径向渐变飘动）。
- */
-export function fogOverlay(): React.CSSProperties {
-  return {
-    backgroundImage: [
-      // 三层径向雾团（柔白）
-      "radial-gradient(ellipse 80% 60% at 20% 30%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0) 60%)",
-      "radial-gradient(ellipse 70% 50% at 80% 70%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%)",
-      "radial-gradient(ellipse 90% 70% at 50% 90%, rgba(220,235,245,0.5) 0%, rgba(220,235,245,0) 70%)",
-    ].join(", "),
-    animation: "fog-drift 22s ease-in-out infinite",
-  };
-}
+// 注：原 fogOverlay()（L3 战斗舞台雾效层）已移除——其引用的关键帧名 `fog-drift`
+// 与 globals.css 中实际定义的 `fogDrift` 不一致导致动画失效，且全程未被调用。
+// 若后续需要战斗雾效，应在组件内用 CSS class（.fog-drift 已在 globals.css 定义）实现。

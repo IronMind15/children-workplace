@@ -169,7 +169,7 @@ function GuardMonster({ monster, index, onPick, page, prevStyle }: { monster: Ma
             src={guardImage}
             alt={monster.name}
             draggable={false}
-            className="walk-bob h-16 w-16 rounded-lg object-cover drop-shadow-md"
+            className="walk-bob h-16 w-16 rounded-lg object-contain drop-shadow-md"
             title={`守卫外观 #${styleIndex}`}
           />
         </span>
