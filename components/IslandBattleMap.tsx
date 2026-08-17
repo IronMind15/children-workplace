@@ -211,8 +211,8 @@ const seaStyle = (a: string, b: string): React.CSSProperties => ({
 });
 
 /**
- * 单岛像素战斗地图（聚焦态）：
- * 海面环绕草地岛，小怪在岛上乱逛（点击进战斗），Boss 守在码头，玩家化身在左上角。
+ * 单岛场景（聚焦态）：
+ * 以 2.5D 顶视岛屿图为背景，小怪在岛上乱逛（点击进战斗），Boss 守在码头。
  * 由 WorldMap 在点击某岛后放大聚焦时渲染。
  */
 export default function IslandBattleMap({
@@ -260,22 +260,11 @@ export default function IslandBattleMap({
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${bg})` }}
         />
-        {/* 边缘柔化（让小怪/化身浮在岛上不显突兀） */}
+        {/* 边缘柔化（让小怪浮在岛上不显突兀） */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/5" />
 
         {/* 岛屿内容直接铺在海图上（不再用内嵌"岛屿主体"小框） */}
         <div className="relative h-full w-full">
-          {/* 主题点缀 emoji（仅保留自然元素，避免人造装饰物） */}
-          {theme.accents.map((a, i) => (
-            <span
-              key={i}
-              className="pointer-events-none absolute select-none opacity-90"
-              style={{ left: `${a.x}%`, top: `${a.y}%`, fontSize: a.size ?? 24 }}
-            >
-              {a.emoji}
-            </span>
-          ))}
-
           {/* 溜达的小怪 */}
           {minions.map((m, i) => (
             <WanderingMonster key={m.id} monster={m} index={i} onPick={onPickMonster} />
@@ -359,17 +348,6 @@ export default function IslandBattleMap({
                 );
               })}
 
-          {/* 无 Boss 岛屿的告示牌：右上角路牌 */}
-          {bosses.length === 0 && (
-            <div className="pointer-events-none absolute right-[3%] top-[6%] z-10">
-              <div className="rounded-lg border-4 border-[#8a6a3e] bg-[#fff8e1] px-3 py-2 text-center shadow-[0_4px_0_rgba(43,58,74,0.25)]">
-                <div className="text-xl">🗿</div>
-                <p className="mt-0.5 text-xs font-black text-[#2b3a4a]">风平浪静</p>
-                <p className="mt-0.5 text-[10px] font-bold text-[#7a8a9a]">无 Boss</p>
-              </div>
-            </div>
-          )}
-
           {/* 空岛提示 */}
           {minions.length === 0 && bosses.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -383,7 +361,7 @@ export default function IslandBattleMap({
 
       {/* 地图底部图例 */}
       <div className="flex items-center justify-between px-3 py-2 text-base font-bold text-[#2b3a4a]">
-        <span>🏝️ {island} · {theme.label} · 点击小怪开始战斗</span>
+        <span>{island} · {theme.label} · 点击小怪开始战斗</span>
         <span className="hidden text-sm font-semibold text-[#7a8a9a] lg:block">
           小怪会到处溜达，追上它点一下就能开打！
         </span>

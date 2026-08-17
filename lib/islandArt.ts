@@ -50,6 +50,41 @@ const ISLAND_BGS: string[] = [
   "/bg/bg_19.webp",
 ];
 
+/** 单岛场景背景（v1.2.16 替换为 19 张 2.5D 顶视图插画） */
+const ISLAND_BATTLE_BGS: string[] = [
+  "/islands/battle_bg_01.png",
+  "/islands/battle_bg_02.png",
+  "/islands/battle_bg_03.png",
+  "/islands/battle_bg_04.png",
+  "/islands/battle_bg_05.png",
+  "/islands/battle_bg_06.png",
+  "/islands/battle_bg_07.png",
+  "/islands/battle_bg_08.png",
+  "/islands/battle_bg_09.png",
+  "/islands/battle_bg_10.png",
+  "/islands/battle_bg_11.png",
+  "/islands/battle_bg_12.png",
+  "/islands/battle_bg_13.png",
+  "/islands/battle_bg_14.png",
+  "/islands/battle_bg_15.png",
+  "/islands/battle_bg_16.png",
+  "/islands/battle_bg_17.png",
+  "/islands/battle_bg_18.png",
+  "/islands/battle_bg_19.png",
+];
+
+/** 29 座岛按 MK 编号顺序排列；19 张背景按此顺序循环分配 */
+const ISLAND_ORDER: string[] = [
+  "计数岛", "位值岛", "加法岛", "减法岛", "乘法岛",
+  "除法岛", "分数岛", "小数岛", "百分数岛", "负数岛",
+  "比岛", "比例岛", "字母表示数岛", "方程岛",
+  "图形认识岛", "角岛", "周长岛", "面积岛", "体积岛",
+  "图形运动岛", "位置与方向岛",
+  "单位换算岛", "时间岛",
+  "分类整理岛", "统计图岛", "平均数岛", "可能性岛", "集合岛",
+  "因数倍数岛",
+];
+
 const COUNT = ISLAND_THUMBS.length;
 
 // 游戏岛屿名 → 精确资源（配对）。留空即走默认循环。
@@ -69,11 +104,15 @@ export function getIslandThumb(island: string): string {
   return ISLAND_THUMBS[hashStr(island) % COUNT];
 }
 
-/** L2 岛屿详情背景（113背景 2.5D 俯视底图） */
+/** L2 岛屿详情背景（113背景 2.5D 俯视底图）
+ *  2026-08-18 v1.2.16：改为按 29 岛 MK 顺序循环分配 19 张新背景图，
+ *  便于一一对应、复用与后期替换。 */
 export function getIslandBg(island: string): string {
   const exact = ISLAND_ART[island];
   if (exact) return exact.bg;
-  return ISLAND_BGS[hashStr(island) % COUNT];
+  const idx = ISLAND_ORDER.indexOf(island);
+  if (idx >= 0) return ISLAND_BATTLE_BGS[idx % ISLAND_BATTLE_BGS.length];
+  return ISLAND_BATTLE_BGS[hashStr(island) % ISLAND_BATTLE_BGS.length];
 }
 
 /**
