@@ -8,6 +8,7 @@ import { getIslandBg } from "@/lib/islandArt";
 import { themeOf } from "@/lib/islandTheme";
 import { getGuardImage, pickGuardStyle } from "@/lib/guardStyles";
 import { pageOfIsland } from "@/lib/archipelagoLayout";
+import { UiTag } from "@/components/UiButton";
 
 export type MapMonster = {
   id: string;
@@ -55,15 +56,11 @@ function WanderingMonster({ monster, index, mystery = false, onPick }: { monster
 
   const inner = (
     <>
-      {/* 名牌 */}
-      <span
-        className={`mb-1 whitespace-nowrap rounded-md border-2 border-[#2b3a4a] px-2 py-0.5 text-xs font-bold shadow-[0_2px_0_rgba(43,58,74,0.4)] transition group-hover:bg-[#ffd54f] ${
-          mystery ? "bg-[#CE93D8] text-white" : "bg-white text-[#2b3a4a]"
-        }`}
-      >
+      {/* 名牌（按键皮革底板，文字压在图案上） */}
+      <UiTag size="auto" className="mb-1 text-base">
         {mystery ? "✨ " : ""}
         {monster.name}
-      </span>
+      </UiTag>
       <span className="relative block">
         <span
           className={`block ${flip ? "-scale-x-100" : ""}`}
@@ -158,10 +155,10 @@ function GuardMonster({ monster, index, onPick, page, prevStyle }: { monster: Ma
 
   const inner = (
     <>
-      {/* 名牌（守卫用金纹色，区别于普通小怪） */}
-      <span className="mb-1 whitespace-nowrap rounded-md border-2 border-[#8a6a3e] bg-[#ffd54f] px-2 py-0.5 text-xs font-black text-[#2b3a4a] shadow-[0_2px_0_rgba(43,58,74,0.4)] transition group-hover:bg-[#ffecb3]">
+      {/* 名牌（按键皮革底板，✦ 区分守卫） */}
+      <UiTag size="auto" className="mb-1 text-base">
         ✦ {monster.name}
-      </span>
+      </UiTag>
       {/* 抠图 + 小怪式蹦跶（无边框 / 无徽章） */}
       <span className="relative block">
         <span
@@ -317,13 +314,13 @@ export default function IslandBattleMap({
                 const image = getMonsterImage(b.id);
                 const inner = (
                   <>
-                    <span
-                      className={`mb-1 whitespace-nowrap rounded-md border-2 border-[#2b3a4a] px-2 py-0.5 text-xs font-bold text-[#2b3a4a] shadow-[0_2px_0_rgba(43,58,74,0.4)] ${
-                        b.purified ? "bg-[#d3d1c7]" : "bg-[#ffd54f]"
-                      }`}
+                    <UiTag
+                      size="auto"
+                      locked={b.purified}
+                      className="mb-1 text-base"
                     >
                       {b.purified ? `✅ 已净化 · ${b.name}` : `👑 渡海Boss · ${b.name}`}
-                    </span>
+                    </UiTag>
                     <ImgSprite
                       src={image}
                       size={b.purified ? 92 : 108}
@@ -385,9 +382,9 @@ export default function IslandBattleMap({
       </div>
 
       {/* 地图底部图例 */}
-      <div className="flex items-center justify-between px-3 py-2 text-sm font-bold text-[#2b3a4a]">
+      <div className="flex items-center justify-between px-3 py-2 text-base font-bold text-[#2b3a4a]">
         <span>🏝️ {island} · {theme.label} · 点击小怪开始战斗</span>
-        <span className="hidden text-xs font-semibold text-[#7a8a9a] lg:block">
+        <span className="hidden text-sm font-semibold text-[#7a8a9a] lg:block">
           小怪会到处溜达，追上它点一下就能开打！
         </span>
       </div>

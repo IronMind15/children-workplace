@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import WorldAtlas from "@/components/WorldAtlas";
 import { getArchipelagoBg, PAGE_COUNT } from "@/lib/archipelagoLayout";
 import { travelToIsland } from "@/lib/actions";
-import UiButton from "@/components/UiButton";
+import UiButton, { UiTag } from "@/components/UiButton";
 import { getUiIcon } from "@/lib/uiIcons";
 
 export type WorldNode = {
@@ -97,25 +97,24 @@ export default function WorldMap({
         <div className="mb-2 flex items-center justify-between gap-2 border-b-2 border-[#fde9d0] pb-2">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🗺️</span>
-            <span className="text-lg font-black text-[#2b3a4a]">
+            <span className="text-xl font-black text-[#2b3a4a]">
               {pageLabels[safePage] ?? "地图"}
             </span>
-            <span className="text-sm font-bold text-[#7a8a9a]">
+            <span className="text-base font-bold text-[#7a8a9a]">
               · 已点亮 {unlockedCount}/{nodes.length}
             </span>
           </div>
-          <button
+          <UiButton
             onClick={() => setAtlasOpen(true)}
-            className="relative flex h-12 items-center gap-1.5 overflow-hidden rounded-xl border-3 border-[#2b3a4a] px-3 text-base font-black text-[#2b3a4a] shadow-card transition-transform hover:scale-105 active:translate-y-0.5 active:scale-95"
-            style={{
-              backgroundImage: `url(/ui/btn_short.png)`,
-              backgroundSize: "100% 100%",
-            }}
+            size="medium"
+            height="lg"
+            icon="atlas"
+            iconClassName="h-7 w-7"
+            className="text-lg"
             title="查看 29 岛进化总览"
           >
-            <img src="/ui/atlas.png" alt="" className="h-8 w-8 object-contain" />
-            <span>全览</span>
-          </button>
+            全览
+          </UiButton>
         </div>
 
         {/* 主体：群岛背景 + 左右箭头 */}
@@ -153,7 +152,7 @@ export default function WorldMap({
                 <button
                   key={n.metaId}
                   onClick={() => enter(n.island)}
-                  className="group absolute -translate-x-1/2 -translate-y-1/2"
+                  className="group absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
                   style={{ left: `${n.x}%`, top: `${n.y}%` }}
                   title={locked ? "🔒 " + n.island : n.island}
                 >
@@ -179,13 +178,9 @@ export default function WorldMap({
                       <span className="absolute -top-3 -right-3 text-base drop-shadow">🔒</span>
                     )}
                   </span>
-                  <span
-                    className={`mt-1 block max-w-[88px] truncate rounded bg-white/85 px-1.5 py-0.5 text-xs font-black ${
-                      locked ? "text-[#7a8a9a]" : "text-[#2b3a4a]"
-                    }`}
-                  >
+                  <UiTag size="auto" locked={locked} className="mt-1 text-base">
                     {locked ? "？？？" : n.island}
-                  </span>
+                  </UiTag>
                 </button>
               );
             })}

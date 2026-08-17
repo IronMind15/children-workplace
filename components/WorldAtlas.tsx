@@ -5,7 +5,7 @@ import ImgSprite from "@/components/ImgSprite";
 import { getIslandThumb } from "@/lib/islandArt";
 import { getArchipelagoBg, pageOf } from "@/lib/archipelagoLayout";
 import { travelToIsland } from "@/lib/actions";
-import UiButton from "@/components/UiButton";
+import UiButton, { UiTag } from "@/components/UiButton";
 import type { WorldNode } from "./WorldMap";
 
 export type WorldEdgeLike = { from: string; to: string };
@@ -126,10 +126,10 @@ function AtlasArchipelago({
   return (
     <div className="rounded-2xl border-3 border-[#2b3a4a] bg-white p-1.5 shadow-card">
       <div className="mb-1.5 flex items-center justify-between px-1.5">
-        <span className="text-sm font-black text-[#2b3a4a]">
+        <span className="text-base font-black text-[#2b3a4a]">
           🏝️ 群岛 {page} · {labels[page] ?? ""}
         </span>
-        <span className="text-[10px] font-bold text-[#7a8a9a]">
+        <span className="text-xs font-bold text-[#7a8a9a]">
           {group.filter((n) => n.unlocked).length}/{group.length} 已点亮
         </span>
       </div>
@@ -193,13 +193,9 @@ function AtlasArchipelago({
                   <span className="absolute -top-2 -right-2 text-xs drop-shadow">🔒</span>
                 )}
               </span>
-              <span
-                className={`mt-0.5 block max-w-[80px] truncate rounded bg-white/85 px-1 py-0.5 text-[10px] font-black ${
-                  locked ? "text-[#7a8a9a]" : "text-[#2b3a4a]"
-                }`}
-              >
+              <UiTag size="auto" locked={locked} className="mt-1 text-sm">
                 {locked ? "？？？" : n.island}
-              </span>
+              </UiTag>
             </button>
           );
         })}

@@ -65,3 +65,44 @@ export default function UiButton({
     </button>
   );
 }
+
+/**
+ * 显示型标签（非交互）：复用按键皮革铆钉底板，文字居中压在图案上。
+ * 用途：岛屿名、小怪/守卫/Boss 名牌等需要「文字在图案上面」的场景。
+ * - size=auto 时按 children 文字长度自动选短/中/长底板
+ * - locked=true 时文字转为灰色（未解锁）
+ */
+export function UiTag({
+  children,
+  size = "auto",
+  className = "",
+  locked = false,
+  icon,
+  iconClassName = "h-5 w-5",
+}: {
+  children: ReactNode;
+  size?: "auto" | "short" | "medium" | "long";
+  className?: string;
+  locked?: boolean;
+  icon?: UiIconKey;
+  iconClassName?: string;
+}) {
+  const text = typeof children === "string" ? children : "";
+  const bg = size === "auto" ? getButtonBgByText(text) : getButtonBg(size);
+  return (
+    <span
+      className={`inline-flex items-center justify-center whitespace-nowrap overflow-hidden rounded-xl border-2 border-[#2b3a4a] px-3 py-1 font-black shadow-[0_2px_0_rgba(43,58,74,0.4)] transition-transform group-hover:scale-105 ${
+        locked ? "text-[#7a8a9a]" : "text-[#2b3a4a]"
+      } ${className}`}
+      style={{
+        backgroundImage: `url(${bg})`,
+        backgroundSize: "100% 100%",
+      }}
+    >
+      {icon && (
+        <img src={getUiIcon(icon)} alt="" className={`mr-1 object-contain ${iconClassName}`} />
+      )}
+      {children}
+    </span>
+  );
+}
