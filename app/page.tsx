@@ -1,5 +1,5 @@
 import { seedIfEmpty } from "@/lib/seed";
-import { getWorldLayout, getWorldPages } from "@/lib/worldLayout";
+import { getWorldLayout, getWorldPages, pageOf } from "@/lib/worldLayout";
 import { QUESTIONS, AI_TIPS, RECOMMEND_BY_META } from "@/lib/askBank";
 import {
   getExplorer,
@@ -14,9 +14,11 @@ import {
   getBossByTarget,
   getAllIslandLevels,
   getConfig,
+  getMeta,
 } from "@/lib/repo";
 import { getSparkStats, checkAwakenings } from "@/lib/game";
 import { welcomeGuide } from "@/lib/brain";
+import { getAiConfig } from "@/lib/ai";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Guide from "@/components/Guide";
@@ -27,7 +29,7 @@ import WorldMap from "@/components/WorldMap";
 import AwakeningToast from "@/components/AwakeningToast";
 import EvolutionPathButton from "@/components/EvolutionPathButton";
 import LayoutSwitcher from "@/components/LayoutSwitcher";
-import AskInline from "@/components/AskInline";
+import AskPanel from "@/components/AskPanel";
 import type { ChainNode, ChainEdge } from "@/components/EvolutionModal";
 import type { WorldNode, IslandBattleData } from "@/components/WorldMap";
 
@@ -58,6 +60,7 @@ export default function Home() {
       x: c?.x ?? 50,
       y: c?.y ?? 50,
       depth: c?.depth ?? 0,
+      page: pageOf(m.id), // 1~7 群岛归属
       unlocked: islands.find((i) => i.name === iname)?.unlocked ?? false,
       isCurrent: iname === island,
     };
@@ -113,6 +116,22 @@ export default function Home() {
   const metas = getInternalizedMetas();
   const brain = getBrainSettings();
   const avatar = explorer.name.split(" ").pop() ?? "🧭";
+
+  // 神秘小怪奖励表（AskPanel 用）
+  const rewards = islands
+    .flatMap((isl) => allMonsters.filter((m) => m.island === isl.name))
+    .filter((m) => m.type === "hidden")
+    .map((m) => {
+      let required = 999;
+      try {
+        required = (JSON.parse(m.options ?? "{}") as { required_sparks?: number }).required_sparks ?? 999;
+      } catch {}
+      return { name: m.name, required };
+    })
+    .sort((a, b) => a.required - b.required);
+
+  // AI 是否已连接（lib/ai.getAiConfig）
+  const aiConfigured = !!getAiConfig();
 
   // L1 分屏右侧 AI 聊的推荐问题（按闯关进度挑选前 3）
   const masteredIds = new Set(metas.map((m) => m.id));
@@ -189,9 +208,16 @@ export default function Home() {
             </div>
           }
           ai={
-            <AskInline
+            <AskPanel
               questions={askQuestions}
               sparks={sparks.total}
+              todayCount={sparks.todayCount}
+              rewards={rewards}
+              aiConfigured={aiConfigured}
+              recentMetas={getInternalizedMetas()
+                .slice(-3)
+                .reverse()
+                .map((m) => ({ id: m.id, name: getMeta(m.id)?.name ?? m.id }))}
             />
           }
         />

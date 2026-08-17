@@ -40,6 +40,14 @@ docs/*.mp4
 # UI 设计稿大文件（zip + 解包目录，不入库）
 docs/112初版*
 docs/113背景*
+docs/114图标*
+docs/115保卫小兵*
+docs/116战斗背景*
+docs/117宠物和我_抠图版*
+docs/118群岛*
+
+# bug 截图（用户提供的工作截图，不入库）
+docs/bug修复*
 
 # vercel
 .vercel

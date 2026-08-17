@@ -1,7 +1,7 @@
 import { seedIfEmpty } from "@/lib/seed";
 import { getExplorer, getInternalizedMetas, getMetas, getMistakes, getGrowthLogs, getMeta } from "@/lib/repo";
 import Guide from "@/components/Guide";
-import Link from "next/link";
+import PageHeader from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -103,15 +103,17 @@ export default function ParentJournal() {
 
   return (
     <div className="sky-bg min-h-screen">
-      <div className="mx-auto max-w-md px-4 pb-16 pt-6 lg:max-w-2xl lg:px-8">
-        <header className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">📊 家长窗口</h1>
-          <Link href="/" className="text-sm text-ink-soft">← 返回</Link>
-        </header>
-        <p className="mt-1 text-xs text-ink-soft">{child} 的学习进度一览 · 温柔共育，不打分、不排名</p>
+      <PageHeader
+        icon="📊"
+        title="家长窗口"
+        subtitle={`${child} 的学习进度一览 · 温柔共育，不打分、不排名`}
+        backHref="/"
+      />
+
+      <div className="mx-auto max-w-md px-4 pb-16 pt-2 lg:max-w-2xl lg:px-8">
 
         {/* ===== 整体进度 ===== */}
-        <section className="mt-6 rounded-card bg-white p-5 shadow-card">
+        <section className="mt-4 rounded-card bg-white p-5 shadow-card">
           <h2 className="text-sm font-black text-ink">🎯 整体学习进度</h2>
           <div className="mt-2 flex items-end justify-between">
             <span className="text-3xl font-black text-ink">{metas.length}<span className="text-base font-bold text-ink-soft"> / {allCount} 个本领</span></span>

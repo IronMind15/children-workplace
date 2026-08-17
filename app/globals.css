@@ -359,3 +359,81 @@ h2, .text-h2 { font-size: var(--fs-h2); font-weight: 600; line-height: 1.4; }
 /* 精灵进化阶段光环（成长体/完全体） */
 .stage-aura { filter: drop-shadow(0 0 10px rgba(255, 215, 80, 0.95)); }
 .stage-aura-strong { filter: drop-shadow(0 0 16px rgba(255, 179, 0, 1)); }
+
+/* ============================================================
+   群岛节点（2026-08-18）
+   - 小圆圈 + 中央点 + 整体亮光（白色柔和外发光 + 米色底）
+   - 三种态：已解锁（深边）/ 当前岛（橙边+脉冲+强光）/ 未解锁（灰边+🔒）
+   ============================================================ */
+.island-node {
+  background: #fffdf5;
+}
+.island-node-unlocked {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.9) inset,
+    0 0 12px rgba(255, 225, 140, 0.85),
+    0 0 4px rgba(255, 255, 255, 0.6);
+}
+.island-node-current {
+  background: #ffd54f;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.95) inset,
+    0 0 18px rgba(255, 179, 0, 0.95),
+    0 0 6px rgba(255, 255, 255, 0.7);
+}
+.island-node-locked {
+  background: #cfd6df;
+  filter: grayscale(0.6);
+  box-shadow: 0 0 6px rgba(120, 130, 145, 0.4);
+}
+
+/* ============================================================
+   横滑关卡卡片滚动条
+   - 隐藏原生滚动条但保留滚动能力（移动端友好）
+   - 桌面端可见细滚动条
+   ============================================================ */
+.island-quicknav-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 216, 216, 0.6) transparent;
+}
+.island-quicknav-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+.island-quicknav-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.island-quicknav-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(120, 216, 216, 0.6);
+  border-radius: 999px;
+}
+
+/* ============================================================
+   AskPanel 浮标态（拖动到任意位置）
+   ============================================================ */
+.ask-floating {
+  user-select: none;
+  cursor: grab;
+  touch-action: none;
+}
+.ask-floating:active {
+  cursor: grabbing;
+}
+.ask-floating:hover {
+  box-shadow: 0 0 16px rgba(255, 179, 0, 0.6), 0 4px 16px rgba(74, 58, 42, 0.12);
+}
+
+/* 嵌入式右栏（AskPanel 展开态）滚动条 */
+.ask-embedded-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 216, 216, 0.6) transparent;
+}
+.ask-embedded-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.ask-embedded-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ask-embedded-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(120, 216, 216, 0.6);
+  border-radius: 999px;
+}

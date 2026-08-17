@@ -2,8 +2,8 @@ import { seedIfEmpty } from "@/lib/seed";
 import { getExplorer, getGrowthLogs, getMeta, getSpirit, getInternalizedMetas } from "@/lib/repo";
 import { getSparkStats } from "@/lib/game";
 import { redirect } from "next/navigation";
-import BottomNav from "@/components/BottomNav";
 import TestTools from "@/components/TestTools";
+import PageHeader from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -75,15 +75,16 @@ export default function Growth() {
   const kidName = explorer.name.split(" ")[0];
 
   return (
-    <div className="sky-bg min-h-screen pb-6 pt-16">
-      <div className="mx-auto max-w-3xl px-4 pt-5 lg:px-8">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="card px-4 py-2.5">
-            <h1 className="text-xl font-black text-[#2b3a4a] lg:text-2xl">📖 成长足迹</h1>
-            <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">{kidName} 的每一次进步都记在这里</p>
-          </div>
-          <span className="card flex h-12 w-12 items-center justify-center text-2xl">{avatar}</span>
-        </header>
+    <div className="sky-bg min-h-screen pb-6 pt-2">
+      <PageHeader
+        icon="📖"
+        title="成长足迹"
+        subtitle={`${kidName} 的每一次进步都记在这里`}
+        backHref="/"
+        right={<span className="card hidden h-12 w-12 items-center justify-center text-2xl sm:flex">{avatar}</span>}
+      />
+
+      <div className="mx-auto max-w-3xl px-4 lg:px-8">
 
         {/* 成长统计 */}
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -132,7 +133,6 @@ export default function Growth() {
         </p>
       </div>
 
-      <BottomNav />
       <TestTools />
     </div>
   );

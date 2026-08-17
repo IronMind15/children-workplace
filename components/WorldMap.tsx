@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import IslandBattleMap, { type MapMonster, type MapBoss } from "@/components/IslandBattleMap";
 import WorldAtlas from "@/components/WorldAtlas";
-import ImgSprite from "@/components/ImgSprite";
-import { getIslandThumb, getWorldSea } from "@/lib/islandArt";
+import { getIslandThumb } from "@/lib/islandArt";
+import { getArchipelagoBg, PAGE_COUNT } from "@/lib/worldLayout";
 import { travelToIsland } from "@/lib/actions";
 
 export type WorldNode = {
@@ -14,6 +14,7 @@ export type WorldNode = {
   x: number;
   y: number;
   depth: number;
+  page: number; // 1~7
   unlocked: boolean;
   isCurrent: boolean;
 };
@@ -28,18 +29,15 @@ export type IslandBattleData = {
   islandLevel?: number;
 };
 
-/** 海面条纹背景（已弃用：现在用 113背景 图作为 L1 海图） */
-const seaStyle = (a: string, b: string): React.CSSProperties => ({
-  backgroundImage: `repeating-linear-gradient(180deg, ${a} 0 26px, ${b} 26px 52px)`,
-});
-
 /**
- * 地图（PR3 重构）
- *  - 5 页分页（按 DAG depth 自然切：起点 / 第1层 / 第2层 / 第3层 / 顶尖）
- *  - 顶栏：页指示器 + 全览按钮 + 进化路线按钮
- *  - 主体：黑边框包裹 + 左右 64px 大箭头 + 岛屿插画缩略图 + 雾效
- *  - 左下角 🔍 图标 → 切到 WorldAtlas
- *  - 点岛 → 聚焦进入单岛战斗（沿用 setFocused 逻辑）
+ * 群岛（世界地图 · 按知识主题 7 群岛）
+ *  - 7 页分页（1~7），每页独立群岛背景图（public/archipelagos/arch_0N.webp）
+ *  - 节点：小圆圈 + 中央点 + 整体亮光 + 岛屿名（未解锁用🔒）
+ *  - 主视图移除进化连线（按 2026-08-18 决策③，连线仅保留在全览 WorldAtlas）
+ *  - 顶栏：页指示 + 全览按钮
+ *  - 主体：群岛背景 + 岛屿节点（按原 x/y 散布其上）
+ *  - 底部：横滑关卡卡片（Bug 1 修复：用各岛专属封面，不再复用大群岛背景）
+ *  - 点岛 → 聚焦进入单岛战斗（沿用 setFocused 逻辑 + enter() 防卡关）
  */
 export default function WorldMap({
   nodes,
@@ -54,7 +52,7 @@ export default function WorldMap({
   islandData: Record<string, IslandBattleData>;
   avatar: string;
   initialIsland: string;
-  /** 来自 worldLayout.getWorldPages 的页标签，5 项 */
+  /** 来自 worldLayout.getWorldPages 的页标签，7 项 */
   pageLabels: string[];
 }) {
   const [page, setPage] = useState(0);
@@ -63,30 +61,31 @@ export default function WorldMap({
   const [lockedHint, setLockedHint] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
+  // 默认跳到当前玩家所在群岛（按 pageOf）
+  useEffect(() => {
+    if (!initialIsland) return;
+    const cur = nodes.find((n) => n.island === initialIsland);
+    if (!cur) return;
+    setPage(Math.max(0, cur.page - 1));
+  }, [initialIsland, nodes]);
+
   // 战斗退出回岛：?focus=islandName → 自动 setFocused
   useEffect(() => {
     const f = searchParams?.get("focus");
     if (f) setFocused(f);
   }, [searchParams]);
 
-  const totalPages = pageLabels.length;
+  const totalPages = pageLabels.length || PAGE_COUNT;
   const safePage = Math.min(page, totalPages - 1);
 
-  /** 当前页节点（按 worldLayout 原 x/y 渲染，仅展示本 depth 范围的岛） */
+  /** 当前页节点（按 ISLAND_PAGE_MAP 归页） */
   const currentPageNodes = useMemo(() => {
-    if (nodes.length === 0) return [];
-    // 按页切：每页约等于同 depth 的岛，页 0=depth0，页 1=depth1，页 2=depth2，页 3=depth3，页 4=depth4+5
-    const depthsByPage = [0, 1, 2, 3, [4, 5]];
-    const allowed = depthsByPage[safePage];
-    const allow = new Set<number>(Array.isArray(allowed) ? allowed : [allowed as number]);
-    return nodes.filter((n) => allow.has(n.depth));
+    const want = safePage + 1; // 1-based
+    return nodes.filter((n) => n.page === want);
   }, [nodes, safePage]);
 
-  /** 当前页内部的进化边（两端都在本页） */
-  const currentPageEdges = useMemo(() => {
-    const inPage = new Set(currentPageNodes.map((n) => n.metaId));
-    return edges.filter((e) => inPage.has(e.from) && inPage.has(e.to));
-  }, [edges, currentPageNodes]);
+  const unlockedCount = nodes.filter((n) => n.unlocked).length;
+  const bg = getArchipelagoBg(safePage + 1);
 
   function enter(island: string) {
     const node = nodes.find((n) => n.island === island);
@@ -99,6 +98,15 @@ export default function WorldMap({
     travelToIsland(island);
   }
 
+  function jumpTo(island: string) {
+    const node = nodes.find((n) => n.island === island);
+    if (!node) return;
+    setPage(Math.max(0, node.page - 1));
+    setLockedHint(null);
+    setFocused(island);
+    travelToIsland(island);
+  }
+
   // ===== 聚焦态：放大进入单岛战斗地图 =====
   if (focused) {
     const d = islandData[focused] ?? { minions: [], guards: [], hiddenMonsters: [], bosses: [] };
@@ -106,11 +114,8 @@ export default function WorldMap({
     return (
       <div>
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => setFocused(null)}
-            className="btn btn-white px-4 py-2 text-base"
-          >
-            🌍 返回世界地图
+          <button onClick={() => setFocused(null)} className="btn btn-white px-4 py-2 text-base">
+            🌍 返回群岛
           </button>
           {!node?.unlocked && (
             <span className="rounded-md border-2 border-[#8a97a5] bg-[#e8edf2] px-2 py-1 text-sm font-bold text-[#7a8a9a]">
@@ -136,17 +141,11 @@ export default function WorldMap({
     return (
       <WorldAtlas
         nodes={nodes}
+        edges={edges}
         initialIsland={initialIsland}
         onClose={() => setAtlasOpen(false)}
       />
     );
-  }
-
-  // ===== 分页地图主视图 =====
-  const unlockedCount = nodes.filter((n) => n.unlocked).length;
-
-  function coordOf(metaId: string) {
-    return currentPageNodes.find((n) => n.metaId === metaId);
   }
 
   return (
@@ -172,13 +171,13 @@ export default function WorldMap({
           <button
             onClick={() => setAtlasOpen(true)}
             className="btn btn-white h-12 px-3 text-base"
-            title="查看 29 岛总览"
+            title="查看 29 岛进化总览"
           >
             🔍 全览
           </button>
         </div>
 
-        {/* 主体：地图画布 + 左右箭头 */}
+        {/* 主体：群岛背景 + 左右箭头 */}
         <div className="relative">
           {/* 左箭头 */}
           <button
@@ -189,82 +188,59 @@ export default function WorldMap({
           >
             ◀
           </button>
-
           {/* 右箭头 */}
           <button
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={safePage >= totalPages - 1}
             aria-label="下一页"
-            className="absolute right-2 top-1/2 z-10 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full border-3 border-[#2b3a4a] bg-[#78d8d8] text-3xl text-white shadow-[0_4px_0_rgba(16,24,34,0.4)] transition-all hover:scale-110 active:translate-y-1 active:shadow-[0_2px_0_rgba(16,24,34,0.4)] disabled:cursor-not-30 disabled:hover:scale-100"
+            className="absolute right-2 top-1/2 z-10 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full border-3 border-[#2b3a4a] bg-[#78d8d8] text-3xl text-white shadow-[0_4px_0_rgba(16,24,34,0.4)] transition-all hover:scale-110 active:translate-y-1 active:shadow-[0_2px_0_rgba(16,24,34,0.4)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100"
           >
             ▶
           </button>
 
-          {/* 海面：113背景 海图（设计稿 2.5D 俯视图，对齐设计稿风） */}
+          {/* 群岛背景（整页一张设计稿：1~7 群岛各自一张） */}
           <div
             className="relative h-[60vh] min-h-[480px] w-full overflow-hidden rounded-xl bg-cover bg-center"
-            style={{ backgroundImage: `url(${getWorldSea(currentPageNodes[0]?.island)})` }}
+            style={{ backgroundImage: `url(${bg})` }}
           >
-            {/* 进化连线层 */}
-            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-              {currentPageEdges.map((e, i) => {
-                const a = coordOf(e.from);
-                const b = coordOf(e.to);
-                if (!a || !b) return null;
-                return (
-                  <line
-                    key={i}
-                    x1={a.x}
-                    y1={a.y}
-                    x2={b.x}
-                    y2={b.y}
-                    stroke="#ffffff"
-                    strokeOpacity="0.6"
-                    strokeWidth={2}
-                    strokeDasharray="3 2"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                );
-              })}
-            </svg>
+            {/* 边缘柔化（让节点浮在背景上不显突兀） */}
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/5" />
 
-            {/* 岛屿节点（插画缩略图 + 雾效） */}
+            {/* 岛屿节点：小圆圈 + 中央点 + 整体亮光 + 岛屿名；未解锁=锁 */}
             {currentPageNodes.map((n) => {
               const locked = !n.unlocked;
-              const partial =
-                !locked && (islandData[n.island]?.bosses.some((b) => !b.purified) ?? false);
-              const thumb = getIslandThumb(n.island);
               return (
                 <button
                   key={n.metaId}
                   onClick={() => enter(n.island)}
-                  className="group absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+                  className="group absolute -translate-x-1/2 -translate-y-1/2"
                   style={{ left: `${n.x}%`, top: `${n.y}%` }}
-                  title={n.island}
+                  title={locked ? "🔒 " + n.island : n.island}
                 >
                   <span
-                    className={`relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border-4 shadow-[0_3px_0_rgba(16,24,34,0.3)] transition-transform group-hover:scale-110 ${
+                    className={`relative flex h-7 w-7 items-center justify-center rounded-full border-2 shadow-[0_0_12px_rgba(255,225,140,0.85)] transition-transform group-hover:scale-125 ${
                       n.isCurrent
-                        ? "animate-node-pulse border-[#ffb300]"
+                        ? "island-node island-node-current border-[#ffb300] animate-node-pulse"
                         : locked
-                          ? "border-[#9aa6b2]"
-                          : "border-[#2b3a4a]"
+                          ? "island-node island-node-locked border-[#8a97a5]"
+                          : "island-node island-node-unlocked border-[#2b3a4a]"
                     }`}
                   >
-                    <ImgSprite src={thumb} size={80} className="h-full w-full" />
-                    {/* 动态雾效：未解锁重雾+🔒；部分解锁轻雾 */}
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        n.isCurrent
+                          ? "bg-[#ffb300]"
+                          : locked
+                            ? "bg-[#7a8a9a]"
+                            : "bg-[#2b3a4a]"
+                      }`}
+                    />
                     {locked && (
-                      <>
-                        <span className="fog-overlay fog-heavy" />
-                        <span className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-2xl drop-shadow">🔒</span>
-                        </span>
-                      </>
+                      <span className="absolute -top-3 -right-3 text-base drop-shadow">🔒</span>
                     )}
-                    {partial && <span className="fog-overlay fog-light" />}
                   </span>
                   <span
-                    className={`mt-1 max-w-[88px] truncate rounded bg-white/85 px-1.5 py-0.5 text-xs font-black ${
+                    className={`mt-1 block max-w-[88px] truncate rounded bg-white/85 px-1.5 py-0.5 text-xs font-black ${
                       locked ? "text-[#7a8a9a]" : "text-[#2b3a4a]"
                     }`}
                   >
@@ -274,7 +250,7 @@ export default function WorldMap({
               );
             })}
 
-            {/* 玩家化身 */}
+            {/* 玩家化身：站在当前岛节点上 */}
             {(() => {
               const cur =
                 currentPageNodes.find((n) => n.island === initialIsland) ??
@@ -282,7 +258,7 @@ export default function WorldMap({
               if (!cur) return null;
               return (
                 <span
-                  className="pointer-events-none absolute z-20 -translate-x-1/2 translate-y-3 text-2xl drop-shadow"
+                  className="pointer-events-none absolute z-20 -translate-x-1/2 translate-y-7 text-2xl drop-shadow"
                   style={{ left: `${cur.x}%`, top: `${cur.y}%` }}
                 >
                   {avatar}
@@ -300,9 +276,7 @@ export default function WorldMap({
               onClick={() => setPage(i)}
               aria-label={`第 ${i + 1} 页`}
               className={`h-3 rounded-full transition-all ${
-                i === safePage
-                  ? "w-8 bg-[#f79228]"
-                  : "w-3 bg-[#d7dee4a] hover:bg-[#9aa6b2]"
+                i === safePage ? "w-8 bg-[#f79228]" : "w-3 bg-[#d7dee4] hover:bg-[#9aa6b2]"
               }`}
             />
           ))}
@@ -310,6 +284,84 @@ export default function WorldMap({
             {safePage + 1} / {totalPages}
           </span>
         </div>
+
+        {/* 底部横滑关卡卡片（Bug 1 修复：用各岛专属封面图） */}
+        <IslandQuickNav
+          nodes={nodes}
+          currentIsland={initialIsland}
+          onPick={jumpTo}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** 横滑关卡卡片：作为"分页辅助导航"，每张卡显示该岛专属封面（getIslandThumb），不与主背景混淆。 */
+function IslandQuickNav({
+  nodes,
+  currentIsland,
+  onPick,
+}: {
+  nodes: WorldNode[];
+  currentIsland: string;
+  onPick: (island: string) => void;
+}) {
+  // 按岛屿名排序：当前岛优先
+  const sorted = useMemo(() => {
+    return [...nodes].sort((a, b) => {
+      if (a.island === currentIsland) return -1;
+      if (b.island === currentIsland) return 1;
+      return a.page - b.page || a.island.localeCompare(b.island, "zh");
+    });
+  }, [nodes, currentIsland]);
+  return (
+    <div className="mt-3 rounded-xl border-2 border-[#fde9d0] bg-[#fffdf5] p-2">
+      <div className="mb-1.5 flex items-center gap-1.5 px-1">
+        <span className="text-base">🗂️</span>
+        <span className="text-sm font-black text-[#2b3a4a]">所有岛屿</span>
+        <span className="text-xs font-bold text-[#7a8a9a]">· 左右滑动快速跳岛</span>
+      </div>
+      <div className="island-quicknav-scroll flex gap-2 overflow-x-auto pb-1">
+        {sorted.map((n) => {
+          const locked = !n.unlocked;
+          const isCur = n.island === currentIsland;
+          return (
+            <button
+              key={n.metaId}
+              onClick={() => onPick(n.island)}
+              className={`relative shrink-0 transition-transform hover:-translate-y-0.5 ${
+                isCur ? "ring-4 ring-[#ffb300] rounded-2xl" : ""
+              }`}
+              title={locked ? "🔒 " + n.island : n.island}
+            >
+              <span
+                className={`flex h-20 w-24 items-center justify-center overflow-hidden rounded-2xl border-3 bg-cover bg-center ${
+                  isCur ? "border-[#ffb300]" : "border-[#2b3a4a]"
+                }`}
+                style={{ backgroundImage: `url(${getIslandThumb(n.island)})` }}
+              >
+                {locked && (
+                  <>
+                    <span className="fog-overlay fog-heavy" />
+                    <span className="relative z-10 text-2xl drop-shadow">🔒</span>
+                  </>
+                )}
+                {!locked && isCur && (
+                  <span className="absolute -top-1 -right-1 z-10 rounded-full bg-white px-1.5 text-[10px] font-black text-[#e2582e] shadow-card">
+                    我在这
+                  </span>
+                )}
+              </span>
+              <span
+                className={`mt-1 block max-w-[96px] truncate text-center text-[10px] font-black ${
+                  locked ? "text-[#7a8a9a]" : "text-[#2b3a4a]"
+                }`}
+              >
+                {locked ? "？？？" : n.island}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

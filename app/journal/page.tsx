@@ -13,11 +13,10 @@ import {
 } from "@/lib/repo";
 import { SPIRIT_LORE } from "@/lib/spiritLore";
 import { islandLabel } from "@/lib/islandTheme";
-import BottomNav from "@/components/BottomNav";
 import TestTools from "@/components/TestTools";
 import JournalDex, { type DexSpirit } from "@/components/JournalDex";
 import EvolutionTree, { type TreeNode, type TreeEdge } from "@/components/EvolutionTree";
-import Link from "next/link";
+import PageHeader from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -95,19 +94,15 @@ export default function Journal() {
   const unlockedCount = spirits.filter((s) => s.unlocked).length;
 
   return (
-    <div className="sky-bg min-h-screen pb-6 pt-16">
-      <div className="mx-auto max-w-5xl px-4 pt-5 lg:px-8">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="card px-4 py-2.5">
-            <h1 className="text-xl font-black text-[#2b3a4a] lg:text-2xl">📚 世界图鉴</h1>
-            <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">
-              岛屿、精灵的档案全在这里；点精灵看它的故事和本领
-            </p>
-          </div>
-          <Link href="/" className="btn btn-white px-4 py-2 text-sm">
-            ← 地图
-          </Link>
-        </header>
+    <div className="sky-bg min-h-screen pb-6 pt-2">
+      <PageHeader
+        icon="📚"
+        title="世界图鉴"
+        subtitle="岛屿、精灵的档案全在这里；点精灵看它的故事和本领"
+        backHref="/"
+      />
+
+      <div className="mx-auto max-w-5xl px-4 lg:px-8">
 
         {/* 岛屿图鉴 */}
         <h2 className="mt-5 text-lg font-black text-[#2b3a4a]">🏝️ 岛屿图鉴</h2>
@@ -156,7 +151,6 @@ export default function Journal() {
         <JournalDex spirits={spirits} />
       </div>
 
-      <BottomNav />
       <TestTools />
     </div>
   );

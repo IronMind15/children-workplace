@@ -5,7 +5,7 @@ import { saveBrainSettings, setConfigAction, getConfigAction } from "@/lib/actio
 import { HELP_LEVEL_LABELS, missGuide, winGuide, type BrainSettings } from "@/lib/brain";
 import Guide from "@/components/Guide";
 import AiSettingsPanel from "@/components/AiSettingsPanel";
-import Link from "next/link";
+import PageHeader from "@/components/PageHeader";
 
 /** 主界面布局切换控件（PR6） */
 function LayoutModeSelector({ value, onChange }: { value: "auto" | "tabs" | "split"; onChange: (v: "auto" | "tabs" | "split") => void }) {
@@ -120,68 +120,88 @@ export default function BrainEditor({
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-md px-4 pb-16 pt-6 lg:max-w-2xl lg:px-8">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">🧠 大脑编辑器</h1>
-        <Link href="/" className="text-sm text-ink-soft">← 返回地图</Link>
-      </header>
+    <div className="mx-auto min-h-screen max-w-md px-4 pb-16 pt-2 lg:max-w-2xl lg:px-8">
+      <PageHeader
+        icon="⚙️"
+        title="设置"
+        subtitle="小狐狸的陪伴风格 + 家长操作项都集中在这里"
+        backHref="/"
+      />
 
-      <div className="mt-6">
+      <div className="mx-auto mt-4 max-w-md lg:max-w-2xl">
         <Guide message="这里可以调整我的陪伴方式哦～改完马上就能生效！" />
       </div>
 
-      <div className="mt-6 space-y-3">
-        <Toggle
-          label="🎉 多鼓励我"
-          hint="打得漂亮时，伙伴会更热情地夸我"
-          checked={brain.more_encourage}
-          onChange={(v) => update({ more_encourage: v })}
-        />
-        <Toggle
-          label="💡 多给提示"
-          hint="卡住的时候，伙伴会多说几句陪我想"
-          checked={brain.more_hint}
-          onChange={(v) => update({ more_hint: v })}
-        />
-
-        {/* 帮助力度滑块 */}
-        <div className="rounded-card bg-white p-4 shadow-card">
-          <div className="flex items-center justify-between">
-            <span className="text-lg font-bold">🪝 帮助力度</span>
-            <span className="rounded-input bg-primary-soft px-3 py-1 text-sm font-bold text-primary">
-              {HELP_LEVEL_LABELS[brain.help_level]}
-            </span>
-          </div>
-          <input
-            type="range"
-            min={1}
-            max={3}
-            step={1}
-            value={brain.help_level}
-            onChange={(e) => update({ help_level: Number(e.target.value) })}
-            aria-label="帮助力度"
-            className="mt-4 h-3 w-full cursor-pointer appearance-none rounded-full bg-black/10 accent-primary"
+      {/* 孩子可调：陪伴风格（米黄底+青边，明显是孩子的操作） */}
+      <section className="mt-6 rounded-2xl border-3 border-[#6ec6ff] bg-[#fff8e1] p-4 shadow-card">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="rounded-full bg-[#6ec6ff] px-2.5 py-0.5 text-xs font-black text-white">孩子</span>
+          <h2 className="text-base font-black text-[#2b3a4a]">🎈 我的陪伴风格</h2>
+        </div>
+        <div className="space-y-3">
+          <Toggle
+            label="🎉 多鼓励我"
+            hint="打得漂亮时，伙伴会更热情地夸我"
+            checked={brain.more_encourage}
+            onChange={(v) => update({ more_encourage: v })}
           />
-          <div className="mt-2 flex justify-between text-xs text-ink-soft">
-            <span>少</span>
-            <span>中</span>
-            <span>多</span>
+          <Toggle
+            label="💡 多给提示"
+            hint="卡住的时候，伙伴会多说几句陪我想"
+            checked={brain.more_hint}
+            onChange={(v) => update({ more_hint: v })}
+          />
+
+          {/* 帮助力度滑块 */}
+          <div className="rounded-card bg-white p-4 shadow-card">
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-bold">🪝 帮助力度</span>
+              <span className="rounded-input bg-primary-soft px-3 py-1 text-sm font-bold text-primary">
+                {HELP_LEVEL_LABELS[brain.help_level]}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={3}
+              step={1}
+              value={brain.help_level}
+              onChange={(e) => update({ help_level: Number(e.target.value) })}
+              aria-label="帮助力度"
+              className="mt-4 h-3 w-full cursor-pointer appearance-none rounded-full bg-black/10 accent-primary"
+            />
+            <div className="mt-2 flex justify-between text-xs text-ink-soft">
+              <span>少</span>
+              <span>中</span>
+              <span>多</span>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* 主界面布局切换（PR6） */}
-      <div className="mt-4">
-        <LayoutModeSelector value={layoutMode} onChange={updateLayout} />
-      </div>
+      {/* 家长操作：布局 + AI 密钥（米色底+橙边，区别于孩子卡片） */}
+      <section className="mt-4 rounded-2xl border-3 border-[#f79228] bg-[#fde9d0] p-4 shadow-card">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="rounded-full bg-[#f79228] px-2.5 py-0.5 text-xs font-black text-white">家长</span>
+          <h2 className="text-base font-black text-[#2b3a4a]">🔧 家长操作区</h2>
+        </div>
+        <p className="mb-3 text-xs font-bold text-[#7a8a9a]">
+          这里的选项涉及底层配置和外部服务，建议家长陪同调整。
+        </p>
 
-      {/* AI 连接设置（给大人）：DeepSeek */}
-      <div className="mt-4">
-        <AiSettingsPanel configured={ai.configured} model={ai.model} />
-      </div>
+        {/* 主界面布局切换（PR6） */}
+        <div>
+          <LayoutModeSelector value={layoutMode} onChange={updateLayout} />
+        </div>
+
+        {/* AI 连接设置（给大人）：DeepSeek */}
+        <div className="mt-3">
+          <AiSettingsPanel configured={ai.configured} model={ai.model} />
+        </div>
+      </section>
 
       {/* 实时预览：伙伴台词如何变化 */}
-      <div className="mt-8">
+      <div className="mt-6">
         <h2 className="text-sm font-bold text-ink-soft">👀 伙伴会这样对我说话</h2>
         <div className="mt-3 space-y-3">
           <Guide size="sm" message={missGuide(brain, "加法")} />

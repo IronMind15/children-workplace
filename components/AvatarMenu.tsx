@@ -13,9 +13,8 @@ import { useEffect, useRef, useState } from "react";
  */
 const MENU_ITEMS = [
   { href: "/spirits", label: "精灵图鉴", icon: "🃏", desc: "进化路线 + 已得精灵" },
-  { href: "/journal", label: "知识家园", icon: "📖", desc: "点亮的小岛 + Boss 日记" },
+  { href: "/journal", label: "知识家园", icon: "📚", desc: "岛屿图鉴 + 精灵档案" },
   { href: "/parent", label: "家长端", icon: "👨‍👩‍👧", desc: "学习进度、错题、每日总结" },
-  { href: "/brain", label: "设置", icon: "⚙️", desc: "小狐狸性格、难度、布局" },
 ];
 
 export default function AvatarMenu({ avatar }: { avatar: string }) {

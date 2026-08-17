@@ -5,13 +5,10 @@ import {
   getGrowthLogs,
   getMeta,
   getAwakenedPropertiesByMeta,
-  getStrategies,
-  getInternalizedStrategies,
 } from "@/lib/repo";
-import BottomNav from "@/components/BottomNav";
 import TestTools from "@/components/TestTools";
-import SpiritsFlow, { type SpiritCardData, type StrategyCardData } from "@/components/SpiritsFlow";
-import Link from "next/link";
+import SpiritsFlow, { type SpiritCardData } from "@/components/SpiritsFlow";
+import PageHeader from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -47,33 +44,20 @@ export default function Spirits() {
     awakened: getAwakenedPropertiesByMeta(s.meta_id).map((p) => p.name),
   }));
 
-  // 连招图鉴（数学思想方法）：策略表 + 已掌握列表
-  const masteredStrategies = new Set(getInternalizedStrategies());
-  const strategies: StrategyCardData[] = getStrategies().map((st) => ({
-    id: st.id,
-    name: st.name,
-    effect: st.effect,
-    tier: st.tier,
-    mastered: masteredStrategies.has(st.id),
-  }));
+  const kidName = explorer?.name.split(" ")[0] ?? "小小探险家";
 
   return (
-    <div className="sky-bg min-h-screen pb-6 pt-16">
-      <div className="mx-auto max-w-5xl px-4 pt-5 lg:px-8">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="card px-4 py-2.5">
-            <h1 className="text-xl font-black text-[#2b3a4a] lg:text-2xl">🃏 我的精灵</h1>
-            <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">
-              点击精灵看它的成长足迹，还能摸摸头、击掌、喂食互动哦！
-            </p>
-          </div>
-          <Link href="/" className="btn btn-white px-4 py-2 text-sm">
-            ← 地图
-          </Link>
-        </header>
+    <div className="sky-bg min-h-screen pb-6 pt-2">
+      <PageHeader
+        icon="🃏"
+        title="我的精灵"
+        subtitle="点击精灵看它的成长足迹，还能摸摸头、击掌、喂食互动哦！"
+        backHref="/"
+      />
 
+      <div className="mx-auto max-w-5xl px-4 lg:px-8">
         <div className="mt-4 rounded-xl border-2 border-[#ffb300] bg-[#fff8e1] px-4 py-2.5 text-sm font-bold text-[#2b3a4a]">
-          🦊 {explorer?.name.split(" ")[0] ?? "小小探险家"}，你已经拥有 {spirits.length} 只精灵啦！每只精灵都是一个你学会的本领，用得越多它越强。
+          🦊 {kidName}，你已经拥有 {spirits.length} 只精灵啦！每只精灵都是一个你学会的本领，用得越多它越强。
         </div>
 
         {spirits.length === 0 ? (
@@ -82,11 +66,10 @@ export default function Spirits() {
             <p className="mt-4 font-bold text-[#7a8a9a]">还没有精灵哦，去地图上净化第一只 Boss 吧！</p>
           </div>
         ) : (
-          <SpiritsFlow spirits={spirits} strategies={strategies} kidName={explorer?.name.split(" ")[0] ?? "小小探险家"} />
+          <SpiritsFlow spirits={spirits} kidName={kidName} />
         )}
       </div>
 
-      <BottomNav />
       <TestTools />
     </div>
   );
