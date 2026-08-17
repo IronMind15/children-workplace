@@ -79,6 +79,7 @@ export default function HomeClient({
     propertyName?: string;
     returnIsland: string;
     spirits: { meta_id: string; emoji: string; nickname: string; meta_name: string }[];
+    guardStyleIndex?: number;
   };
   bossData?: {
     monsterId: string;
@@ -171,6 +172,7 @@ export default function HomeClient({
           mode={battleData.mode}
           propertyName={battleData.propertyName}
           returnIsland={battleData.returnIsland}
+          guardStyleIndex={battleData.guardStyleIndex}
           embedded
         />
       </div>

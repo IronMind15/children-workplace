@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { trainWin, logMistake, explainMistake, resolveMistake, guardWinAction } from "@/lib/actions";
 import ImgSprite from "@/components/ImgSprite";
 import { getMonsterImage, getSpiritImage, getSpiritStage, getCompanionImage } from "@/lib/sprites";
+import { getGuardImage } from "@/lib/guardStyles";
 import { battleIntroGuide, winGuide, type BrainSettings } from "@/lib/brain";
 import type { SolveStep } from "@/lib/types";
 
@@ -54,6 +55,7 @@ export default function BattleFlow({
   mode = "train",
   propertyName,
   returnIsland,
+  guardStyleIndex,
   embedded = false,
 }: {
   monsterId: string;
@@ -67,6 +69,8 @@ export default function BattleFlow({
   propertyName?: string;
   /** 退出时返回该岛（聚焦态），而非 L1 世界地图 */
   returnIsland?: string;
+  /** 守卫战：外观样式索引（1~6，与群岛地图上该守卫一致）；不传则按 id 哈希 */
+  guardStyleIndex?: number;
   /** v1.2.3 嵌入主界面左侧：去掉 min-h-screen / 外层衬底，避免超高 */
   embedded?: boolean;
 }) {
@@ -90,7 +94,11 @@ export default function BattleFlow({
   const total = steps.length;
   const hpPercent = Math.round(((total - stepIdx) / total) * 100);
   const correctMetaName = spirits.find((s) => s.meta_id === correctMeta)?.meta_name;
-  const monsterImage = getMonsterImage(monsterId);
+  // 守卫战：优先用「该守卫在群岛地图上的外观样式」，否则按 id 哈希分派守卫图
+  const monsterImage =
+    mode === "guard" && guardStyleIndex != null
+      ? getGuardImage(guardStyleIndex)
+      : getMonsterImage(monsterId);
   const spiritImage = picked ? getSpiritImage(picked.meta_id) : null;
 
   // 进场预加载本场会用到全部图片（怪物 + 候选精灵 + 伙伴），避免战斗中首帧闪加载

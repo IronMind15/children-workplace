@@ -343,6 +343,16 @@ const BOSS_IMAGES = [
   "/monsters/boss_6.webp",
 ];
 
+/** 6 套知识守卫外观（v1.2.6，docs/115保卫小兵 转 webp），守卫战用 */
+const GUARD_IMAGES = [
+  "/guards/guard_01.webp",
+  "/guards/guard_02.webp",
+  "/guards/guard_03.webp",
+  "/guards/guard_04.webp",
+  "/guards/guard_05.webp",
+  "/guards/guard_06.webp",
+];
+
 /** 精灵图按「领域」分 7 组，对应设计稿 7 套模板（10-1~10-7），每组 4 个进化形态 */
 const DOMAIN_TEMPLATE: Record<string, number> = {
   数与运算: 1,
@@ -365,10 +375,14 @@ for (let g = 1; g <= 7; g++) {
   ];
 }
 
-/** 怪物 WebP 资源路径：小怪/神秘小怪循环 6 张 cute 图，Boss 循环 6 张 boss 图 */
+/** 怪物 WebP 资源路径：小怪/神秘小怪循环 6 张 cute 图，Boss 循环 6 张 boss 图，守卫用 6 套守卫外观图 */
 export function getMonsterImage(monsterId: string): string {
   const h = hashStr(monsterId);
   if (monsterId.startsWith("boss-")) return BOSS_IMAGES[h % BOSS_IMAGES.length];
+  if (monsterId.startsWith("guard-")) {
+    // 守卫：6 套外观循环（按 id 哈希定基，进入守卫战也能对应上图）
+    return GUARD_IMAGES[h % GUARD_IMAGES.length];
+  }
   return MINION_IMAGES[h % MINION_IMAGES.length];
 }
 

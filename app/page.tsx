@@ -23,6 +23,8 @@ import {
 import { getSparkStats, checkAwakenings, getIslandDifficulty } from "@/lib/game";
 import { getAiConfig } from "@/lib/ai";
 import { generateSteps, guardSteps } from "@/lib/questions";
+import { pickGuardStyle } from "@/lib/guardStyles";
+import { getGuardsByIsland } from "@/lib/repo";
 import { redirect } from "next/navigation";
 import TopShell from "@/components/TopShell";
 import SettingsEntry from "@/components/SettingsEntry";
@@ -166,6 +168,21 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
     operator: e.operator,
   }));
 
+  // 守卫战样式：与该岛在群岛地图上的样式一致（按群岛页号 + 岛内守卫序号链式避重复）
+  function computeGuardStyleIndex(guardId: string, islandName: string): number {
+    const guards = getGuardsByIsland(islandName); // 该岛全部守卫（与地图渲染顺序一致）
+    const idx = guards.findIndex((g) => g.id === guardId);
+    if (idx < 0) return 1;
+    const page = pageOf(islandName);
+    let prev: number | undefined;
+    let style = 1;
+    for (let i = 0; i <= idx; i++) {
+      style = pickGuardStyle(page, i, prev);
+      prev = style;
+    }
+    return style;
+  }
+
   // ===== 决策 view 状态 =====
   let view: View = { kind: "map" };
   const spiritsAll = getSpiritsForInternalized().map((s) => {
@@ -182,6 +199,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
     propertyName?: string;
     returnIsland: string;
     spirits: { meta_id: string; emoji: string; nickname: string; meta_name: string }[];
+    /** 守卫外观样式索引（1~6），守卫战渲染对应形象用；非守卫忽略 */
+    guardStyleIndex?: number;
   } | undefined;
   let bossData: {
     monsterId: string;
@@ -225,6 +244,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
         propertyName,
         returnIsland: m.island,
         spirits: spiritsAll,
+        // 守卫战：算好该守卫的外观样式索引（与岛上一致：按群岛页号 + 岛内守卫序号链式避重复）
+        guardStyleIndex: mode === "guard" ? computeGuardStyleIndex(m.id, m.island) : undefined,
       };
       view = { kind: "battle", monsterId: m.id };
     }
