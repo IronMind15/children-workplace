@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import IslandBattleMap, { type MapMonster, type MapBoss } from "@/components/IslandBattleMap";
-import { themeOf } from "@/lib/islandTheme";
+import ImgSprite from "@/components/ImgSprite";
+import { getIslandThumb } from "@/lib/islandArt";
 import { travelToIsland } from "@/lib/actions";
 
 export type WorldNode = {
@@ -135,11 +136,11 @@ export default function WorldMap({
           })}
         </svg>
 
-        {/* 岛屿节点 */}
+        {/* 岛屿节点：112初版 插画缩略图 + 运行时雾效（未解锁重雾🔒 / 部分解锁轻雾 / 已解锁清晰） */}
         {nodes.map((n) => {
-          const theme = themeOf(n.island);
-          const emoji = theme.accents[0]?.emoji ?? "🏝️";
           const locked = !n.unlocked;
+          const partial = !locked && (islandData[n.island]?.bosses.some((b) => !b.purified) ?? false);
+          const thumb = getIslandThumb(n.island);
           return (
             <button
               key={n.metaId}
@@ -149,16 +150,22 @@ export default function WorldMap({
               title={n.island}
             >
               <span
-                className={`relative flex h-14 w-14 items-center justify-center rounded-full border-4 text-2xl shadow-[0_3px_0_rgba(16,24,34,0.3)] transition-transform group-hover:scale-110 ${
+                className={`relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border-4 shadow-[0_3px_0_rgba(16,24,34,0.3)] transition-transform group-hover:scale-110 ${
                   n.isCurrent
-                    ? "animate-node-pulse border-[#ffb300] bg-[#fff8e1]"
+                    ? "animate-node-pulse border-[#ffb300]"
                     : locked
-                      ? "border-[#9aa6b2] bg-[#d7dee4] grayscale"
-                      : "border-[#2b3a4a] bg-white"
+                      ? "border-[#9aa6b2]"
+                      : "border-[#2b3a4a]"
                 }`}
               >
-                {emoji}
-                {locked && <span className="absolute -right-1 -top-1 text-xs">🔒</span>}
+                <ImgSprite src={thumb} size={64} className="h-full w-full" />
+                {/* 雾效叠层 */}
+                {locked && (
+                  <span className="absolute inset-0 flex items-center justify-center bg-white/55 backdrop-blur-[2px]">
+                    <span className="text-lg">🔒</span>
+                  </span>
+                )}
+                {partial && <span className="absolute inset-0 bg-white/30" />}
               </span>
               <span
                 className={`mt-0.5 max-w-[72px] truncate rounded bg-white/80 px-1 text-[10px] font-black ${

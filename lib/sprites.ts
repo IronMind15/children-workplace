@@ -319,51 +319,79 @@ export function getDecorSprite(kind: "tree" | "bush" | "rock" | "flower"): Sprit
   }
 }
 
-// ============ 设计稿 PNG 资源映射（新插画风，替代像素字符画） ============
-// 素材来源：UI 设计稿 12 张怪物图（6 小怪 + 6 Boss）+ 2 张精灵展示图（8 个精灵），已抠透明底，放 public/。
+// ============ 设计稿 WebP 资源映射（新插画风，替代像素字符画） ============
+// 素材来源：UI 设计稿 12 张怪物图（6 小怪 + 6 Boss）+ 2 张精灵展示图（8 个精灵），已抠透明底。
+// 已压缩为 WebP（14.2MB → 0.5MB），原始 PNG 备份在 assets_backup/（gitignore 不入库）。
 
 /** 6 张小怪（cute chubby demon），按 id 哈希循环复用 */
 const MINION_IMAGES = [
-  "/monsters/cute_1.png",
-  "/monsters/cute_2.png",
-  "/monsters/cute_3.png",
-  "/monsters/cute_4.png",
-  "/monsters/cute_5.png",
-  "/monsters/cute_6.png",
+  "/monsters/cute_1.webp",
+  "/monsters/cute_2.webp",
+  "/monsters/cute_3.webp",
+  "/monsters/cute_4.webp",
+  "/monsters/cute_5.webp",
+  "/monsters/cute_6.webp",
 ];
 
 /** 6 张渡海 Boss（massive imposing demon），按 id 哈希循环复用 */
 const BOSS_IMAGES = [
-  "/monsters/boss_1.png",
-  "/monsters/boss_2.png",
-  "/monsters/boss_3.png",
-  "/monsters/boss_4.png",
-  "/monsters/boss_5.png",
-  "/monsters/boss_6.png",
+  "/monsters/boss_1.webp",
+  "/monsters/boss_2.webp",
+  "/monsters/boss_3.webp",
+  "/monsters/boss_4.webp",
+  "/monsters/boss_5.webp",
+  "/monsters/boss_6.webp",
 ];
+
+/** 精灵图按「领域」分 7 组，对应设计稿 7 套模板（10-1~10-7）。
+ *  当前仅 2 套精灵图已抠图（blue=青 / purple=紫），其余 5 套待 10-1~10-7 裁成 4 形态后补齐。
+ *  本轮先用 blue/purple 承载 7 个领域（相邻领域异色），待 7 套图到位后把 DOMAIN_TEMPLATE 指向 7 个 key。 */
+const DOMAIN_TEMPLATE: Record<string, "blue" | "purple"> = {
+  数与运算: "blue",
+  数的关系: "purple",
+  代数初步: "blue",
+  图形与几何: "purple",
+  量与测量: "blue",
+  统计与概率: "purple",
+  数学广角: "blue",
+};
 
 /** 8 个精灵（青色系 4 形态 + 紫色系 4 形态） */
 const SPIRIT_IMAGES: Record<string, string[]> = {
-  blue: ["/sprites/blue_1.png", "/sprites/blue_2.png", "/sprites/blue_3.png", "/sprites/blue_4.png"],
-  purple: ["/sprites/purple_1.png", "/sprites/purple_2.png", "/sprites/purple_3.png", "/sprites/purple_4.png"],
+  blue: ["/sprites/blue_1.webp", "/sprites/blue_2.webp", "/sprites/blue_3.webp", "/sprites/blue_4.webp"],
+  purple: ["/sprites/purple_1.webp", "/sprites/purple_2.webp", "/sprites/purple_3.webp", "/sprites/purple_4.webp"],
 };
 
-/** 怪物 PNG 资源路径：小怪/神秘小怪循环 6 张 cute 图，Boss 循环 6 张 boss 图 */
+/** 怪物 WebP 资源路径：小怪/神秘小怪循环 6 张 cute 图，Boss 循环 6 张 boss 图 */
 export function getMonsterImage(monsterId: string): string {
   const h = hashStr(monsterId);
   if (monsterId.startsWith("boss-")) return BOSS_IMAGES[h % BOSS_IMAGES.length];
   return MINION_IMAGES[h % MINION_IMAGES.length];
 }
 
-/** 精灵 PNG 资源路径：元认知序号奇偶分色系，熟练度等级（1-4）分形态 */
+/** 元认知 → 所属领域（用于精灵按领域分 7 组） */
+const META_DOMAIN: Record<string, string> = {
+  "MK-01": "数与运算", "MK-02": "数与运算", "MK-03": "数与运算", "MK-04": "数与运算",
+  "MK-05": "数与运算", "MK-06": "数与运算", "MK-07": "数与运算", "MK-08": "数与运算",
+  "MK-09": "数与运算", "MK-10": "数与运算", "MK-37": "数与运算",
+  "MK-11": "数的关系", "MK-12": "数的关系",
+  "MK-13": "代数初步", "MK-14": "代数初步",
+  "MK-15": "图形与几何", "MK-16": "图形与几何", "MK-17": "图形与几何", "MK-18": "图形与几何",
+  "MK-19": "图形与几何", "MK-20": "图形与几何", "MK-21": "图形与几何",
+  "MK-22": "量与测量", "MK-23": "量与测量",
+  "MK-24": "统计与概率", "MK-25": "统计与概率", "MK-26": "统计与概率", "MK-27": "统计与概率",
+  "MK-28": "数学广角",
+};
+
+/** 精灵 WebP 资源路径：按领域分模板（数与运算/图形几何…），熟练度等级（1-4）分形态 */
 export function getSpiritImage(metaId: string, level = 1): string {
-  const n = parseInt(metaId.slice(3), 10) || 1;
-  const color = n % 2 === 0 ? "purple" : "blue";
-  const arr = SPIRIT_IMAGES[color] ?? SPIRIT_IMAGES.blue;
+  const domain = META_DOMAIN[metaId] ?? "数与运算";
+  const tmpl = DOMAIN_TEMPLATE[domain] ?? "blue";
+  const arr = SPIRIT_IMAGES[tmpl] ?? SPIRIT_IMAGES.blue;
   return arr[Math.min(Math.max(level, 1), arr.length) - 1];
 }
 
 /** 伙伴狐狸（Boss 战陪伴孩子的精灵）：固定用青色第 2 形态 */
 export function getCompanionImage(): string {
-  return "/sprites/blue_2.png";
+  return "/sprites/blue_2.webp";
 }

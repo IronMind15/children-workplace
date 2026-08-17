@@ -43,3 +43,6 @@ docs/113背景*
 
 # vercel
 .vercel
+
+# 原始 PNG 素材备份（游戏内已用压缩 WebP，原始图本地留存不入库）
+/assets_backup

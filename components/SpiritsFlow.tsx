@@ -17,6 +17,15 @@ export type SpiritCardData = {
   awakened?: string[]; // 已觉醒的性质名（金纹）
 };
 
+/** 连招（数学思想方法）：解锁需要对应的精灵练到一定等级 */
+export type StrategyCardData = {
+  id: string;
+  name: string;
+  effect: string;
+  tier: number;
+  mastered: boolean;
+};
+
 const XP_THRESHOLD = 3; // 与 lib/game.ts 的熟练经验阈值一致
 
 /** 互动语录（摸摸头 / 击掌 / 喂食） */
@@ -31,11 +40,21 @@ function fmtDate(iso: string): string {
   return `${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-export default function SpiritsFlow({ spirits, kidName }: { spirits: SpiritCardData[]; kidName: string }) {
+export default function SpiritsFlow({
+  spirits,
+  kidName,
+  strategies = [],
+}: {
+  spirits: SpiritCardData[];
+  kidName: string;
+  strategies?: StrategyCardData[];
+}) {
+  const [tab, setTab] = useState<"spirits" | "strategies">("spirits");
   const [openId, setOpenId] = useState<string | null>(null);
   const [speech, setSpeech] = useState<{ text: string; icon: string; key: number } | null>(null);
 
   const open = spirits.find((s) => s.id === openId) ?? null;
+  const masteredCount = strategies.filter((s) => s.mastered).length;
 
   function interact(kind: (typeof INTERACTIONS)[number]) {
     if (!open) return;
@@ -48,6 +67,25 @@ export default function SpiritsFlow({ spirits, kidName }: { spirits: SpiritCardD
 
   return (
     <>
+      {/* Tab 切换：精灵图鉴 / 连招图鉴 */}
+      <div className="mt-5 flex gap-2">
+        <button
+          onClick={() => setTab("spirits")}
+          className={`pixel-btn px-4 py-2 text-sm ${tab === "spirits" ? "pixel-btn-blue" : "pixel-btn-white"}`}
+        >
+          🃏 精灵图鉴（{spirits.length}）
+        </button>
+        {strategies.length > 0 && (
+          <button
+            onClick={() => setTab("strategies")}
+            className={`pixel-btn px-4 py-2 text-sm ${tab === "strategies" ? "pixel-btn-blue" : "pixel-btn-white"}`}
+          >
+            🌀 连招图鉴（{masteredCount}/{strategies.length}）
+          </button>
+        )}
+      </div>
+
+      {tab === "spirits" && (
       <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {spirits.map((s) => {
           const stage = getSpiritStage(s.mastery_level);
@@ -106,6 +144,39 @@ export default function SpiritsFlow({ spirits, kidName }: { spirits: SpiritCardD
           );
         })}
       </div>
+      )}
+
+      {/* 连招图鉴：数学思想方法（隐藏挑战解锁后点亮） */}
+      {tab === "strategies" && (
+        <div className="mt-5">
+          <div className="rounded-xl border-2 border-[#96e3eb] bg-[#eafafb] px-4 py-2.5 text-sm font-bold text-[#2b3a4a]">
+            🌀 连招是数学思想方法的组合技：鸡兔同笼、植树问题、搭配、优化……学会对应的本领后，就可以在隐藏挑战里打出连招！
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {strategies.map((st) => (
+              <div
+                key={st.id}
+                className={`pixel-panel p-4 ${st.mastered ? "" : "opacity-60 grayscale-[40%]"}`}
+                title={st.mastered ? "已掌握" : "去隐藏挑战里解锁它"}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-base font-black text-[#2b3a4a]">
+                    {st.mastered ? "🌀" : "🔒"} {st.name}
+                  </span>
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-black text-white ${
+                      st.mastered ? "bg-[#1d9e75]" : "bg-[#8a97a5]"
+                    }`}
+                  >
+                    {st.mastered ? "✦ 已掌握" : `Tier ${st.tier}`}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-xs font-bold leading-relaxed text-[#7a8a9a]">{st.effect}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 精灵详情弹窗 */}
       {open && (

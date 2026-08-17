@@ -1,8 +1,16 @@
 import { seedIfEmpty } from "@/lib/seed";
-import { getExplorer, getSpiritCards, getGrowthLogs, getMeta, getAwakenedPropertiesByMeta } from "@/lib/repo";
+import {
+  getExplorer,
+  getSpiritCards,
+  getGrowthLogs,
+  getMeta,
+  getAwakenedPropertiesByMeta,
+  getStrategies,
+  getInternalizedStrategies,
+} from "@/lib/repo";
 import BottomNav from "@/components/BottomNav";
 import TestTools from "@/components/TestTools";
-import SpiritsFlow, { type SpiritCardData } from "@/components/SpiritsFlow";
+import SpiritsFlow, { type SpiritCardData, type StrategyCardData } from "@/components/SpiritsFlow";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -39,8 +47,18 @@ export default function Spirits() {
     awakened: getAwakenedPropertiesByMeta(s.meta_id).map((p) => p.name),
   }));
 
+  // 连招图鉴（数学思想方法）：策略表 + 已掌握列表
+  const masteredStrategies = new Set(getInternalizedStrategies());
+  const strategies: StrategyCardData[] = getStrategies().map((st) => ({
+    id: st.id,
+    name: st.name,
+    effect: st.effect,
+    tier: st.tier,
+    mastered: masteredStrategies.has(st.id),
+  }));
+
   return (
-    <div className="sky-bg min-h-screen pb-24">
+    <div className="sky-bg min-h-screen pb-6 pt-16">
       <div className="mx-auto max-w-5xl px-4 pt-5 lg:px-8">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="pixel-panel px-4 py-2.5">
@@ -64,7 +82,7 @@ export default function Spirits() {
             <p className="mt-4 font-bold text-[#7a8a9a]">还没有精灵哦，去地图上净化第一只 Boss 吧！</p>
           </div>
         ) : (
-          <SpiritsFlow spirits={spirits} kidName={explorer?.name.split(" ")[0] ?? "小小探险家"} />
+          <SpiritsFlow spirits={spirits} strategies={strategies} kidName={explorer?.name.split(" ")[0] ?? "小小探险家"} />
         )}
       </div>
 

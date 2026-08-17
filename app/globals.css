@@ -124,29 +124,29 @@ body {
 .animate-hp { animation: hpBar 0.4s ease forwards; }
 
 /* ============================================================
-   像素游戏风（保卫萝卜 / 宝可梦 参考改版）
+   手绘暖色风（UI 设计稿方向：圆润细边 + 柔和硬阴影，第一批微调）
    ============================================================ */
 
-/* 像素面板：白底厚描边 + 硬阴影 */
+/* 面板：米白底 + 细描边 + 圆角 + 柔和硬阴影 */
 .pixel-panel {
-  background: #fff;
-  border: 4px solid #2b3a4a;
-  border-radius: 8px;
-  box-shadow: 0 6px 0 rgba(43, 58, 74, 0.25);
+  background: #fffdf5;
+  border: 3px solid #2b3a4a;
+  border-radius: 18px;
+  box-shadow: 0 5px 0 rgba(43, 58, 74, 0.18);
 }
 .pixel-panel-dark {
   background: #22303f;
   color: #fff;
-  border: 4px solid #101822;
-  border-radius: 8px;
-  box-shadow: 0 6px 0 rgba(16, 24, 34, 0.45);
+  border: 3px solid #101822;
+  border-radius: 18px;
+  box-shadow: 0 5px 0 rgba(16, 24, 34, 0.35);
 }
 
-/* 像素按钮：按下有"咔哒"下沉感 */
+/* 按钮：圆角胶囊 + 按下有"咔哒"下沉感（保留原手感） */
 .pixel-btn {
-  border: 4px solid #2b3a4a;
-  border-radius: 8px;
-  box-shadow: 0 5px 0 #2b3a4a;
+  border: 3px solid #2b3a4a;
+  border-radius: 16px;
+  box-shadow: 0 4px 0 #2b3a4a;
   font-weight: 800;
   transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
   user-select: none;
@@ -156,7 +156,7 @@ body {
 }
 .pixel-btn:hover { filter: brightness(1.06); }
 .pixel-btn:active {
-  transform: translateY(5px);
+  transform: translateY(4px);
   box-shadow: 0 0 0 #2b3a4a;
 }
 .pixel-btn-blue { background: #6ec6ff; }

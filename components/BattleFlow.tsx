@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { trainWin, logMistake, explainMistake, resolveMistake, guardWinAction } from "@/lib/actions";
 import ImgSprite from "@/components/ImgSprite";
@@ -86,6 +86,22 @@ export default function BattleFlow({
   const correctMetaName = spirits.find((s) => s.meta_id === correctMeta)?.meta_name;
   const monsterImage = getMonsterImage(monsterId);
   const spiritImage = picked ? getSpiritImage(picked.meta_id) : null;
+
+  // 进场预加载本场会用到全部图片（怪物 + 候选精灵 + 伙伴），避免战斗中首帧闪加载
+  useEffect(() => {
+    const urls = [
+      monsterImage,
+      getCompanionImage(),
+      ...spirits.map((s) => getSpiritImage(s.meta_id)),
+      ...spirits.map((s) => getSpiritImage(s.meta_id, 2)),
+      ...spirits.map((s) => getSpiritImage(s.meta_id, 3)),
+    ];
+    for (const u of new Set(urls)) {
+      const img = new Image();
+      img.src = u;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 当前招式需要的本领：单题 = 主精灵；联手题 = 主精灵 + 帮手精灵
   const currentStep = steps[stepIdx];
@@ -238,16 +254,28 @@ export default function BattleFlow({
             )}
           </div>
 
-          {/* 小狐狸助手：选错时从左侧探出讲解 */}
+          {/* 小狐狸助手：选错时在舞台右下独立位置讲解（不遮选项，超高可滚动） */}
           {explain && (
-            <div className="animate-fox-in absolute left-0 top-[52%] z-30 flex items-end">
-              <ImgSprite src={getCompanionImage()} size={84} className="-ml-3 shrink-0 drop-shadow-lg" />
-              <div className="relative ml-1 max-w-[270px] rounded-2xl rounded-bl-none border-2 border-[#f79228] bg-white/95 p-3 shadow-xl">
-                <p className="text-xs font-black text-[#e2582e]">🦊 差一点点就对啦！</p>
+            <div className="animate-fox-in absolute bottom-28 right-3 z-30 flex w-[300px] max-w-[calc(100%-1.5rem)] items-end lg:bottom-6">
+              <ImgSprite src={getCompanionImage()} size={72} className="-ml-2 shrink-0 drop-shadow-lg" />
+              <div className="relative ml-1 flex-1 rounded-2xl rounded-bl-none border-2 border-[#f79228] bg-white/95 p-3 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-black text-[#e2582e]">🦊 差一点点就对啦！</p>
+                  <button
+                    onClick={() => setExplain(null)}
+                    className="rounded-full px-1.5 text-sm font-black text-[#7a8a9a] hover:bg-[#2b3a4a]/10"
+                    aria-label="关闭讲解"
+                  >
+                    ×
+                  </button>
+                </div>
                 <p className="mt-0.5 text-[10px] font-bold text-[#7a8a9a]">
                   你选了「{explain.userAnswer}」，正确答案是「{explain.correctAnswer}」
                 </p>
-                <p className="mt-1.5 text-xs font-bold leading-relaxed text-[#2b3a4a]">{explain.text}</p>
+                {/* 限高滚动：AI 讲得再长也能看完，不撑破舞台 */}
+                <p className="mt-1.5 max-h-32 overflow-y-auto text-xs font-bold leading-relaxed text-[#2b3a4a]">
+                  {explain.text}
+                </p>
                 <button
                   onClick={() => setExplain(null)}
                   className="mt-2 w-full rounded-xl bg-[#f79228] py-2 text-xs font-black text-white transition-colors hover:bg-[#d97a12]"
@@ -296,11 +324,18 @@ export default function BattleFlow({
             </div>
           )}
 
-          {/* 觉醒演出（守卫战胜利）：金光 + 金纹点亮 + 岛屿升级 */}
+          {/* 觉醒演出（守卫战胜利）：金光扩散 + 金色粒子 + 金纹点亮 + 岛屿升级 */}
           {phase === "result" && awaken && picked && (
             <div className="pointer-events-none absolute inset-x-0 top-[8%] z-20 text-center">
-              <div className="animate-pop inline-block rounded-2xl border-4 border-[#ffb300] bg-gradient-to-b from-[#fff8e1] to-[#fdf6e0] px-5 py-3 shadow-[0_6px_0_rgba(43,58,74,0.3)]">
-                <div className="text-2xl">✦</div>
+              {/* 金色光晕扩散 */}
+              <div className="awaken-glow absolute left-1/2 top-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-full" />
+              {/* 金色粒子上升 */}
+              <span className="awaken-spark absolute left-[30%] top-[55%] text-xl" style={{ animationDelay: "0s" }}>✨</span>
+              <span className="awaken-spark absolute left-[58%] top-[48%] text-sm" style={{ animationDelay: "0.25s" }}>⭐</span>
+              <span className="awaken-spark absolute left-[44%] top-[40%] text-lg" style={{ animationDelay: "0.5s" }}>✨</span>
+              <span className="awaken-spark absolute left-[66%] top-[60%] text-base" style={{ animationDelay: "0.7s" }}>🌟</span>
+              <div className="animate-pop relative inline-block rounded-2xl border-4 border-[#ffb300] bg-gradient-to-b from-[#fff8e1] to-[#fdf6e0] px-5 py-3 shadow-[0_6px_0_rgba(43,58,74,0.3)]">
+                <div className="animate-spin-slow text-2xl">✦</div>
                 <span className="text-lg font-black text-[#2b3a4a]">觉醒！{picked.nickname} 领悟了「{awaken.propertyName}」！</span>
                 <div className="mt-1">
                   <span className="rounded-md bg-[#ffb300] px-2 py-0.5 text-xs font-black text-white">
@@ -308,11 +343,37 @@ export default function BattleFlow({
                   </span>
                 </div>
               </div>
-              <div className="mt-1">
-                <span className="animate-twinkle inline-block text-2xl">✨</span>
-              </div>
             </div>
           )}
+          <style jsx>{`
+            @keyframes awakenGlow {
+              0% {
+                transform: translate(-50%, -50%) scale(0.3);
+                opacity: 0.95;
+              }
+              100% {
+                transform: translate(-50%, -50%) scale(2.4);
+                opacity: 0;
+              }
+            }
+            .awaken-glow {
+              background: radial-gradient(circle, rgba(255, 200, 60, 0.5), rgba(255, 200, 60, 0) 70%);
+              animation: awakenGlow 1.8s ease-out infinite;
+            }
+            @keyframes awakenSpark {
+              0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+              }
+              100% {
+                transform: translateY(-90px) scale(1.4);
+                opacity: 0;
+              }
+            }
+            .awaken-spark {
+              animation: awakenSpark 1.6s ease-out infinite;
+            }
+          `}</style>
         </div>
 
         {/* ===== 对话框 + 行动区（宝可梦式） ===== */}

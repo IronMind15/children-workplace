@@ -81,7 +81,7 @@ const EXPLAIN_PROMPT = `你是知识岛上的小狐狸伙伴，正在给一个 6
 1. 先温柔地鼓励（比如「差一点点就对啦」），绝不批评
 2. 用最简单的话讲清楚「正确应该怎么想」
 3. 一定结合题目里的具体数字一步步演示
-4. 控制在 100 字以内
+4. 严格控制在 60 字以内，最多两句话，不要换行、不要分点、不要用任何标点列表
 5. 结尾鼓励他再试一次`;
 
 /** 用 AI 生成错题讲解；失败/未配置返回 null，由调用方回退内置讲解 */
@@ -103,7 +103,7 @@ export async function explainWrong(
       },
       body: JSON.stringify({
         model: cfg.model,
-        max_tokens: 300,
+        max_tokens: 120,
         messages: [
           { role: "system", content: EXPLAIN_PROMPT },
           {

@@ -45,7 +45,7 @@ export default function Ask() {
     .sort((a, b) => a.required - b.required);
 
   return (
-    <div className="sky-bg min-h-screen pb-24">
+    <div className="sky-bg min-h-screen pb-6 pt-16">
       <AskFlow
         questions={questions}
         sparks={stats.total}

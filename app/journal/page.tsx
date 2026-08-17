@@ -95,7 +95,7 @@ export default function Journal() {
   const unlockedCount = spirits.filter((s) => s.unlocked).length;
 
   return (
-    <div className="sky-bg min-h-screen pb-24">
+    <div className="sky-bg min-h-screen pb-6 pt-16">
       <div className="mx-auto max-w-5xl px-4 pt-5 lg:px-8">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div className="pixel-panel px-4 py-2.5">

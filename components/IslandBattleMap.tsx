@@ -5,6 +5,7 @@ import Link from "next/link";
 import PixelSprite from "@/components/PixelSprite";
 import ImgSprite from "@/components/ImgSprite";
 import { getMonsterImage, getDecorSprite } from "@/lib/sprites";
+import { getIslandBg } from "@/lib/islandArt";
 import { themeOf } from "@/lib/islandTheme";
 
 export type MapMonster = {
@@ -106,8 +107,8 @@ function GuardMonster({ monster, index }: { monster: MapMonster; index: number }
       <span className="mb-1 whitespace-nowrap rounded-md border-2 border-[#8a6a3e] bg-[#ffd54f] px-2 py-0.5 text-xs font-black text-[#2b3a4a] shadow-[0_2px_0_rgba(43,58,74,0.4)] transition group-hover:bg-[#ffecb3]">
         ✦ {monster.name}
       </span>
-      <span className="animate-boss-breathe flex h-16 w-16 items-center justify-center rounded-full border-4 border-[#ffb300] bg-[#fff8e1] text-3xl shadow-[0_3px_0_rgba(16,24,34,0.3)]">
-        🛡️
+      <span className="animate-boss-breathe relative flex h-16 w-16 items-center justify-center rounded-full border-4 border-[#ffb300] bg-[#fff8e1] shadow-[0_3px_0_rgba(16,24,34,0.3)]">
+        <ImgSprite src={getMonsterImage(monster.id)} size={60} className="h-full w-full" />
       </span>
       <span className="pointer-events-none mt-1 hidden rounded-md bg-[#22303f] px-2 py-0.5 text-xs font-bold text-white group-hover:block">
         ⚔️ 觉醒挑战
@@ -160,6 +161,7 @@ export default function IslandBattleMap({
   avatar: string;
 }) {
   const theme = themeOf(island);
+  const bg = getIslandBg(island);
 
   return (
     <div className="pixel-panel relative overflow-hidden p-2">
@@ -193,7 +195,10 @@ export default function IslandBattleMap({
         <div className="absolute inset-x-4 inset-y-10 lg:inset-x-8">
           {/* 沙滩描边（主题色） */}
           <div className="h-full w-full rounded-[36px] border-8 p-2 shadow-[0_10px_0_rgba(16,24,34,0.25)]" style={{ borderColor: theme.beach }}>
-            <div className="relative h-full w-full overflow-hidden rounded-[28px]" style={checkerStyle(...theme.grass)}>
+            <div
+              className="relative h-full w-full overflow-hidden rounded-[28px]"
+              style={{ backgroundImage: `url(${bg})`, backgroundSize: "cover", backgroundPosition: "center" }}
+            >
               {/* 泥土小路：横穿草地 */}
               <div
                 className="absolute left-[6%] right-[24%] top-[46%] h-12 rounded-full border-4 lg:h-14"
