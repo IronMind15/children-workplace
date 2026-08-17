@@ -283,8 +283,12 @@ function shapeStep(): SolveStep {
     ["下面哪个图形摸起来没有角？", "圆形", ["三角形", "正方形"], "圆形是圆圆的、没有尖角；三角形和正方形都有尖尖的角。所以摸起来没角的是圆形。"],
     ["正方体有几个面？", "6 个", ["4 个", "8 个"], "正方体有 6 个面：上、下、前、后、左、右，各 1 个，一共 6 个。"],
     ["下面哪个图形有 4 条一样长的边？", "正方形", ["长方形", "三角形"], "正方形 4 条边都一样长；长方形只是「对边」一样长；三角形只有 3 条边。所以是正方形。"],
+    ["三角形内角和是多少度？", "180°", ["90°", "360°"], "三角形三个内角加起来是 180°，不管什么三角形都一样。"],
+    ["长方体有几个顶点？", "8 个", ["6 个", "12 个"], "长方体有 8 个顶点（角），每个角由 3 条边交汇。"],
+    ["圆柱的侧面展开是什么形状？", "长方形", ["圆形", "三角形"], "圆柱侧面沿高剪开展开，是一个长方形（宽=高，长=底面周长）。"],
+    ["下面哪个是立体图形？", "球", ["三角形", "正方形"], "球是立体的（有厚度）；三角形和正方形是平面图形。所以球是立体图形。"],
   ] as [string, string, string[], string][];
-  const [prompt, ans, wrongs, explain] = cases[rnd(0, 3)];
+  const [prompt, ans, wrongs, explain] = cases[rnd(0, 7)];
   return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]), explain };
 }
 
@@ -295,8 +299,11 @@ function angleStep(): SolveStep {
     ["📐 比直角小的角叫什么？", "锐角", ["钝角", "平角"], "锐角比直角小（小于 90°）；钝角比直角大；平角是 180°。所以比直角小的是锐角。"],
     ["📐 比直角大、比平角小的角叫什么？", "钝角", ["锐角", "直角"], "钝角比直角大（大于 90°）但比平角小（小于 180°）。"],
     ["📐 一个平角等于几个直角？", "2 个", ["3 个", "4 个"], "平角是 180°，直角是 90°，180 ÷ 90 = 2，所以一个平角等于 2 个直角。"],
+    ["📐 一个周角等于几个直角？", "4 个", ["2 个", "6 个"], "周角是 360°，直角是 90°，360 ÷ 90 = 4，所以一个周角等于 4 个直角。"],
+    ["📐 三角尺上最大的角是什么角？", "直角", ["锐角", "钝角"], "三角尺有一个角是 90° 的直角，另外两个是锐角。所以最大的角是直角。"],
+    ["📐 钟表 3 点整，时针和分针成什么角？", "直角", ["锐角", "钝角"], "3 点整时，时针指 3、分针指 12，刚好成 90°，是直角。"],
   ] as [string, string, string[], string][];
-  const [prompt, ans, wrongs, explain] = cases[rnd(0, 3)];
+  const [prompt, ans, wrongs, explain] = cases[rnd(0, 6)];
   return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]), explain };
 }
 
@@ -313,15 +320,32 @@ function perimeterStep(): SolveStep {
 
 // ---- 面积（MK-18）----
 function areaStep(): SolveStep {
-  const l = rnd(2, dStep(9, 3));
-  const w = rnd(2, dStep(9, 3));
-  return { type: "solve", prompt: `🟩 长 ${l} 厘米、宽 ${w} 厘米的长方形，面积是多少平方厘米？`, options: numOptions(l * w), explain: `面积是图形「铺满」的大小。长方形面积 = 长 × 宽 = ${l} × ${w} = ${l * w} 平方厘米。` };
+  const roll = rnd(0, 2);
+  if (roll === 0) {
+    const l = rnd(2, dStep(9, 3));
+    const w = rnd(2, dStep(9, 3));
+    return { type: "solve", prompt: `🟩 长 ${l} 厘米、宽 ${w} 厘米的长方形，面积是多少平方厘米？`, options: numOptions(l * w), explain: `面积是图形「铺满」的大小。长方形面积 = 长 × 宽 = ${l} × ${w} = ${l * w} 平方厘米。` };
+  }
+  if (roll === 1) {
+    const s = rnd(2, dStep(9, 3));
+    return { type: "solve", prompt: `🟩 边长 ${s} 厘米的正方形，面积是多少平方厘米？`, options: numOptions(s * s), explain: `正方形面积 = 边长 × 边长 = ${s} × ${s} = ${s * s} 平方厘米。` };
+  }
+  const b = rnd(2, dStep(8, 2));
+  const h = rnd(2, dStep(8, 2));
+  return { type: "solve", prompt: `🔺 底 ${b} 厘米、高 ${h} 厘米的三角形，面积是多少平方厘米？`, options: numOptions(Math.floor((b * h) / 2)), explain: `三角形面积 = 底 × 高 ÷ 2 = ${b} × ${h} ÷ 2 = ${Math.floor((b * h) / 2)} 平方厘米。` };
 }
 
 // ---- 体积（MK-19）----
 function volumeStep(): SolveStep {
-  const e = rnd(2, dStep(4, 1));
-  return { type: "solve", prompt: `🧊 棱长 ${e} 厘米的正方体，体积是多少立方厘米？`, options: numOptions(e * e * e), explain: `体积是立体图形「装」的大小。正方体体积 = 棱长 × 棱长 × 棱长 = ${e} × ${e} × ${e} = ${e * e * e} 立方厘米。` };
+  const roll = rnd(0, 1);
+  if (roll === 0) {
+    const e = rnd(2, dStep(4, 1));
+    return { type: "solve", prompt: `🧊 棱长 ${e} 厘米的正方体，体积是多少立方厘米？`, options: numOptions(e * e * e), explain: `体积是立体图形「装」的大小。正方体体积 = 棱长 × 棱长 × 棱长 = ${e} × ${e} × ${e} = ${e * e * e} 立方厘米。` };
+  }
+  const l = rnd(2, dStep(6, 1));
+  const w = rnd(2, dStep(6, 1));
+  const h = rnd(2, dStep(6, 1));
+  return { type: "solve", prompt: `📦 长 ${l}、宽 ${w}、高 ${h} 厘米的长方体，体积是多少立方厘米？`, options: numOptions(l * w * h), explain: `长方体体积 = 长 × 宽 × 高 = ${l} × ${w} × ${h} = ${l * w * h} 立方厘米。` };
 }
 
 // ---- 图形运动（MK-20）----
@@ -465,6 +489,168 @@ function setStep(): SolveStep {
   };
 }
 
+// ============ 数学广角扩展（MK-29 ~ MK-36）============
+
+// ---- 搭配（MK-29）：排列组合 ----
+function pairingStep(): SolveStep {
+  const tops = rnd(2, 4);
+  const bottoms = rnd(2, 5);
+  const total = tops * bottoms;
+  const stories = [
+    `${tops} 件上衣、${bottoms} 条裤子，一共几种搭配？`,
+    `${tops} 个主食、${bottoms} 个菜，选一份主食配一个菜，几种选法？`,
+    `${tops} 种颜色上衣、${bottoms} 种颜色裤子，几种穿法？`,
+  ];
+  return { type: "solve", prompt: `🔀 ${stories[rnd(0, 2)]}`, options: numOptions(total), explain: `搭配用乘法原理：${tops} × ${bottoms} = ${total} 种。每件上衣都能配 ${bottoms} 条裤子，${tops} 件就是 ${tops} 个 ${bottoms}。` };
+}
+
+// ---- 推理（MK-30）：逻辑排除 ----
+function logicStep(): SolveStep {
+  const cases = [
+    ["🔍 甲乙丙三人，甲不是最高，乙比丙矮，谁最高？", "丙", ["甲", "乙"], "甲不是最高，排除甲；乙比丙矮，说明丙比乙高。所以丙最高。"],
+    ["🔍 小红、小明、小刚分别拿 1/2/3 号。小红不是 1 号，小明说他的号比小红大。小刚是几号？", "1", ["2", "3"], "小红不是 1 号，小明比小红大，说明小明是 3、小红是 2。剩下小刚是 1 号。"],
+    ["🔍 甲乙赛跑，甲说「我不是第一」，乙说「我也不是第一」。谁第一？", "都不是", ["甲", "乙"], "甲和乙都不是第一，说明他们之间没有第一……等等，题目有陷阱！这道题的答案是「都不是」——说明还有第三个人。"],
+    ["🔍 三个盒子分别装苹果、橘子、香蕉。1 号不是苹果，2 号是橘子。3 号装什么？", "香蕉", ["苹果", "橘子"], "2 号是橘子，1 号不是苹果所以 1 号是香蕉，剩下 3 号是苹果……不对，1 号不是苹果所以 3 号是苹果，1 号是香蕉。"],
+  ] as [string, string, string[], string][];
+  const [prompt, ans, wrongs, explain] = cases[rnd(0, 3)];
+  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]), explain };
+}
+
+// ---- 优化（MK-31）：运筹合理安排 ----
+function optimizeStep(): SolveStep {
+  const cases = [
+    ["⚡ 烧水 10 分钟（同时可洗茶杯 2 分钟），最快几分钟喝到茶？", "10", ["12", "8"], "烧水的 10 分钟里可以同时洗茶杯，不需要额外时间。所以最快 10 分钟。"],
+    ["⚡ 烙饼，每面 3 分钟，锅每次放 2 张。烙 3 张饼最少几分钟？", "9", ["12", "6"], "3 张饼 6 个面，每次烙 2 个面需 3 分钟。交叉烙：①正②正→①反③正→②反③反，共 9 分钟。"],
+    ["⚡ 沏茶：洗水壶 1 分、烧水 10 分、洗茶杯 1 分、拿茶叶 1 分，最快几分？", "11", ["13", "10"], "洗水壶 1 分，烧水 10 分（同时洗茶杯、拿茶叶），共 11 分钟。"],
+  ] as [string, string, string[], string][];
+  const [prompt, ans, wrongs, explain] = cases[rnd(0, 2)];
+  return { type: "solve", prompt, options: choiceOptions(ans, [wrongs[0], wrongs[1]]), explain };
+}
+
+// ---- 鸡兔同笼（MK-32）：假设法 ----
+function cageStep(): SolveStep {
+  const rabbits = rnd(2, 6);
+  const chickens = rnd(2, 6);
+  const heads = rabbits + chickens;
+  const legs = rabbits * 4 + chickens * 2;
+  const askRabbits = Math.random() < 0.5;
+  return {
+    type: "solve",
+    prompt: `🐔 鸡兔同笼，${heads} 个头、${legs} 只脚，${askRabbits ? "兔" : "鸡"}有几只？`,
+    options: numOptions(askRabbits ? rabbits : chickens),
+    explain: `假设全是鸡：${heads} × 2 = ${heads * 2} 只脚，多出 ${legs - heads * 2} 只脚。每只兔比鸡多 2 只脚，所以兔 = ${Math.floor((legs - heads * 2) / 2)} 只，鸡 = ${heads - Math.floor((legs - heads * 2) / 2)} 只。`,
+  };
+}
+
+// ---- 植树问题（MK-33）：间隔与棵数 ----
+function treeStep(): SolveStep {
+  const roll = rnd(0, 2);
+  if (roll === 0) {
+    const len = rnd(2, 8) * 5;
+    const gap = 5;
+    const trees = len / gap + 1;
+    return { type: "solve", prompt: `🌳 ${len} 米路每隔 ${gap} 米栽一棵（两端都栽），共几棵？`, options: numOptions(trees), explain: `两端都栽：棵数 = 间隔数 + 1。${len} ÷ ${gap} = ${len / gap} 个间隔，${len / gap} + 1 = ${trees} 棵。` };
+  }
+  if (roll === 1) {
+    const len = rnd(2, 8) * 5;
+    const gap = 5;
+    const trees = len / gap - 1;
+    return { type: "solve", prompt: `🌳 ${len} 米路每隔 ${gap} 米栽一棵（两端都不栽），共几棵？`, options: numOptions(Math.max(0, trees)), explain: `两端都不栽：棵数 = 间隔数 - 1。${len} ÷ ${gap} = ${len / gap} 个间隔，${len / gap} - 1 = ${Math.max(0, trees)} 棵。` };
+  }
+  const len = rnd(2, 8) * 5;
+  const gap = 5;
+  const trees = len / gap;
+  return { type: "solve", prompt: `🌳 ${len} 米圆形花坛每隔 ${gap} 米栽一棵，共几棵？`, options: numOptions(trees), explain: `封闭图形（圆形）：棵数 = 间隔数。${len} ÷ ${gap} = ${trees} 棵。` };
+}
+
+// ---- 找次品（MK-34）：三分最优策略 ----
+function defectiveStep(): SolveStep {
+  const n = [3, 4, 5, 6, 7, 8, 9][rnd(0, 6)];
+  const times = Math.ceil(Math.log(n) / Math.log(3));
+  return {
+    type: "solve",
+    prompt: `⚖️ ${n} 个球里有 1 个较轻，用天平至少称几次保证找到？`,
+    options: choiceOptions(String(times), [String(Math.max(1, times - 1)), String(times + 1)]),
+    explain: `三分法：每次把物品尽量均分 3 份，称一次缩小到 1/3。${n} 个球需 ${times} 次（3^${times} ≥ ${n}）。`,
+  };
+}
+
+// ---- 数与形（MK-35）：数形结合 ----
+function numShapeStep(): SolveStep {
+  const n = rnd(3, 7);
+  const sum = n * n;
+  return {
+    type: "solve",
+    prompt: `🔲 从 1 开始连续 ${n} 个奇数相加：1+3+5+${n > 3 ? "…+" : ""}${n > 3 ? `${2 * n - 1}` : ""} = ?（想想正方形点阵）`,
+    options: numOptions(sum),
+    explain: `连续奇数的和 = 奇数个数的平方。${n} 个奇数从 1 加到 ${2 * n - 1}，和 = ${n}² = ${sum}。`,
+  };
+}
+
+// ---- 鸽巢问题（MK-36）：抽屉原理 ----
+function pigeonholeStep(): SolveStep {
+  const items = rnd(4, 8);
+  const boxes = items - rnd(1, 3);
+  const min = Math.ceil(items / boxes);
+  return {
+    type: "solve",
+    prompt: `🕊️ ${items} 只鸽子飞进 ${boxes} 个巢，至少有一个巢里有几只？`,
+    options: numOptions(min),
+    explain: `抽屉原理：${items} 只鸽子分进 ${boxes} 个巢，至少有一个巢有 ⌈${items}÷${boxes}⌉ = ${min} 只。`,
+  };
+}
+
+// ============ 数与代数补缺（MK-37 ~ MK-38）============
+
+// ---- 因数倍数（MK-37）----
+function factorStep(): SolveStep {
+  const roll = rnd(0, 2);
+  if (roll === 0) {
+    const n = [6, 8, 10, 12, 16, 18, 20, 24][rnd(0, 7)];
+    const count = countFactors(n);
+    return { type: "solve", prompt: `🔗 ${n} 的因数有几个？`, options: numOptions(count), explain: `找 ${n} 的因数：成对找，1×${n}、${n > 4 ? `2×${n / 2}、` : ""}…共 ${count} 个。` };
+  }
+  if (roll === 1) {
+    const cases = [["7", "质数", ["合数", "偶数"], "7 只有 1 和 7 两个因数，所以是质数。"], ["9", "合数", ["质数", "偶数"], "9 有 1、3、9 三个因数，所以是合数。"], ["2", "质数", ["合数", "奇数"], "2 只有 1 和 2 两个因数，是最小的质数，也是唯一的偶质数。"]] as [string, string, string[], string][];
+    const [n, ans, wrongs, explain] = cases[rnd(0, 2)];
+    return { type: "solve", prompt: `🔗 ${n} 是什么数？`, options: choiceOptions(ans, [wrongs[0], wrongs[1]]), explain };
+  }
+  const a = [6, 8, 12][rnd(0, 2)];
+  const b = [4, 6, 9][rnd(0, 2)];
+  const lcm = lcmOf(a, b);
+  return { type: "solve", prompt: `🔗 ${a} 和 ${b} 的最小公倍数是几？`, options: numOptions(lcm), explain: `最小公倍数是两个数公有的最小倍数。${a} 和 ${b} 的最小公倍数是 ${lcm}。` };
+}
+
+function countFactors(n: number): number {
+  let c = 0;
+  for (let i = 1; i * i <= n; i++) if (n % i === 0) c += i * i === n ? 1 : 2;
+  return c;
+}
+function lcmOf(a: number, b: number): number {
+  const gcd = (x: number, y: number): number => (y === 0 ? x : gcd(y, x % y));
+  return (a * b) / gcd(a, b);
+}
+
+// ---- 运算定律（MK-38）----
+function lawStep(): SolveStep {
+  const roll = rnd(0, 2);
+  if (roll === 0) {
+    const a = rnd(2, 9) * 10 + 5;
+    const b = rnd(2, 9);
+    return { type: "solve", prompt: `📋 ${a}+${b}+${100 - a} 等于几？（想想怎么算更快）`, options: numOptions(b + 100 - a + a), explain: `交换律：${a} + ${100 - a} = 100，再加上 ${b} = ${b + 100}。凑整更快！` };
+  }
+  if (roll === 1) {
+    const a = 25;
+    const b = 4;
+    const c = rnd(3, 9);
+    return { type: "solve", prompt: `📋 ${a}×${b}×${c} 等于几？`, options: numOptions(a * b * c), explain: `结合律：先算 ${a}×${b}=${a * b}，再 ${a * b}×${c}=${a * b * c}。` };
+  }
+  const a = 25;
+  const b = 4;
+  const c = rnd(3, 9);
+  return { type: "solve", prompt: `📋 ${a}×(${b}+${c}) 等于几？`, options: numOptions(a * (b + c)), explain: `分配律：${a}×(${b}+${c}) = ${a}×${b} + ${a}×${c} = ${a * b} + ${a * c} = ${a * b + a * c}。` };
+}
+
 const GENERATORS: Record<string, () => SolveStep> = {
   "MK-01": countStep,
   "MK-02": placeStep,
@@ -494,6 +680,16 @@ const GENERATORS: Record<string, () => SolveStep> = {
   "MK-26": averageStep,
   "MK-27": chanceStep,
   "MK-28": setStep,
+  "MK-29": pairingStep,
+  "MK-30": logicStep,
+  "MK-31": optimizeStep,
+  "MK-32": cageStep,
+  "MK-33": treeStep,
+  "MK-34": defectiveStep,
+  "MK-35": numShapeStep,
+  "MK-36": pigeonholeStep,
+  "MK-37": factorStep,
+  "MK-38": lawStep,
 };
 
 // ---- 混合题（需要两只精灵联手）----
