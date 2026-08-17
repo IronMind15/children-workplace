@@ -19,7 +19,7 @@ import { welcomeGuide } from "@/lib/brain";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import Guide from "@/components/Guide";
-import BottomNav from "@/components/BottomNav";
+import TopShell from "@/components/TopShell";
 import SettingsEntry from "@/components/SettingsEntry";
 import TestTools from "@/components/TestTools";
 import WorldMap from "@/components/WorldMap";
@@ -137,37 +137,9 @@ export default function Home() {
   }));
 
   return (
-    <div className="sky-bg min-h-screen pb-6 pt-16">
-      {/* 顶部 HUD：像素面板 */}
-      <div className="mx-auto max-w-6xl px-4 pt-3 lg:px-8">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <div className="card px-4 py-2.5">
-            <h1 className="text-xl font-black text-[#2b3a4a] lg:text-2xl">🏝️ {island}</h1>
-            <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">
-              ⭐ 已掌握 {metas.length} 个本领 ·🏝️ 已点亮 {islands.filter((i) => i.unlocked).length} 座岛
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <EvolutionPathButton nodes={nodes} edges={edges} />
-            <Link
-              href="/ask"
-              className="btn btn-pink px-4 py-2 text-sm"
-              title="去好奇心营地提问，赢取火花解锁神秘小怪"
-            >
-              ✨ 火花 {sparks.total}
-            </Link>
-            <Link
-              href="/parent"
-              className="btn btn-white px-3 py-2 text-sm"
-              title="家长窗口：查看学习进度、错题和每日总结"
-            >
-              👨‍👩‍👧 家长
-            </Link>
-            <SettingsEntry />
-            <span className="card flex h-12 w-12 items-center justify-center text-2xl">{avatar}</span>
-          </div>
-        </header>
-      </div>
+    <div className="sky-bg min-h-screen pb-6 pt-20">
+      {/* 顶栏：TopShell（含 logo 占位 + 主 tab + 火花 + 我的头像菜单） */}
+      <TopShell avatar={avatar} sparks={sparks.total} />
 
       {/* 觉醒广播 Toast：右下角浮动通知（可关闭，8 秒自动收起，不占地图空间） */}
       <AwakeningToast
@@ -195,7 +167,11 @@ export default function Home() {
         </div>
       </main>
 
-      <BottomNav />
+      {/* 设置入口：长按进入家长端·伙伴日记（REQ-PARENT-01 隐藏入口） */}
+      <div className="fixed bottom-4 right-4 z-30">
+        <SettingsEntry />
+      </div>
+
       <TestTools />
     </div>
   );
