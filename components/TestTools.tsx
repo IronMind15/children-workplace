@@ -14,6 +14,9 @@ import {
   getIslandsAction,
   getConfigAction,
   setConfigAction,
+  spawnGuardsForTest,
+  clearAllAwakenings,
+  getGuardOverview,
 } from "@/lib/actions";
 
 /**
@@ -34,13 +37,37 @@ export default function TestTools() {
   const [islands, setIslands] = useState<string[]>([]);
   const [selIsland, setSelIsland] = useState("");
   const [config, setConfig] = useState<Record<string, string>>({});
+  const [guards, setGuards] = useState<{ id: string; name: string; island: string; required_metas: string[]; required_level: number; visible: boolean }[]>([]);
 
-  /** 打开时预载：岛列表 + config 当前值 */
+  /** 打开时预载：岛列表 + config 当前值 + 守卫总览 */
   async function load() {
-    const [is, cfg] = await Promise.all([getIslandsAction(), getConfigAction()]);
+    const [is, cfg, gds] = await Promise.all([getIslandsAction(), getConfigAction(), getGuardOverview()]);
     setIslands(is);
     setSelIsland((cur) => cur || is[0] || "");
     setConfig(cfg);
+    setGuards(gds);
+  }
+
+  /** 让所选岛的守卫现身（可反复测 6 套外观 + 守卫战） */
+  function spawnGuards(island?: string) {
+    startTransition(async () => {
+      await spawnGuardsForTest(island);
+      const gds = await getGuardOverview();
+      setGuards(gds);
+      router.refresh();
+      flash(island ? `🛡️ ${island} 守卫已现身！` : "🛡️ 全部守卫已现身！");
+    });
+  }
+
+  /** 清空所有觉醒 → 已打赢消失的守卫可再次现身 */
+  function clearAwaken() {
+    startTransition(async () => {
+      await clearAllAwakenings();
+      const gds = await getGuardOverview();
+      setGuards(gds);
+      router.refresh();
+      flash("♻️ 已清空觉醒记录，守卫可再次现身");
+    });
   }
 
   function setIslandLv(level: number) {
@@ -267,6 +294,68 @@ export default function TestTools() {
                 />
               </div>
             ))}
+          </div>
+
+          {/* 守卫测试（v1.2.7）：一键让守卫现身，可反复测 6 套外观 + 守卫战 */}
+          <div className="w-56 rounded-lg border-2 border-[#b06ab3] bg-[#f9edfb] p-2">
+            <p className="mb-1.5 text-[11px] font-black text-[#8e4a96]">🛡️ 守卫测试（6 套外观）</p>
+            <div className="flex items-center gap-1">
+              <select
+                value={selIsland}
+                onChange={(e) => setSelIsland(e.target.value)}
+                className="min-w-0 flex-1 rounded border-2 border-[#2b3a4a] bg-white px-1 py-1 text-xs font-bold text-[#2b3a4a]"
+              >
+                {islands.map((i) => (
+                  <option key={i} value={i}>
+                    {i}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => spawnGuards(selIsland)}
+                disabled={pending}
+                className="btn px-1.5 py-1 text-xs text-white shadow disabled:opacity-60"
+                style={{ background: "#8e4a96" }}
+                title="把该岛守卫的前置精灵内化 + 拉等级，让守卫在岛上现身（可点击进入守卫战）"
+              >
+                🛡️ 现身
+              </button>
+            </div>
+            <div className="mt-1.5 flex gap-1">
+              <button
+                onClick={() => spawnGuards()}
+                disabled={pending}
+                className="btn px-1.5 py-1 text-xs text-white shadow disabled:opacity-60"
+                style={{ background: "#b06ab3" }}
+                title="让全部岛的守卫都现身（每个岛按群岛顺序循环用 6 套外观）"
+              >
+                🛡️🛡️ 全部现身
+              </button>
+              <button
+                onClick={clearAwaken}
+                disabled={pending}
+                className="btn px-1.5 py-1 text-xs text-white shadow disabled:opacity-60"
+                style={{ background: "#8a97a5" }}
+                title="清空所有觉醒记录，打赢消失的守卫可再次现身"
+              >
+                ♻️ 重置觉醒
+              </button>
+            </div>
+            {/* 守卫总览 */}
+            <div className="mt-1.5 max-h-32 overflow-y-auto rounded bg-white/70 p-1">
+              {guards.length === 0 ? (
+                <p className="text-[10px] font-bold text-[#7a8a9a]">加载中…</p>
+              ) : (
+                guards.map((g) => (
+                  <div key={g.id} className="flex items-center justify-between gap-1 px-0.5 py-0.5">
+                    <span className="min-w-0 flex-1 truncate text-[10px] font-bold text-[#2b3a4a]">
+                      {g.visible ? "🟢" : "⚪"} {g.name}
+                    </span>
+                    <span className="shrink-0 text-[9px] font-bold text-[#7a8a9a]">{g.island}</span>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
           <button
             onClick={resetAll}

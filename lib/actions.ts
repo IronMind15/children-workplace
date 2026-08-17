@@ -211,6 +211,69 @@ export async function bumpAllSpirits() {
   revalidatePath("/");
 }
 
+/** 开发者工具：让知识守卫现身（v1.2.7 守卫测试功能）。
+ * 守卫「可见」条件 = required_metas 全部内化 且 mastery_level ≥ required_level 且性质未觉醒。
+ * 这里把守卫前置精灵内化 + 拉到 required_level，让守卫在岛上现身（可点击进入守卫战测试 6 套外观）。
+ * @param island 仅让该岛的守卫现身；不传则全部岛守卫现身
+ */
+export async function spawnGuardsForTest(island?: string) {
+  seedIfEmpty();
+  const now = new Date().toISOString();
+  const rows = db
+    .prepare("SELECT * FROM monster WHERE type = 'guard'")
+    .all() as (ReturnType<typeof getMeta> & { id: string; island: string; required_metas: string | null; required_level: number | null; spawn_mode: string | null; spawn_islands: string | null })[];
+  for (const g of rows) {
+    // 只处理目标岛（fixed：主岛=该岛；random：spawn_islands 含该岛）
+    if (island) {
+      const inIsland =
+        g.spawn_mode === "random"
+          ? (g.spawn_islands ? (JSON.parse(g.spawn_islands) as string[]) : []).includes(island)
+          : g.island === island;
+      if (!inIsland) continue;
+    }
+    let metas: string[] = [];
+    try {
+      metas = g.required_metas ? (JSON.parse(g.required_metas) as string[]) : [];
+    } catch {
+      metas = [];
+    }
+    const level = g.required_level ?? 2;
+    for (const m of metas) {
+      db.prepare(
+        "INSERT OR REPLACE INTO internalized_meta (meta_id, acquired_at, source, mastery_level, mastery_xp) VALUES (?, ?, 'demo', ?, 0)"
+      ).run(m, now, Math.max(level, 2));
+    }
+  }
+  revalidatePath("/");
+}
+
+/** 开发者工具：清空所有已觉醒性质（守卫打赢后消失 → 重置后守卫可再次现身） */
+export async function clearAllAwakenings() {
+  seedIfEmpty();
+  db.prepare("DELETE FROM internalized_property").run();
+  revalidatePath("/");
+}
+
+/** 开发者工具：查询守卫总览（测试面板展示用） */
+export async function getGuardOverview() {
+  seedIfEmpty();
+  const awakenings = checkAwakenings();
+  const all = db
+    .prepare("SELECT * FROM monster WHERE type = 'guard'")
+    .all() as (ReturnType<typeof getMeta> & { id: string; name: string; island: string; required_metas: string | null; required_level: number | null })[];
+  return all.map((g) => {
+    let metas: string[] = [];
+    try {
+      metas = g.required_metas ? (JSON.parse(g.required_metas) as string[]) : [];
+    } catch {
+      metas = [];
+    }
+    // 当前可见（达标且未觉醒）
+    const visible = awakenings.some((a) => a.id === g.id);
+    return { id: g.id, name: g.name, island: g.island, required_metas: metas, required_level: g.required_level ?? 2, visible };
+  });
+}
+
 /**
  * 开发者工具：一键解锁全部内容（demo 体验模式）——
  * 内化全部 29 元认知（Lv4）+ 觉醒全部 30 条性质 + 全岛等级拉满 Lv4。
