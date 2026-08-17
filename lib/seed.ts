@@ -549,10 +549,22 @@ function seedHidden() {
   migrateWorld();
 }
 
+/** 数据 schema 版本：v6 = 第二阶段（29 元认知 + 性质/策略/守卫/config）。迁移只跑一次，写 config.schema_version 标记 */
+export const SCHEMA_VERSION = "6";
+
 export function seedIfEmpty() {
+  // 版本标记（关键性能优化）：迁移只需执行一次，之后每次请求直接跳过。
+  // 此前每次页面渲染都会跑 migrateWorld() → DELETE evolution_edge 全表 + 重插
+  // 31 条边 + 30 守卫 upsert…（慢盘 + DELETE journal 每次写都 fsync，单请求 2~3 秒）。
+  const ver = (
+    db.prepare("SELECT value FROM config WHERE key = 'schema_version'").get() as { value?: string } | undefined
+  )?.value;
+  if (ver === SCHEMA_VERSION) return false; // 已迁移到当前版本，零开销返回
+
   const count = db.prepare("SELECT COUNT(*) AS c FROM meta_cognition").get() as { c: number };
   if (count.c > 0) {
-    seedHidden(); // 已种子过的老库：增量迁移到 v5
+    seedHidden(); // 已种子过的老库：增量迁移到当前版本
+    db.prepare("INSERT OR REPLACE INTO config (key, value) VALUES ('schema_version', ?)").run(SCHEMA_VERSION);
     return false; // 已种子过
   }
 
@@ -583,6 +595,7 @@ export function seedIfEmpty() {
       .run("MK-01", now, "initial", 1, 0);
     db.prepare("INSERT OR REPLACE INTO internalized_meta (meta_id, acquired_at, source, mastery_level, mastery_xp) VALUES (?, ?, ?, ?, ?)")
       .run("MK-15", now, "initial", 1, 0);
+    db.prepare("INSERT OR REPLACE INTO config (key, value) VALUES ('schema_version', ?)").run(SCHEMA_VERSION);
     db.exec("COMMIT");
   } catch (e) {
     db.exec("ROLLBACK");

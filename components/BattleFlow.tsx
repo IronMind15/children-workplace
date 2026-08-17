@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { trainWin, logMistake, explainMistake, resolveMistake, guardWinAction } from "@/lib/actions";
 import ImgSprite from "@/components/ImgSprite";
@@ -403,9 +402,12 @@ export default function BattleFlow({
                     🏃 先溜走
                   </button>
                 </div>
-                <Link href={`/battle/${monsterId}?r=${Date.now()}`} className="pixel-btn pixel-btn-white py-2 text-sm">
+                <button
+                  onClick={() => router.push(`/battle/${monsterId}?r=${Date.now()}`)}
+                  className="pixel-btn pixel-btn-white py-2 text-sm"
+                >
                   🎲 换一批新题目
-                </Link>
+                </button>
               </>
             )}
 
@@ -459,9 +461,12 @@ export default function BattleFlow({
                 <button onClick={() => router.push("/")} className="pixel-btn pixel-btn-green py-4 text-xl">
                   🏝️ 继续探索
                 </button>
-                <Link href={`/battle/${monsterId}?r=${Date.now()}`} className="pixel-btn pixel-btn-white py-2.5 text-sm">
+                <button
+                  onClick={() => router.push(`/battle/${monsterId}?r=${Date.now()}`)}
+                  className="pixel-btn pixel-btn-white py-2.5 text-sm"
+                >
                   🔁 再来一场（新题目）
-                </Link>
+                </button>
               </div>
             )}
           </div>

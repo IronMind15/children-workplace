@@ -11,10 +11,10 @@ import {
   isInternalized,
   getIslands,
   getBossByTarget,
-  getIslandLevel,
+  getAllIslandLevels,
   getConfig,
 } from "@/lib/repo";
-import { getSparkStats, getVisibleGuardsByIsland, checkAwakenings } from "@/lib/game";
+import { getSparkStats, checkAwakenings } from "@/lib/game";
 import { welcomeGuide } from "@/lib/brain";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -60,6 +60,9 @@ export default function Home() {
   });
 
   // 每座岛的战斗数据（小怪 / 守卫 / 神秘小怪 / Boss / 岛等级），供聚焦态渲染
+  // 性能：守卫可见性与岛等级都在循环外一次性拉全量（内存过滤），避免 29 岛 × 2 次 SQLite 查询
+  const awakenings = checkAwakenings(); // 达标守卫（广播 + 岛内现身共用）
+  const islandLevels = getAllIslandLevels();
   const islandData: Record<string, IslandBattleData> = {};
   const byIsland = new Map<string, ReturnType<typeof getMonsters>>();
   for (const m of allMonsters) {
@@ -75,9 +78,10 @@ export default function Home() {
     const guards = all
       .filter((m) => m.type === "guard")
       .filter((m) => {
-        // 守卫：达标且未打赢才显示（多精灵守卫按 spawn_islands 决定是否在本岛现身）
-        const info = getVisibleGuardsByIsland(it.name);
-        return info.some((g) => g.id === m.id);
+        // 守卫：达标且未打赢才显示（单精灵守卫在本岛必现，多精灵守卫按 spawn_islands 随机池）
+        const info = awakenings.find((g) => g.id === m.id);
+        if (!info) return false;
+        return info.spawn_mode === "fixed" ? info.island === it.name : info.spawn_islands.includes(it.name);
       })
       .map((m) => ({ id: m.id, name: m.name, question: m.question }));
     const hiddenMonsters = all
@@ -99,11 +103,8 @@ export default function Home() {
         question: b.question,
         purified: b.target_meta ? isInternalized(b.target_meta) : false,
       }));
-    islandData[it.name] = { minions, guards, hiddenMonsters, bosses, islandLevel: getIslandLevel(it.name) };
+    islandData[it.name] = { minions, guards, hiddenMonsters, bosses, islandLevel: islandLevels[it.name] ?? 1 };
   }
-
-  // 觉醒广播：有守卫达标待挑战时，首页提示「有些奇妙的事情发生了……」
-  const awakenings = checkAwakenings();
 
   const metas = getInternalizedMetas();
   const brain = getBrainSettings();

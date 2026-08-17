@@ -261,6 +261,14 @@ export function getIslandLevel(island: string): number {
   return (db.prepare("SELECT level FROM island_level WHERE island = ?").get(island) as IslandLevel | undefined)?.level ?? 1;
 }
 
+/** 全部岛屿等级一次拉全量（首页 29 岛渲染用，避免循环内逐岛查询） */
+export function getAllIslandLevels(): Record<string, number> {
+  const rows = db.prepare("SELECT island, level FROM island_level").all() as IslandLevel[];
+  const map: Record<string, number> = {};
+  for (const r of rows) map[r.island] = r.level;
+  return map;
+}
+
 export function setIslandLevel(island: string, level: number): void {
   db.prepare("INSERT OR REPLACE INTO island_level (island, level) VALUES (?, ?)").run(island, Math.max(1, Math.floor(level)));
 }
