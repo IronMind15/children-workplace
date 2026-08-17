@@ -121,28 +121,62 @@ function WanderingMonster({ monster, index, mystery = false, onPick }: { monster
 }
 
 /** 知识守卫：本岛觉醒的考验者，点击进守卫战。
- *  外观按 6 套样式循环（按群岛页号 + 序号选样式，同岛多守卫互不重复）。 */
+ *  外观按 6 套样式循环（按群岛页号 + 序号选样式，同岛多守卫互不重复）。
+ *  视觉：与普通小怪一致——抠图 + 名牌，无边框/徽章；动效为四处游荡。 */
 function GuardMonster({ monster, index, onPick, page, prevStyle }: { monster: MapMonster; index: number; onPick?: (id: string) => void; page: number; prevStyle?: number }) {
   const styleIndex = pickGuardStyle(page, index, prevStyle);
   const guardImage = getGuardImage(styleIndex);
+  // 与小怪一致的游荡逻辑
+  const [pos, setPos] = useState<Pos>(() => ({
+    x: 12 + ((index * 23) % 70),
+    y: 30 + ((index * 17) % 40),
+  }));
+  const [flip, setFlip] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    function schedule() {
+      const delay = 1600 + Math.random() * 1800;
+      timerRef.current = setTimeout(() => {
+        if (!alive) return;
+        setPos((p) => {
+          const nx = clamp(p.x + (Math.random() * 26 - 13), 6, 86);
+          const ny = clamp(p.y + (Math.random() * 18 - 9), 26, 74);
+          setFlip(nx < p.x);
+          return { x: nx, y: ny };
+        });
+        schedule();
+      }, delay);
+    }
+    schedule();
+    return () => {
+      alive = false;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   const inner = (
     <>
+      {/* 名牌（守卫用金纹色，区别于普通小怪） */}
       <span className="mb-1 whitespace-nowrap rounded-md border-2 border-[#8a6a3e] bg-[#ffd54f] px-2 py-0.5 text-xs font-black text-[#2b3a4a] shadow-[0_2px_0_rgba(43,58,74,0.4)] transition group-hover:bg-[#ffecb3]">
         ✦ {monster.name}
       </span>
-      <span
-        className="animate-boss-breathe relative flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-[#ffb300] bg-[#fff8e1] shadow-[0_3px_0_rgba(16,24,34,0.3)] overflow-hidden"
-        title={`守卫外观 #${styleIndex}`}
-      >
-        <img
-          src={guardImage}
-          alt={monster.name}
-          className="h-full w-full object-cover"
-          draggable={false}
-        />
-        <span className="pointer-events-none absolute -top-1 -right-1 rounded-full border-2 border-[#ffb300] bg-white px-1.5 text-[10px] font-black text-[#e2582e] shadow-card">
-          守
+      {/* 抠图 + 小怪式蹦跶（无边框 / 无徽章） */}
+      <span className="relative block">
+        <span
+          className={`block ${flip ? "-scale-x-100" : ""}`}
+          style={{ transition: "transform 0.3s" }}
+        >
+          <img
+            src={guardImage}
+            alt={monster.name}
+            draggable={false}
+            className="walk-bob h-16 w-16 rounded-lg object-cover drop-shadow-md"
+            title={`守卫外观 #${styleIndex}`}
+          />
         </span>
+        <span className="animate-twinkle pointer-events-none absolute -right-2 -top-2 text-sm">✨</span>
       </span>
       <span className="pointer-events-none mt-1 hidden rounded-md bg-[#22303f] px-2 py-0.5 text-xs font-bold text-white group-hover:block">
         ⚔️ 觉醒挑战
@@ -155,7 +189,7 @@ function GuardMonster({ monster, index, onPick, page, prevStyle }: { monster: Ma
         type="button"
         onClick={() => onPick(monster.id)}
         className="group absolute z-10 flex flex-col items-center"
-        style={{ left: `${10 + (index * 17) % 72}%`, top: `${18 + (index * 13) % 52}%` }}
+        style={{ left: `${pos.x}%`, top: `${pos.y}%`, transition: "left 2.2s linear, top 2.2s linear" }}
         title={monster.question}
       >
         {inner}
@@ -166,7 +200,7 @@ function GuardMonster({ monster, index, onPick, page, prevStyle }: { monster: Ma
     <Link
       href={`/battle/${monster.id}`}
       className="group absolute z-10 flex flex-col items-center"
-      style={{ left: `${10 + (index * 17) % 72}%`, top: `${18 + (index * 13) % 52}%` }}
+      style={{ left: `${pos.x}%`, top: `${pos.y}%`, transition: "left 2.2s linear, top 2.2s linear" }}
       title={monster.question}
     >
       {inner}
