@@ -67,33 +67,41 @@ export async function askQuestion(questionId: string) {
   const q = getQuestionById(questionId) ?? getTipById(questionId);
   if (!q) return { ok: false, answer: "", ...getSparkStats() };
   const kidName = getExplorer()?.name.split(" ")[0] ?? "小朋友";
-  let answer = q.answer;
+  // 推荐问题卡：AI 不可用（超时/断网/出错）时静默回退内置题库，孩子仍能拿到答案
   const ai = await askAi(q.label, kidName);
-  if (ai) answer = ai;
+  const answer = ai.ok ? ai.text : q.answer;
   const r = addSpark(q.id, q.label);
   checkAndPromote();
   revalidatePath("/");
   return { ...r, answer };
 }
 
-/** 自由提问（需要已配置 API key） */
+/** 自由提问（需要已配置 API key）：AI 连不上时用小狐狸口吻解释原因，保持界面简洁友好 */
 export async function askFree(question: string) {
   seedIfEmpty();
   const text = question.trim().slice(0, 200);
   if (!text) return { ok: false, answer: "问题不能为空哦～", ...getSparkStats() };
   const kidName = getExplorer()?.name.split(" ")[0] ?? "小朋友";
   const ai = await askAi(text, kidName);
-  if (!ai) {
-    return {
-      ok: false,
-      answer: "🦊 我还没连上 AI 大脑…请大人先在「设置 ⚙️ → AI 伙伴连接」里配置 DeepSeek API Key，或先点点上面的问题卡片吧！",
-      ...getSparkStats(),
-    };
+  if (ai.ok) {
+    const r = addSpark(`free-${Date.now()}`, text);
+    checkAndPromote();
+    revalidatePath("/");
+    return { ...r, answer: ai.text };
   }
-  const r = addSpark(`free-${Date.now()}`, text);
-  checkAndPromote();
-  revalidatePath("/");
-  return { ...r, answer: ai };
+  // AI 不可用：用小朋友能懂的话说明「为什么现在问不了」，并给出下一步
+  const tipByError: Record<string, string> = {
+    unconfigured:
+      "🦊 我还没连上 AI 大脑～想自由提问的话，请大人帮我点开右上角的 ⚙️ 设置，连上 AI 伙伴就好啦！也可以先点点上面的问题卡片哦。",
+    timeout: "🦊 呼……网络有点慢，我的小脑瓜转不动啦～等一小会儿再点我，或者先点点上面的问题卡片吧！",
+    network: "🦊 哎呀，我的电话线好像断啦，连不上 AI 大脑～检查一下网络，再点我一下就好！",
+    http: "🦊 我的 AI 大脑今天有点小迷糊（出错啦）～换个小问题，或者等会儿再试试吧！",
+  };
+  return {
+    ok: false,
+    answer: tipByError[ai.error] ?? "🦊 我刚才卡住啦，再点我一次试试看～",
+    ...getSparkStats(),
+  };
 }
 
 /** AI 设置：保存 / 清除 DeepSeek 配置（仅存本地；模型限定 deepseek-v4-flash / deepseek-v4-pro） */

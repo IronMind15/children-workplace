@@ -8,17 +8,21 @@ type Msg = { role: "kid" | "ai"; content: string };
 /**
  * 费曼小课堂：AI 扮演「似懂非懂的小同学」，孩子当小老师教它。
  * 学以致用 —— 能讲清楚，才是真的会。
+ * compact：右栏嵌入模式用，缩小卡片高度，让图标靠近顶部、下方空间更紧凑。
  */
 export default function FeynmanChat({
   metas,
   defaultMetaId,
   tier,
+  compact = false,
 }: {
   metas: { id: string; name: string }[];
   /** 分岛费曼：默认选中某岛元认知（如当前岛） */
   defaultMetaId?: string;
   /** 分层徽章：基础篇 / 进阶篇👑 */
   tier?: "base" | "practicing" | "advanced";
+  /** 紧凑模式（右栏嵌入）：缩小内边距与对话高度 */
+  compact?: boolean;
 }) {
   const [metaId, setMetaId] = useState(defaultMetaId ?? metas[0]?.id ?? "");
   const [history, setHistory] = useState<Msg[]>([]);
@@ -33,7 +37,7 @@ export default function FeynmanChat({
     setHistory([]);
     const ai = await feynmanTeach(metaId, []);
     if (ai) setHistory([{ role: "ai", content: ai }]);
-    else setHistory([{ role: "ai", content: "🦊 我还没连上 AI 大脑…请大人先在设置里配置 AI 伙伴哦。" }]);
+    else setHistory([{ role: "ai", content: "🦊 我的小脑瓜刚才卡住啦～点一下「再试一次」或者换个知识点教我吧！" }]);
     setLoading(false);
   }
 
@@ -50,14 +54,23 @@ export default function FeynmanChat({
   }
 
   const curMeta = metas.find((m) => m.id === metaId);
+  const cardPad = compact ? "p-2.5" : "p-4";
+  const iconSize = compact ? "text-xl" : "text-2xl";
+  const titleSize = compact ? "text-[13px]" : "text-sm";
+  const subSize = compact ? "text-[10px]" : "text-[11px]";
+  const chipPy = compact ? "py-0.5" : "py-1";
+  const chipSize = compact ? "text-[10px]" : "text-[11px]";
+  const btnPy = compact ? "py-2" : "py-2.5";
+  const dialogMax = compact ? "max-h-56" : "max-h-72";
+  const inputPy = compact ? "py-1.5" : "py-2";
 
   return (
-    <div className="rounded-2xl border-2 border-[#b39ddb] bg-white p-4">
+    <div className={`rounded-2xl border-2 border-[#b39ddb] bg-white ${cardPad}`}>
       <div className="flex items-center gap-2">
-        <span className="text-2xl">🧑‍🏫</span>
+        <span className={iconSize}>🧑‍🏫</span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-black text-ink">费曼小课堂</p>
-          <p className="text-[11px] font-bold text-ink-soft">当小老师，教 AI 学数学 —— 能讲清楚才是真的会</p>
+          <p className={`${titleSize} font-black text-ink`}>费曼小课堂</p>
+          {!compact && <p className={`${subSize} font-bold text-ink-soft`}>当小老师，教 AI 学数学 —— 能讲清楚才是真的会</p>}
         </div>
         {tier && (
           <span
@@ -71,7 +84,7 @@ export default function FeynmanChat({
       </div>
 
       {/* 选题（默认最近学的） */}
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      <div className="mt-2 flex flex-wrap gap-1.5">
         {metas.map((m) => (
           <button
             key={m.id}
@@ -80,7 +93,7 @@ export default function FeynmanChat({
               setStarted(false);
               setHistory([]);
             }}
-            className={`rounded-full px-2.5 py-1 text-[11px] font-black transition-colors ${
+            className={`rounded-full px-2.5 ${chipPy} ${chipSize} font-black transition-colors ${
               m.id === metaId ? "bg-[#b39ddb] text-white" : "bg-[#f3eefb] text-[#7e57c2]"
             }`}
           >
@@ -93,14 +106,14 @@ export default function FeynmanChat({
         <button
           onClick={start}
           disabled={!metaId || loading}
-          className="mt-3 w-full rounded-xl bg-[#7e57c2] py-2.5 text-sm font-black text-white transition-colors hover:bg-[#6a48b0] disabled:opacity-50"
+          className={`mt-2 w-full rounded-xl bg-[#7e57c2] ${btnPy} text-sm font-black text-white transition-colors hover:bg-[#6a48b0] disabled:opacity-50`}
         >
           {loading ? "小同学正在想问题…" : `开始教「${curMeta?.name ?? "数学"}」`}
         </button>
       ) : (
-        <div className="mt-3">
+        <div className="mt-2">
           {/* 对话区 */}
-          <div className="max-h-72 space-y-2 overflow-y-auto rounded-xl bg-[#faf8f3] p-3">
+          <div className={`${dialogMax} space-y-2 overflow-y-auto rounded-xl bg-[#faf8f3] p-3`}>
             {history.map((m, i) => (
               <div key={i} className={`flex ${m.role === "kid" ? "justify-end" : "justify-start"}`}>
                 <div
@@ -127,7 +140,7 @@ export default function FeynmanChat({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder="你来讲讲看…"
-              className="min-w-0 flex-1 rounded-xl border-2 border-[#e3e0d8] px-3 py-2 text-sm outline-none focus:border-[#b39ddb]"
+              className={`min-w-0 flex-1 rounded-xl border-2 border-[#e3e0d8] px-3 ${inputPy} text-sm outline-none focus:border-[#b39ddb]`}
             />
             <button
               onClick={send}

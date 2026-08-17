@@ -23,7 +23,6 @@ const BADGE_COLOR: Record<string, string> = {
 export default function AskFlow({
   questions,
   sparks,
-  todayCount,
   rewards,
   aiConfigured,
   recentMetas,
@@ -51,7 +50,6 @@ export default function AskFlow({
   embedded?: boolean;
 }) {
   const [total, setTotal] = useState(sparks);
-  const [today, setToday] = useState(todayCount);
   const [answer, setAnswer] = useState<string | null>(null);
   const [askedLabel, setAskedLabel] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
@@ -114,7 +112,6 @@ export default function AskFlow({
     setLoading(null);
     setAnswer(r.answer);
     setTotal(r.total);
-    setToday(r.todayCount);
     if (r.ok) setGainSpark(Date.now());
   }
 
@@ -129,7 +126,6 @@ export default function AskFlow({
     setLoading(null);
     setAnswer(r.answer);
     setTotal(r.total);
-    setToday(r.todayCount);
     if (r.ok) {
       setGainSpark(Date.now());
     }
@@ -138,27 +134,20 @@ export default function AskFlow({
   return (
     <div className={embedded ? "flex h-full min-h-0 flex-col gap-2 overflow-hidden p-3" : "mx-auto max-w-3xl px-4 pt-5 lg:px-8"}>
       {/* 顶部 */}
-      <header className={`flex flex-wrap items-center justify-between gap-2 ${embedded ? "" : "gap-3"}`}>
-        <div className="card px-3 py-2">
-          <h1 className="font-story text-lg font-black text-[#2b3a4a] lg:text-xl">💬 跟小狐狸聊</h1>
-          {!embedded && (
-            <p className="mt-0.5 text-xs font-bold text-[#7a8a9a]">会提问的孩子最厉害！问问伙伴，赢取火花</p>
-          )}
-        </div>
+      <header className="flex items-center justify-between gap-2">
+        <h1 className="font-story text-base font-black text-[#2b3a4a]">💬 跟小狐狸聊</h1>
         <div className="flex items-center gap-2">
-          <span className="card px-3 py-2 text-sm font-black text-[#e2582e]">
-            ✨ {total} · 今日已问 {today} 次
-          </span>
-          <Link
-            href="/brain"
-            className={`btn px-3 py-2 text-sm text-white ${aiConfigured ? "" : "animate-pulse"}`}
-            style={{ background: aiConfigured ? "#3fb984" : "#7e57c2" }}
-            title="AI 在「设置 ⚙️」里连接（仅支持 DeepSeek）"
-          >
-            {aiConfigured ? "🤖 AI 已连接" : "🔑 连接 AI"}
-          </Link>
+          {!aiConfigured && (
+            <Link
+              href="/brain"
+              className="rounded-full bg-[#7e57c2] px-3 py-1 text-xs font-black text-white"
+              title="在「设置 ⚙️」里连接 AI 伙伴（仅需 DeepSeek）"
+            >
+              🔑 连接 AI
+            </Link>
+          )}
           {!embedded && (
-            <Link href="/" className="btn btn-white px-4 py-2 text-sm">
+            <Link href="/" className="btn btn-white px-3 py-1 text-xs">
               ← 地图
             </Link>
           )}
@@ -167,7 +156,7 @@ export default function AskFlow({
 
       {/* 分岛费曼 · 岛上小课堂（化身在某岛时聚焦该岛领域，按觉醒/等级分层） */}
       {currentMeta && (
-        <div className="card mt-3 border-2 border-[#8fd14f] p-3">
+        <div className="card mt-2 border-2 border-[#8fd14f] p-2.5">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🏝️</span>
             <div className="min-w-0 flex-1">
@@ -195,16 +184,16 @@ export default function AskFlow({
       )}
 
       {/* 伙伴 + 回答区 */}
-      <div className="mt-2 flex items-start gap-3">
-        <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-4 border-[#2b3a4a] bg-[#fff8e1] text-4xl shadow-[0_5px_0_rgba(43,58,74,0.25)]">
+      <div className="mt-2 flex items-start gap-2.5">
+        <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-4 border-[#2b3a4a] bg-[#fff8e1] text-3xl shadow-[0_5px_0_rgba(43,58,74,0.25)]">
           🦊
           {gainSpark && (
-            <span key={gainSpark} className="animate-spark pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 text-xl font-black text-[#ffb300]">
+            <span key={gainSpark} className="animate-spark pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 text-base font-black text-[#ffb300]">
               +1 ✨
             </span>
           )}
         </div>
-        <div className="card-dark relative min-h-[90px] flex-1 p-3">
+        <div className="card-dark relative min-h-[60px] flex-1 p-2.5">
           {loading ? (
             <div className="flex items-center gap-2 pt-3">
               <span className="text-base text-white">🦊 正在想一想</span>
@@ -246,7 +235,7 @@ export default function AskFlow({
       </div>
 
       {/* 自由提问 */}
-      <div className="card mt-3 flex flex-col gap-2 p-2.5 sm:flex-row sm:items-center">
+      <div className="card mt-2 flex flex-col gap-2 p-2 sm:flex-row sm:items-center">
         <input
           value={freeText}
           onChange={(e) => setFreeText(e.target.value)}
@@ -263,6 +252,17 @@ export default function AskFlow({
       {/* 问题卡片（可滚动） */}
       {embedded ? (
         <div className="ask-embedded-scroll mt-2 flex-1 overflow-y-auto pr-1">
+          {feynmanMetas.length > 0 && (
+            <div className="mb-2">
+              <FeynmanChat
+                metas={feynmanMetas}
+                defaultMetaId={currentMeta?.metaId}
+                tier={currentMeta?.tier}
+                key={currentMeta?.metaId ?? "recent"}
+                compact
+              />
+            </div>
+          )}
           <div className="grid grid-cols-1 gap-2">
             {questions.map((q) => (
               <button
@@ -294,16 +294,6 @@ export default function AskFlow({
               </button>
             ))}
           </div>
-          {feynmanMetas.length > 0 && (
-            <div className="mt-4">
-              <FeynmanChat
-                metas={feynmanMetas}
-                defaultMetaId={currentMeta?.metaId}
-                tier={currentMeta?.tier}
-                key={currentMeta?.metaId ?? "recent"}
-              />
-            </div>
-          )}
         </div>
       ) : (
         <>
@@ -380,12 +370,13 @@ export default function AskFlow({
 
             {/* 费曼小课堂：当小老师，教 AI 学数学（默认聚焦当前岛元认知，按分层解锁） */}
             {feynmanMetas.length > 0 && (
-              <div className="mt-6">
+              <div className="mt-4">
                 <FeynmanChat
                   metas={feynmanMetas}
                   defaultMetaId={currentMeta?.metaId}
                   tier={currentMeta?.tier}
                   key={currentMeta?.metaId ?? "recent"}
+                  compact
                 />
               </div>
             )}

@@ -46,10 +46,22 @@ const SYSTEM_PROMPT = `你是知识岛上的小狐狸伙伴，面对的是 6-10 
 4. 回答的最后，用一个小问题引导小朋友继续思考
 5. 涉及不安全或不适内容时，温柔地转移话题`;
 
-/** 调用 AI（OpenAI 兼容 chat/completions）；失败返回 null，由调用方回退题库 */
-export async function askAi(question: string, kidName: string): Promise<string | null> {
+export type AskError = "unconfigured" | "timeout" | "network" | "http";
+export type AskResult =
+  | { ok: true; text: string }
+  | { ok: false; error: AskError };
+
+/**
+ * 调用 AI（OpenSeek 兼容 chat/completions）。
+ * 返回结构化结果（用 ok 字段区分）：成功给 text；失败给具体 error 类型，方便上层用儿童友好的语言解释：
+ *  - unconfigured：未配置 API Key
+ *  - timeout：网络太慢 / 超时
+ *  - network：连不上（断网 / DNS / CORS 等）
+ *  - http：接口返回了错误状态码
+ */
+export async function askAi(question: string, kidName: string): Promise<AskResult> {
   const cfg = getAiConfig();
-  if (!cfg) return null;
+  if (!cfg) return { ok: false, error: "unconfigured" };
   try {
     const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
       method: "POST",
@@ -67,12 +79,13 @@ export async function askAi(question: string, kidName: string): Promise<string |
       }),
       signal: AbortSignal.timeout(20000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { ok: false, error: "http" };
     const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
     const text = data.choices?.[0]?.message?.content?.trim();
-    return text || null;
-  } catch {
-    return null;
+    return text ? { ok: true, text } : { ok: false, error: "http" };
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "TimeoutError") return { ok: false, error: "timeout" };
+    return { ok: false, error: "network" };
   }
 }
 
