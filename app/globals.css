@@ -27,12 +27,33 @@
   --shadow-float: 0 12px 32px rgba(120, 216, 216, 0.2);
 }
 
+/* ===== 小学生友好的尺寸规范（PR1）
+   - 触控目标最小 56×56 CSS px（儿童指尖 ~12mm）
+   - 正文 18px / 标题 30px / 按钮 18px
+   - 全局 :root 变量，方便后续再调   ===== */
+:root {
+  --tap-min: 56px;       /* 最小触控目标 */
+  --fs-body: 18px;       /* 正文 */
+  --fs-h1: 30px;         /* 一级标题 */
+  --fs-h2: 24px;         /* 二级标题 */
+  --fs-btn: 18px;        /* 按钮字号 */
+  --fs-icon-lg: 32px;    /* 大图标 */
+  --fs-icon-md: 24px;    /* 中图标 */
+  --pad-card: 20px;      /* 卡片内边距 */
+}
+
 body {
   color: var(--color-ink);
   font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui,
     -apple-system, "Segoe UI", sans-serif;
   background: #fdfceb;
+  font-size: var(--fs-body);
+  line-height: 1.6;
 }
+
+/* ===== 大尺寸标题字体（沿用童书圆体） ===== */
+h1, .text-h1 { font-size: var(--fs-h1); font-weight: 700; line-height: 1.3; }
+h2, .text-h2 { font-size: var(--fs-h2); font-weight: 600; line-height: 1.4; }
 
 /* ===== 童书字体类（站酷快乐体 ZCOOL KuaiLe：圆润/手写感，适合标题与 UI 强调） ===== */
 .font-story {
@@ -136,10 +157,11 @@ body {
 /* ============================================================
    基础组件类（重命名自 .pixel-panel / .pixel-btn）
    视觉规则原样保留，本轮仅做类名对齐（pixel-* → card / btn）
-   下一步可在此基础上做更激进的手绘风改造。
+   下一轮可在此基础上做更激进的手绘风改造。
    ============================================================ */
 
-/* 面板：米白底 + 细描边 + 圆角 + 柔和硬阴影 */
+/* 面板：米白底 + 细描边 + 圆角 + 柔和硬阴影
+   padding 由用户用 Tailwind 显式指定（p-5 / px-4 py-2 等），避免覆盖 */
 .card {
   background: #fffdf5;
   border: 3px solid #2b3a4a;
@@ -154,12 +176,22 @@ body {
   box-shadow: 0 5px 0 rgba(16, 24, 34, 0.35);
 }
 
-/* 按钮：圆角胶囊 + 按下有"咔哒"下沉感（保留原手感） */
+/* 按钮：圆角胶囊 + 按下有"咔哒"下沉感（保留原手感）
+   升级尺寸：最小 56×56 CSS px，正文 18px（小学生友好） */
 .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--tap-min);
+  min-width: var(--tap-min);
+  padding: 12px 20px;
   border: 3px solid #2b3a4a;
   border-radius: 16px;
   box-shadow: 0 4px 0 #2b3a4a;
   font-weight: 800;
+  font-size: var(--fs-btn);
+  line-height: 1.2;
   transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
   user-select: none;
   cursor: pointer;
