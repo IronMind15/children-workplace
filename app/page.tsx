@@ -5,7 +5,6 @@ import {
   getExplorer,
   getMonsters,
   getInternalizedMetas,
-  getBrainSettings,
   getMetas,
   getEvolutionEdges,
   getSpirit,
@@ -17,11 +16,9 @@ import {
   getMeta,
 } from "@/lib/repo";
 import { getSparkStats, checkAwakenings } from "@/lib/game";
-import { welcomeGuide } from "@/lib/brain";
 import { getAiConfig } from "@/lib/ai";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Guide from "@/components/Guide";
 import TopShell from "@/components/TopShell";
 import SettingsEntry from "@/components/SettingsEntry";
 import TestTools from "@/components/TestTools";
@@ -114,7 +111,6 @@ export default function Home() {
   }
 
   const metas = getInternalizedMetas();
-  const brain = getBrainSettings();
   const avatar = explorer.name.split(" ").pop() ?? "🧭";
 
   // 神秘小怪奖励表（AskPanel 用）
@@ -193,19 +189,14 @@ export default function Home() {
         <LayoutSwitcher
           mode={(getConfig("layout_mode", "auto") as "auto" | "tabs" | "split")}
           map={
-            <div>
-              <WorldMap
-                nodes={worldNodes}
-                edges={worldEdges}
-                islandData={islandData}
-                avatar={avatar}
-                initialIsland={island}
-                pageLabels={getWorldPages(layout).map((p) => p.label)}
-              />
-              <div className="mt-4 px-3 lg:px-0">
-                <Guide message={welcomeGuide(explorer.name.split(" ")[0], island, brain)} />
-              </div>
-            </div>
+            <WorldMap
+              nodes={worldNodes}
+              edges={worldEdges}
+              islandData={islandData}
+              avatar={avatar}
+              initialIsland={island}
+              pageLabels={getWorldPages(layout).map((p) => p.label)}
+            />
           }
           ai={
             <AskPanel

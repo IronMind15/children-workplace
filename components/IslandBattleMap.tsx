@@ -133,7 +133,6 @@ export default function IslandBattleMap({
   hiddenMonsters = [],
   bosses,
   islandLevel = 1,
-  avatar,
 }: {
   island: string;
   minions: MapMonster[];
@@ -141,7 +140,6 @@ export default function IslandBattleMap({
   hiddenMonsters?: MapMonster[];
   bosses: MapBoss[];
   islandLevel?: number;
-  avatar: string;
 }) {
   const theme = themeOf(island);
   const bg = getIslandBg(island);
@@ -256,16 +254,6 @@ export default function IslandBattleMap({
               </div>
             </div>
           )}
-        </div>
-
-        {/* 玩家化身：站在岛中上 */}
-        <div className="absolute left-[10%] top-[6%] z-20 flex flex-col items-center">
-          <span className="mb-1 rounded-md border-2 border-[#2b3a4a] bg-white px-2 py-0.5 text-xs font-bold text-[#2b3a4a] shadow-[0_2px_0_rgba(43,58,74,0.4)]">
-            我
-          </span>
-          <span className="flex h-12 w-12 items-center justify-center rounded-lg border-4 border-[#2b3a4a] bg-[#6ec6ff] text-2xl shadow-[0_4px_0_rgba(43,58,74,0.4)] walk-bob">
-            {avatar}
-          </span>
         </div>
       </div>
 

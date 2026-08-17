@@ -86,27 +86,37 @@ export default function AskPanel({
   }
 
   // 拖动（仅 minimized 时使用，浮标可拖到屏幕任意位置）
-  const dragRef = useRef<{ ox: number; oy: number; px: number; py: number } | null>(null);
+  // 用 moved 标记区分「拖动」vs「单击」：
+  //  - onPointerDown 记录起点
+  //  - onPointerMove 累计位移；超过 5px 视为拖动
+  //  - onPointerUp 提交：moved=true → 只保存位置；moved=false → 展开面板
+  const DRAG_THRESHOLD = 5;
+  const dragRef = useRef<{ ox: number; oy: number; px: number; py: number; moved: boolean } | null>(null);
 
   function onPointerDown(e: React.PointerEvent) {
     if (!minimized) return;
     e.preventDefault();
     (e.target as Element).setPointerCapture?.(e.pointerId);
-    dragRef.current = { ox: e.clientX, oy: e.clientY, px: pos.x, py: pos.y };
+    dragRef.current = { ox: e.clientX, oy: e.clientY, px: pos.x, py: pos.y, moved: false };
   }
 
   function onPointerMove(e: React.PointerEvent) {
     const d = dragRef.current;
     if (!d) return;
-    const nx = d.px + (e.clientX - d.ox);
-    const ny = d.py + (e.clientY - d.oy);
-    setPos({ x: nx, y: ny });
+    const dx = e.clientX - d.ox;
+    const dy = e.clientY - d.oy;
+    if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
+      d.moved = true;
+      setPos({ x: d.px + dx, y: d.py + dy });
+    }
   }
 
   function onPointerUp() {
-    if (dragRef.current) {
-      dragRef.current = null;
-      // 限制到视口内
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (!d) return;
+    if (d.moved) {
+      // 拖动结束：把位置限制在视口内 + 持久化
       setPos((p) => {
         const w = typeof window === "undefined" ? 0 : window.innerWidth - 64;
         const h = typeof window === "undefined" ? 0 : window.innerHeight - 64;
@@ -116,7 +126,10 @@ export default function AskPanel({
         savePos(out);
         return out;
       });
+      return; // 拖动：禁止触发展开
     }
+    // 单击：展开
+    toggleMin();
   }
 
   if (!ready) {
@@ -129,7 +142,6 @@ export default function AskPanel({
     return (
       <button
         type="button"
-        onClick={toggleMin}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
