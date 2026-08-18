@@ -66,3 +66,7 @@ docs/奥数题目*
 
 # electron-builder 打包输出（便携 exe 等大产物，不入库）
 /dist/
+
+# 外部打包/测试工具产物（源码归档 zip、etest 测试目录，不入库）
+/.etest2/
+知识岛-源代码-*.zip

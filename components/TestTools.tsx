@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   resetSparks,
@@ -19,27 +19,60 @@ import {
   getGuardOverview,
 } from "@/lib/actions";
 
+type FeatureItem = {
+  icon: string;
+  title: string;
+  desc: string;
+};
+
+const FEATURES: FeatureItem[] = [
+  { icon: "🏝️", title: "群岛 / 大地图", desc: "双视图探索 29 座知识岛，按 7 大主题分页，解锁进化链。" },
+  { icon: "🦊", title: "小狐狸 AI 助手", desc: "不懂就问，随时讲解题意、总结方法，支持错题本综合解析。" },
+  { icon: "👾", title: "驯服小怪", desc: "选择合适元认知，答对题目即可驯服精灵、获得火花。" },
+  { icon: "🐲", title: "净化 Boss", desc: "用已驯服的精灵挑战 Boss，答对即可净化并解锁新本领。" },
+  { icon: "✨", title: "精灵觉醒", desc: "精灵等级提升后触发性质觉醒，点亮 30 条数学性质。" },
+  { icon: "📒", title: "错题本", desc: "同一题只记一次，按知识点分组统计错次，小狐狸给练习建议。" },
+  { icon: "🧭", title: "新手教程", desc: "小狐狸 + 小小探险家对话式引导，首次使用自动教学，设置可重看。" },
+  { icon: "🏰", title: "终章决战", desc: "挑战暗影终焉岛，体验新型 HTML 小游戏战斗。" },
+  { icon: "🗺️", title: "全岛总览", desc: "查看 29 岛进化关系、解锁进度，一键跳回指定岛屿。" },
+  { icon: "🎖️", title: "探险家等级", desc: "净化数 + 火花数双轨晋升，从海岛新丁成长为知识岛屿主。" },
+];
+
+type PageKey = "showcase" | "data" | "island" | "config" | "guard" | "reset";
+
+const PAGES: { key: PageKey; label: string; icon: string }[] = [
+  { key: "showcase", label: "展示功能", icon: "✨" },
+  { key: "data", label: "数据", icon: "🔄" },
+  { key: "island", label: "岛屿", icon: "🏰" },
+  { key: "config", label: "配置", icon: "⚙️" },
+  { key: "guard", label: "守卫", icon: "🛡️" },
+  { key: "reset", label: "重置", icon: "🗑️" },
+];
+
 /**
- * 测试工具（demo 专用）：浮动在左下角
- * - 🔄 刷新：强制重新拉取服务端数据
- * - ♻️ 清空火花：重置好奇心火花，验证神秘小怪的解锁/消失
- * - 🗑️ 重置全部：岛屿解锁、Boss 净化、精灵进化、火花全部归零
- * - 🏰 岛屿档位：一键设岛档位 / 全岛拉满（模拟守卫打赢 → 解锁进阶练习）
- * - ⚙️ config：参数化数值调节（升级场次 / 难度权重 / 卡关阈值）
+ * 测试工具（demo 专用）—— 翻页式面板
+ * - 不再是从左下角向上长条展开，而是居中可翻页卡片
+ * - 新增「展示功能」页，罗列知识岛主要玩法
  */
 export default function TestTools() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [page, setPage] = useState<PageKey>("showcase");
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState<string | null>(null); // null | 'reset' | 'unlock'
+  const [confirming, setConfirming] = useState<string | null>(null);
   const [diff, setDiff] = useState<number | null>(null);
   const [islands, setIslands] = useState<string[]>([]);
   const [selIsland, setSelIsland] = useState("");
   const [config, setConfig] = useState<Record<string, string>>({});
   const [guards, setGuards] = useState<{ id: string; name: string; island: string; required_metas: string[]; required_level: number; visible: boolean }[]>([]);
 
-  /** 打开时预载：岛列表 + config 当前值 + 守卫总览 */
+  useEffect(() => {
+    if (!open) return;
+    getDifficulty().then(setDiff);
+    load();
+  }, [open]);
+
   async function load() {
     const [is, cfg, gds] = await Promise.all([getIslandsAction(), getConfigAction(), getGuardOverview()]);
     setIslands(is);
@@ -48,7 +81,6 @@ export default function TestTools() {
     setGuards(gds);
   }
 
-  /** 让所选岛的守卫现身（可反复测 6 套外观 + 守卫战） */
   function spawnGuards(island?: string) {
     startTransition(async () => {
       await spawnGuardsForTest(island);
@@ -59,7 +91,6 @@ export default function TestTools() {
     });
   }
 
-  /** 清空所有觉醒 → 已打赢消失的守卫可再次现身 */
   function clearAwaken() {
     startTransition(async () => {
       await clearAllAwakenings();
@@ -95,7 +126,6 @@ export default function TestTools() {
     });
   }
 
-  /** 一键解锁全部内容（demo 体验模式：保留进度，补齐 29 精灵 + 30 觉醒 + 全岛满级，两步确认） */
   function unlockAll() {
     if (confirming !== "unlock") {
       setConfirming("unlock");
@@ -124,7 +154,6 @@ export default function TestTools() {
     flash("已刷新服务端数据");
   }
 
-  /** 手动微调难度（±1）：整体难度 = 已解锁岛数 + 偏置 */
   function bump(delta: number) {
     startTransition(async () => {
       try {
@@ -152,8 +181,6 @@ export default function TestTools() {
   }
 
   function resetAll() {
-    // 两步确认：先点一次进入确认态，再点一次才真正执行
-    // （避免误触，且不依赖常被内嵌浏览器屏蔽的 window.confirm）
     if (confirming !== "reset") {
       setConfirming("reset");
       flash("再次点击「确认重置」即清空全部进度");
@@ -163,7 +190,6 @@ export default function TestTools() {
     startTransition(async () => {
       try {
         await resetProgress();
-        // 硬刷新兜底：绕过一切客户端缓存，确保各页面拿到重置后的最新数据
         router.refresh();
         window.location.href = "/";
       } catch {
@@ -177,223 +203,263 @@ export default function TestTools() {
     setTimeout(() => setMsg(null), 1600);
   }
 
+  function navigate(delta: number) {
+    const idx = PAGES.findIndex((p) => p.key === page);
+    const next = Math.min(Math.max(idx + delta, 0), PAGES.length - 1);
+    setPage(PAGES[next].key);
+  }
+
   return (
-    <div className="fixed bottom-24 left-3 z-50 flex flex-col items-start gap-2">
-      {msg && (
-        <span className="animate-pop rounded-md border-2 border-[#2b3a4a] bg-[#22303f] px-2 py-1 text-xs font-bold text-white shadow-md">
-          {msg}
-        </span>
-      )}
-      {open && (
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={refresh}
-            className="btn btn-white px-3 py-1.5 text-xs shadow-md"
-            title="强制重新拉取服务端数据"
-          >
-            🔄 刷新数据
-          </button>
-          <button
-            onClick={clear}
-            disabled={pending}
-            className="btn btn-white px-3 py-1.5 text-xs shadow-md disabled:opacity-60"
-            title="清空好奇心火花（神秘小怪会重新锁上）"
-          >
-            {pending ? "清理中…" : "♻️ 清空火花"}
-          </button>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => bump(-1)}
-              disabled={pending}
-              className="btn btn-white px-2 py-1.5 text-xs shadow-md disabled:opacity-60"
-              title="整体难度下调一级（已解锁岛数不变，偏置 -1）"
-            >
-              ➖
-            </button>
-            <span
-              className="min-w-[58px] rounded border-2 border-[#2b3a4a] bg-[#22303f] px-1.5 py-1 text-center text-xs font-black text-white"
-              title="本岛难度 = 1 + 已开下游岛数 + 2×(精灵等级−1) + 手动偏置。精灵升级或本岛开了新岛都会让本岛变难"
-            >
-              难度 Lv.{diff ?? "?"}
-            </span>
-            <button
-              onClick={() => bump(1)}
-              disabled={pending}
-              className="btn btn-white px-2 py-1.5 text-xs shadow-md disabled:opacity-60"
-              title="整体难度上调一级（已解锁岛数不变，偏置 +1）"
-            >
-              ➕
-            </button>
-          </div>
-
-          {/* 第二阶段：岛屿档位 + 精灵等级 + config（觉醒系统演示） */}
-          <div className="w-56 rounded-lg border-2 border-[#ffb300] bg-[#fff8e1] p-2">
-            <p className="mb-1.5 text-[11px] font-black text-[#a66d00]">🏰 岛屿档位（守卫打赢→升级）</p>
-            <div className="flex items-center gap-1">
-              <select
-                value={selIsland}
-                onChange={(e) => setSelIsland(e.target.value)}
-                className="min-w-0 flex-1 rounded border-2 border-[#2b3a4a] bg-white px-1 py-1 text-xs font-bold text-[#2b3a4a]"
-              >
-                {islands.map((i) => (
-                  <option key={i} value={i}>
-                    {i}
-                  </option>
-                ))}
-              </select>
-              {[2, 3, 4].map((lv) => (
-                <button
-                  key={lv}
-                  onClick={() => setIslandLv(lv)}
-                  disabled={pending}
-                  className="btn btn-white px-1.5 py-1 text-xs shadow disabled:opacity-60"
-                >
-                  Lv{lv}
-                </button>
-              ))}
-            </div>
-            <div className="mt-1.5 flex gap-1">
-              <button
-                onClick={() => allIslands(4)}
-                disabled={pending}
-                className="btn px-1.5 py-1 text-xs text-white shadow disabled:opacity-60"
-                style={{ background: "#e2582e" }}
-              >
-                🚀 全岛拉满
-              </button>
-              <button
-                onClick={pullSpirits}
-                disabled={pending}
-                className="btn px-1.5 py-1 text-xs text-white shadow disabled:opacity-60"
-                style={{ background: "#185fa5" }}
-                title="一键拉满所有精灵等级 → 触发全部觉醒广播"
-              >
-                ✨ 拉精灵等级
-              </button>
-            </div>
-          </div>
-
-          <div className="w-56 rounded-lg border-2 border-[#8a97a5] bg-[#f1f4f7] p-2">
-            <p className="mb-1.5 text-[11px] font-black text-[#5f6b78]">⚙️ 数值调节（config）</p>
-            {(
-              [
-                ["xp_threshold", "升级场次"],
-                ["diff_a", "难度·下游岛权重"],
-                ["diff_b", "难度·精灵等级权重"],
-                ["boss_stuck_attempts", "卡关阈值"],
-                ["step_max", "每场上限"],
-              ] as const
-            ).map(([key, label]) => (
-              <div key={key} className="mb-1 flex items-center gap-1">
-                <span className="w-28 truncate text-[10px] font-bold text-[#7a8a9a]">{label}</span>
-                <input
-                  type="number"
-                  value={config[key] ?? ""}
-                  onChange={(e) => saveConfig(key, e.target.value)}
-                  className="w-16 rounded border-2 border-[#2b3a4a] bg-white px-1 py-0.5 text-xs font-bold text-[#2b3a4a]"
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* 守卫测试（v1.2.7）：一键让守卫现身，可反复测 6 套外观 + 守卫战 */}
-          <div className="w-56 rounded-lg border-2 border-[#b06ab3] bg-[#f9edfb] p-2">
-            <p className="mb-1.5 text-[11px] font-black text-[#8e4a96]">🛡️ 守卫测试（6 套外观）</p>
-            <div className="flex items-center gap-1">
-              <select
-                value={selIsland}
-                onChange={(e) => setSelIsland(e.target.value)}
-                className="min-w-0 flex-1 rounded border-2 border-[#2b3a4a] bg-white px-1 py-1 text-xs font-bold text-[#2b3a4a]"
-              >
-                {islands.map((i) => (
-                  <option key={i} value={i}>
-                    {i}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={() => spawnGuards(selIsland)}
-                disabled={pending}
-                className="btn px-1.5 py-1 text-xs text-white shadow disabled:opacity-60"
-                style={{ background: "#8e4a96" }}
-                title="把该岛守卫的前置精灵内化 + 拉等级，让守卫在岛上现身（可点击进入守卫战）"
-              >
-                🛡️ 现身
-              </button>
-            </div>
-            <div className="mt-1.5 flex gap-1">
-              <button
-                onClick={() => spawnGuards()}
-                disabled={pending}
-                className="btn px-1.5 py-1 text-xs text-white shadow disabled:opacity-60"
-                style={{ background: "#b06ab3" }}
-                title="让全部岛的守卫都现身（每个岛按群岛顺序循环用 6 套外观）"
-              >
-                🛡️🛡️ 全部现身
-              </button>
-              <button
-                onClick={clearAwaken}
-                disabled={pending}
-                className="btn px-1.5 py-1 text-xs text-white shadow disabled:opacity-60"
-                style={{ background: "#8a97a5" }}
-                title="清空所有觉醒记录，打赢消失的守卫可再次现身"
-              >
-                ♻️ 重置觉醒
-              </button>
-            </div>
-            {/* 守卫总览 */}
-            <div className="mt-1.5 max-h-32 overflow-y-auto rounded bg-white/70 p-1">
-              {guards.length === 0 ? (
-                <p className="text-[10px] font-bold text-[#7a8a9a]">加载中…</p>
-              ) : (
-                guards.map((g) => (
-                  <div key={g.id} className="flex items-center justify-between gap-1 px-0.5 py-0.5">
-                    <span className="min-w-0 flex-1 truncate text-[10px] font-bold text-[#2b3a4a]">
-                      {g.visible ? "🟢" : "⚪"} {g.name}
-                    </span>
-                    <span className="shrink-0 text-[9px] font-bold text-[#7a8a9a]">{g.island}</span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-          <button
-            onClick={resetAll}
-            disabled={pending}
-            className={`btn px-3 py-1.5 text-xs text-white shadow-md disabled:opacity-60 ${confirming === "reset" ? "animate-pulse" : ""}`}
-            style={{ background: confirming === "reset" ? "#c62828" : "#e2582e" }}
-            title="岛屿/Boss/精灵/火花全部归零，回到计数岛"
-          >
-            {confirming === "reset" ? "⚠️ 确认重置？" : "🗑️ 重置全部进度"}
-          </button>
-          <button
-            onClick={unlockAll}
-            disabled={pending}
-            className={`btn px-3 py-1.5 text-xs text-white shadow-md disabled:opacity-60 ${confirming === "unlock" ? "animate-pulse" : ""}`}
-            style={{ background: confirming === "unlock" ? "#185fa5" : "#1d9e75" }}
-            title="不动当前进度，直接补齐全部内容（29 精灵 + 30 觉醒 + 全岛满级），demo 体验模式"
-          >
-            {confirming === "unlock" ? "⚠️ 确认解锁全部？" : "🔓 一键解锁全部"}
-          </button>
-        </div>
-      )}
+    <>
+      {/* 触发按钮 */}
       <button
         onClick={() => {
-          setOpen((v) => {
-            const next = !v;
-            if (next) {
-              getDifficulty().then(setDiff);
-              load();
-            }
-            return next;
-          });
+          setOpen((v) => !v);
           setConfirming(null);
         }}
-        className="rounded-lg border-2 border-dashed border-[#7a8a9a] bg-white/80 px-2.5 py-1 text-xs font-black text-[#7a8a9a] shadow-md backdrop-blur hover:bg-white"
+        className="fixed bottom-24 left-3 z-50 rounded-xl border-3 border-[#2b3a4a] bg-white/90 px-3 py-2 text-sm font-black text-[#2b3a4a] shadow-card backdrop-blur transition-transform hover:scale-105"
         title="测试工具"
       >
         {open ? "× 关闭" : "🧪 测试"}
       </button>
-    </div>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setOpen(false);
+          }}
+        >
+          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-3xl border-4 border-[#2b3a4a] bg-[#fffdf5] shadow-2xl">
+            {/* 头部 */}
+            <div className="flex items-center justify-between border-b-2 border-[#fde9d0] px-5 py-3">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🧪</span>
+                <span className="text-xl font-black text-[#2b3a4a]">测试工具</span>
+                <span className="rounded-full bg-[#fde9d0] px-2 py-0.5 text-xs font-black text-[#a66d00]">DEMO</span>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#2b3a4a] bg-white text-lg font-black text-[#2b3a4a] shadow-sm transition-transform hover:scale-110"
+                title="关闭"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* 翻页标签 */}
+            <div className="flex gap-1 overflow-x-auto border-b border-[#ede4d2] bg-[#f8f4ea] px-3 py-2">
+              {PAGES.map((p) => (
+                <button
+                  key={p.key}
+                  onClick={() => setPage(p.key)}
+                  className={`shrink-0 rounded-full border-2 px-3 py-1.5 text-sm font-black transition-all ${
+                    page === p.key
+                      ? "border-[#2b3a4a] bg-[#f79228] text-white shadow-sm"
+                      : "border-[#c7d0d8] bg-white text-[#5f6b78] hover:border-[#2b3a4a]"
+                  }`}
+                >
+                  <span className="mr-1">{p.icon}</span>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* 内容区 */}
+            <div className="min-h-[280px] flex-1 overflow-y-auto p-5">
+              {msg && (
+                <div className="mb-4 rounded-lg border-2 border-[#2b3a4a] bg-[#22303f] px-3 py-2 text-center text-sm font-bold text-white shadow-md animate-pop">
+                  {msg}
+                </div>
+              )}
+
+              {page === "showcase" && (
+                <div>
+                  <h3 className="mb-1 text-lg font-black text-[#2b3a4a]">✨ 知识岛主要功能</h3>
+                  <p className="mb-4 text-sm text-[#7a8a9a]">下面是 App 当前已经落地的核心玩法。</p>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {FEATURES.map((f) => (
+                      <div
+                        key={f.title}
+                        className="flex gap-3 rounded-xl border-2 border-[#d7dee4] bg-white p-3 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fde9d0] text-xl">
+                          {f.icon}
+                        </span>
+                        <div>
+                          <p className="font-black text-[#2b3a4a]">{f.title}</p>
+                          <p className="text-xs leading-relaxed text-[#5f6b78]">{f.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {page === "data" && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-[#2b3a4a]">🔄 数据与难度</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={refresh} className="btn btn-white px-4 py-2 text-sm shadow-md">🔄 刷新数据</button>
+                    <button onClick={clear} disabled={pending} className="btn btn-white px-4 py-2 text-sm shadow-md disabled:opacity-60">♻️ 清空火花</button>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-xl border-2 border-[#d7dee4] bg-white p-3">
+                    <button onClick={() => bump(-1)} disabled={pending} className="btn btn-white h-10 w-10 px-0 py-0 text-lg shadow disabled:opacity-60">➖</button>
+                    <span className="min-w-[80px] rounded-lg border-2 border-[#2b3a4a] bg-[#22303f] px-3 py-2 text-center font-black text-white">
+                      难度 Lv.{diff ?? "?"}
+                    </span>
+                    <button onClick={() => bump(1)} disabled={pending} className="btn btn-white h-10 w-10 px-0 py-0 text-lg shadow disabled:opacity-60">➕</button>
+                    <span className="ml-2 text-xs text-[#7a8a9a]">已解锁岛数 + 手动偏置</span>
+                  </div>
+                </div>
+              )}
+
+              {page === "island" && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-[#2b3a4a]">🏰 岛屿与精灵</h3>
+                  <div className="rounded-xl border-2 border-[#ffb300] bg-[#fff8e1] p-3">
+                    <p className="mb-2 text-xs font-black text-[#a66d00]">选择岛屿并设置档位</p>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selIsland}
+                        onChange={(e) => setSelIsland(e.target.value)}
+                        className="min-w-0 flex-1 rounded-lg border-2 border-[#2b3a4a] bg-white px-2 py-2 text-sm font-bold text-[#2b3a4a]"
+                      >
+                        {islands.map((i) => (
+                          <option key={i} value={i}>{i}</option>
+                        ))}
+                      </select>
+                      {[2, 3, 4].map((lv) => (
+                        <button key={lv} onClick={() => setIslandLv(lv)} disabled={pending} className="btn btn-white px-3 py-2 text-sm shadow disabled:opacity-60">Lv{lv}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => allIslands(4)} disabled={pending} className="btn px-4 py-2 text-sm text-white shadow disabled:opacity-60" style={{ background: "#e2582e" }}>🚀 全岛拉满</button>
+                    <button onClick={pullSpirits} disabled={pending} className="btn px-4 py-2 text-sm text-white shadow disabled:opacity-60" style={{ background: "#185fa5" }}>✨ 拉精灵等级</button>
+                  </div>
+                </div>
+              )}
+
+              {page === "config" && (
+                <div className="space-y-3">
+                  <h3 className="text-lg font-black text-[#2b3a4a]">⚙️ 数值调节（config）</h3>
+                  <div className="rounded-xl border-2 border-[#8a97a5] bg-[#f1f4f7] p-3">
+                    {(
+                      [
+                        ["xp_threshold", "升级场次"],
+                        ["diff_a", "难度·下游岛权重"],
+                        ["diff_b", "难度·精灵等级权重"],
+                        ["boss_stuck_attempts", "卡关阈值"],
+                        ["step_max", "每场上限"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <div key={key} className="mb-2 flex items-center gap-2 last:mb-0">
+                        <span className="w-32 text-xs font-bold text-[#5f6b78]">{label}</span>
+                        <input
+                          type="number"
+                          value={config[key] ?? ""}
+                          onChange={(e) => saveConfig(key, e.target.value)}
+                          className="w-24 rounded-lg border-2 border-[#2b3a4a] bg-white px-2 py-1 text-sm font-bold text-[#2b3a4a]"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {page === "guard" && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-[#2b3a4a]">🛡️ 守卫测试</h3>
+                  <div className="flex items-center gap-2 rounded-xl border-2 border-[#b06ab3] bg-[#f9edfb] p-3">
+                    <select
+                      value={selIsland}
+                      onChange={(e) => setSelIsland(e.target.value)}
+                      className="min-w-0 flex-1 rounded-lg border-2 border-[#2b3a4a] bg-white px-2 py-2 text-sm font-bold text-[#2b3a4a]"
+                    >
+                      {islands.map((i) => (
+                        <option key={i} value={i}>{i}</option>
+                      ))}
+                    </select>
+                    <button onClick={() => spawnGuards(selIsland)} disabled={pending} className="btn px-3 py-2 text-sm text-white shadow disabled:opacity-60" style={{ background: "#8e4a96" }}>🛡️ 现身</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => spawnGuards()} disabled={pending} className="btn px-4 py-2 text-sm text-white shadow disabled:opacity-60" style={{ background: "#b06ab3" }}>🛡️🛡️ 全部现身</button>
+                    <button onClick={clearAwaken} disabled={pending} className="btn px-4 py-2 text-sm text-white shadow disabled:opacity-60" style={{ background: "#8a97a5" }}>♻️ 重置觉醒</button>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto rounded-xl border-2 border-[#d7dee4] bg-white p-2">
+                    {guards.length === 0 ? (
+                      <p className="p-2 text-xs font-bold text-[#7a8a9a]">加载中…</p>
+                    ) : (
+                      guards.map((g) => (
+                        <div key={g.id} className="flex items-center justify-between px-2 py-1 text-xs">
+                          <span className="font-bold text-[#2b3a4a]">{g.visible ? "🟢" : "⚪"} {g.name}</span>
+                          <span className="text-[#7a8a9a]">{g.island}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {page === "reset" && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-[#2b3a4a]">🗑️ 重置 / 解锁</h3>
+                  <div className="rounded-xl border-2 border-red-200 bg-red-50 p-4">
+                    <p className="mb-3 text-sm font-bold text-red-700">⚠️ 以下操作会改变玩家数据，请谨慎使用。</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={resetAll}
+                        disabled={pending}
+                        className={`btn px-4 py-2 text-sm text-white shadow-md disabled:opacity-60 ${confirming === "reset" ? "animate-pulse" : ""}`}
+                        style={{ background: confirming === "reset" ? "#c62828" : "#e2582e" }}
+                      >
+                        {confirming === "reset" ? "⚠️ 确认重置？" : "🗑️ 重置全部进度"}
+                      </button>
+                      <button
+                        onClick={unlockAll}
+                        disabled={pending}
+                        className={`btn px-4 py-2 text-sm text-white shadow-md disabled:opacity-60 ${confirming === "unlock" ? "animate-pulse" : ""}`}
+                        style={{ background: confirming === "unlock" ? "#185fa5" : "#1d9e75" }}
+                      >
+                        {confirming === "unlock" ? "⚠️ 确认解锁全部？" : "🔓 一键解锁全部"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 底部翻页 */}
+            <div className="flex items-center justify-between border-t-2 border-[#fde9d0] px-5 py-3">
+              <button
+                onClick={() => navigate(-1)}
+                disabled={PAGES.findIndex((p) => p.key === page) === 0}
+                className="flex items-center gap-1 rounded-xl border-2 border-[#2b3a4a] bg-white px-3 py-1.5 text-sm font-black text-[#2b3a4a] shadow-sm disabled:opacity-40"
+              >
+                ← 上一页
+              </button>
+              <div className="flex gap-1.5">
+                {PAGES.map((p, i) => (
+                  <button
+                    key={p.key}
+                    onClick={() => setPage(p.key)}
+                    aria-label={`第 ${i + 1} 页 ${p.label}`}
+                    className={`h-3 rounded-full transition-all ${page === p.key ? "w-6 bg-[#f79228]" : "w-3 bg-[#d7dee4]"}`}
+                  />
+                ))}
+              </div>
+              <button
+                onClick={() => navigate(1)}
+                disabled={PAGES.findIndex((p) => p.key === page) === PAGES.length - 1}
+                className="flex items-center gap-1 rounded-xl border-2 border-[#2b3a4a] bg-white px-3 py-1.5 text-sm font-black text-[#2b3a4a] shadow-sm disabled:opacity-40"
+              >
+                下一页 →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

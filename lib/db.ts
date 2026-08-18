@@ -133,7 +133,12 @@ if (!isBuildPhase) {
     user_answer TEXT NOT NULL,
     correct_answer TEXT NOT NULL,
     created_at TEXT NOT NULL,
-    resolved INTEGER NOT NULL DEFAULT 0
+    resolved INTEGER NOT NULL DEFAULT 0,
+    resolved_at TEXT,
+    step_json TEXT,
+    review_count INTEGER NOT NULL DEFAULT 0,
+    kp TEXT,
+    wrong_count INTEGER NOT NULL DEFAULT 1
   );
 `);
 
@@ -220,9 +225,10 @@ if (!isBuildPhase) {
   rebuild(
     "mistake",
     `id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, meta_id TEXT NOT NULL, question TEXT NOT NULL,
-     user_answer TEXT NOT NULL, correct_answer TEXT NOT NULL, created_at TEXT NOT NULL, resolved INTEGER NOT NULL DEFAULT 0`,
-    `INSERT INTO mistake_new (id, user_id, meta_id, question, user_answer, correct_answer, created_at, resolved)
-     SELECT id, 'default', meta_id, question, user_answer, correct_answer, created_at, resolved FROM mistake`
+     user_answer TEXT NOT NULL, correct_answer TEXT NOT NULL, created_at TEXT NOT NULL, resolved INTEGER NOT NULL DEFAULT 0,
+     resolved_at TEXT, step_json TEXT, review_count INTEGER NOT NULL DEFAULT 0, kp TEXT, wrong_count INTEGER NOT NULL DEFAULT 1`,
+    `INSERT INTO mistake_new (id, user_id, meta_id, question, user_answer, correct_answer, created_at, resolved, resolved_at, step_json, review_count, kp, wrong_count)
+     SELECT id, 'default', meta_id, question, user_answer, correct_answer, created_at, resolved, NULL, NULL, 0, NULL, 1 FROM mistake`
   );
 
   // ============ 老库兼容 · explorer 列补齐（历史遗留 ALTER，幂等） ============
@@ -235,6 +241,23 @@ if (!isBuildPhase) {
     ["title", "ALTER TABLE explorer ADD COLUMN title TEXT"],
   ] as [string, string][]) {
     if (!hasColumn("explorer", col)) {
+      try {
+        db.exec(ddl);
+      } catch {
+        /* 忽略 */
+      }
+    }
+  }
+
+  // ============ 错题表扩展字段（v错题重做）：resolved_at / step_json / review_count ============
+  for (const [col, ddl] of [
+    ["resolved_at", "ALTER TABLE mistake ADD COLUMN resolved_at TEXT"],
+    ["step_json", "ALTER TABLE mistake ADD COLUMN step_json TEXT"],
+    ["review_count", "ALTER TABLE mistake ADD COLUMN review_count INTEGER NOT NULL DEFAULT 0"],
+    ["kp", "ALTER TABLE mistake ADD COLUMN kp TEXT"],
+    ["wrong_count", "ALTER TABLE mistake ADD COLUMN wrong_count INTEGER NOT NULL DEFAULT 1"],
+  ] as [string, string][]) {
+    if (!hasColumn("mistake", col)) {
       try {
         db.exec(ddl);
       } catch {

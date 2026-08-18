@@ -9,7 +9,7 @@
  *  - 高度等高：CSS Grid + items-stretch，两栏自动等高
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import WorldMap from "@/components/WorldMap";
 import WorldArchipelago from "@/components/WorldArchipelago";
@@ -19,6 +19,8 @@ import BossFlow from "@/components/BossFlow";
 import AskPanel from "@/components/AskPanel";
 import TutorialOverlay from "@/components/TutorialOverlay";
 import UiButton from "@/components/UiButton";
+import FinalBossRegion from "@/components/FinalBossRegion";
+import { EVIL_ISLAND_META_ID, EVIL_ISLAND_NAME } from "@/lib/worldMapData";
 import type { WorldNode, WorldEdge } from "@/components/WorldMap";
 import type { SolveStep } from "@/lib/types";
 import type { ChainNode, ChainEdge } from "@/components/EvolutionModal";
@@ -37,7 +39,8 @@ export type View =
   | { kind: "map" }
   | { kind: "island"; island: string }
   | { kind: "battle"; monsterId: string }
-  | { kind: "boss"; monsterId: string };
+  | { kind: "boss"; monsterId: string }
+  | { kind: "finalboss" };
 
 export default function HomeClient({
   view,
@@ -59,6 +62,7 @@ export default function HomeClient({
   brain,
   chainNodes,
   chainEdges,
+  finalbossGames,
 }: {
   view: View;
   worldNodes: WorldNode[];
@@ -109,6 +113,7 @@ export default function HomeClient({
   brain: BrainSettings;
   chainNodes: ChainNode[];
   chainEdges: ChainEdge[];
+  finalbossGames: { name: string; src: string }[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -129,6 +134,30 @@ export default function HomeClient({
     try {
       localStorage.setItem("kb:mapMode", m);
     } catch {}
+  }
+
+  // 大地图专用：在 29 座学习岛之外，叠加终章「暗影终焉岛」（仅大地图出现，群岛分页不包含）
+  const bigMapNodes = useMemo<WorldNode[]>(
+    () => [
+      ...worldNodes,
+      {
+        metaId: EVIL_ISLAND_META_ID,
+        island: EVIL_ISLAND_NAME,
+        x: 50,
+        y: 38,
+        depth: 0,
+        page: 0,
+        unlocked: true,
+        isCurrent: false,
+      },
+    ],
+    [worldNodes],
+  );
+
+  // 点击岛屿：邪恶岛特判 → 进入最终决战新区域；其余照常进入单岛
+  function pickIsland(island: string) {
+    if (island === EVIL_ISLAND_NAME) goTo({ kind: "finalboss" });
+    else goTo({ kind: "island", island });
   }
 
   // 新手引导：开启后返回主界面自动进入；或手动 ?tutorial=1 重看
@@ -158,8 +187,23 @@ export default function HomeClient({
     if (next.kind === "map") router.replace("/");
     else if (next.kind === "island") router.replace(`/?island=${encodeURIComponent(next.island)}`);
     else if (next.kind === "battle") router.replace(`/?battle=${encodeURIComponent(next.monsterId)}`);
-    else router.replace(`/?boss=${encodeURIComponent(next.monsterId)}`);
+    else if (next.kind === "boss") router.replace(`/?boss=${encodeURIComponent(next.monsterId)}`);
+    else router.replace("/?finalboss=1");
   }
+
+  // 教程引导：取第一只可打小怪 / 第一个 Boss，供「新手教程」一键去体验
+  const tutMinion = useMemo(() => {
+    for (const d of Object.values(islandData)) if (d.minions[0]) return d.minions[0].id;
+    return undefined;
+  }, [islandData]);
+  const tutBoss = useMemo(() => {
+    for (const d of Object.values(islandData)) if (d.bosses[0]) return d.bosses[0].id;
+    return undefined;
+  }, [islandData]);
+  const tutBattle = (id: string) => goTo({ kind: "battle", monsterId: id });
+  const tutBossGo = (id: string) => goTo({ kind: "boss", monsterId: id });
+  const tutMistakes = () => router.push("/mistakes");
+  const tutAsk = () => setAskMinimized(false);
 
   function locked(island: string) {
     setLockedHint(island);
@@ -200,17 +244,17 @@ export default function HomeClient({
               avatarSrc={avatarSrc}
               initialIsland={initialIsland}
               pageLabels={pageLabels}
-              onPickIsland={(island) => goTo({ kind: "island", island })}
+              onPickIsland={pickIsland}
               onLocked={locked}
             />
           ) : (
             <WorldMap
-              nodes={worldNodes}
+              nodes={bigMapNodes}
               edges={worldEdges}
               avatarSrc={avatarSrc}
               initialIsland={initialIsland}
               pageLabels={pageLabels}
-              onPickIsland={(island) => goTo({ kind: "island", island })}
+              onPickIsland={pickIsland}
               onLocked={locked}
             />
           )}
@@ -283,6 +327,14 @@ export default function HomeClient({
         />
       </div>
     );
+  } else if (view.kind === "finalboss") {
+    leftContent = (
+      <FinalBossRegion
+        avatarSrc={avatarSrc}
+        games={finalbossGames}
+        onExit={() => goTo({ kind: "map" })}
+      />
+    );
   } else {
     leftContent = (
       <div className="card p-8 text-center">
@@ -341,8 +393,20 @@ export default function HomeClient({
         />
       )}
 
-      {/* 新手引导浮层：返回主界面且已开启时自动进入 */}
-      {showTutorial && <TutorialOverlay avatarSrc={avatarSrc} onClose={closeTutorial} />}
+      {/* 新手引导浮层：返回主界面且已开启时自动进入；设置里可重看（reset） */}
+      {showTutorial && (
+        <TutorialOverlay
+          avatarSrc={avatarSrc}
+          firstMinion={tutMinion}
+          firstBoss={tutBoss}
+          onBattle={tutBattle}
+          onBoss={tutBossGo}
+          onMistakes={tutMistakes}
+          onOpenAsk={tutAsk}
+          onClose={closeTutorial}
+          reset={forceTutorial}
+        />
+      )}
     </div>
   );
 }

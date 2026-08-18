@@ -18,6 +18,28 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+// ============ 知识点（比元认知更细）标签 ============
+// 错题本按此分组：算术类按数值区间细分（如「加法·20以内」），其余回退到元认知名。
+const ARITH_NAME: Record<string, string> = {
+  "MK-02": "位值", "MK-03": "加法", "MK-04": "减法", "MK-05": "乘法", "MK-06": "除法",
+  "MK-07": "分数", "MK-08": "小数", "MK-09": "百分数", "MK-10": "负数", "MK-11": "比",
+  "MK-12": "比例", "MK-13": "字母表示数", "MK-14": "方程", "MK-22": "单位换算", "MK-23": "时间",
+};
+function bucketOf(maxVal: number): string {
+  if (maxVal <= 10) return "10以内";
+  if (maxVal <= 20) return "20以内";
+  if (maxVal <= 100) return "100以内";
+  return "100以上";
+}
+/** 给一道题算知识点标签：算术按区间，其余返回 undefined（recordMistake 回退到元认知名） */
+function deriveKp(metaId: string, step: SolveStep): string | undefined {
+  const name = ARITH_NAME[metaId];
+  if (!name) return undefined;
+  const nums = (step.prompt.match(/\d+/g) ?? []).map(Number);
+  const max = nums.length ? Math.max(...nums) : 0;
+  return `${name}·${bucketOf(max)}`;
+}
+
 // ============ 难度 ============
 let LEVEL = 1;
 /** 设置当前难度等级（由游戏进度/手动偏置决定） */
@@ -776,13 +798,23 @@ export function generateSteps(
   const steps: SolveStep[] = [];
   for (let i = 0; i < base; i++) {
     // 中后段穿插联手题（如果该岛有联手机制）
-    if (combo && i === Math.floor(base / 2)) steps.push(combo());
+    if (combo && i === Math.floor(base / 2)) {
+      const c = combo();
+      steps.push({ ...c, kp: deriveKp(metaId, c) });
+    }
     // 岛档位 ≥2：最后一招穿插觉醒题（用已觉醒的性质）
     else if ((opts?.islandLevel ?? 1) >= 2 && i === base - 1) {
       const pw = propertyStepFor(metaId, opts?.awakened);
-      steps.push(pw ?? gen());
+      if (pw) steps.push({ ...pw, kp: `✨ 觉醒·${ARITH_NAME[metaId] ?? metaId}` });
+      else {
+        const s = gen();
+        steps.push({ ...s, kp: deriveKp(metaId, s) });
+      }
     }
-    else steps.push(gen());
+    else {
+      const s = gen();
+      steps.push({ ...s, kp: deriveKp(metaId, s) });
+    }
   }
   return steps;
 }
@@ -923,7 +955,7 @@ const PROPERTY_OWNER: Record<string, string> = {
 /** 守卫战题目：由守卫对应性质生成（觉醒联手题带 requires / requires_properties）；无生成器则用 seed 兜底 steps */
 export function guardSteps(propertyId: string): SolveStep[] {
   const gen = PROPERTY_GENERATORS[propertyId];
-  if (gen) return [gen()];
+  if (gen) return [{ ...gen(), kp: "✨ 觉醒题" }];
   return [];
 }
 

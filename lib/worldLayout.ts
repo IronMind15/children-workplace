@@ -1,7 +1,7 @@
 import { getMetas, getEvolutionEdges } from "./repo";
-import { ISLAND_PAGE_MAP, PAGE_META, pageOf, pageOfIsland, getArchipelagoBg, PAGE_COUNT } from "./archipelagoLayout";
+import { ISLAND_PAGE_MAP, PAGE_META, pageOf, pageOfIsland, getArchipelagoBg, PAGE_COUNT, ARCHIPELAGO_COORDS } from "./archipelagoLayout";
 // 重新导出 archipelagoLayout 里的所有符号，保持外部调用方不变
-export { ISLAND_PAGE_MAP, PAGE_META, pageOf, pageOfIsland, getArchipelagoBg, PAGE_COUNT };
+export { ISLAND_PAGE_MAP, PAGE_META, pageOf, pageOfIsland, getArchipelagoBg, PAGE_COUNT, ARCHIPELAGO_COORDS };
 
 export type WorldCoord = { x: number; y: number; depth: number };
 
@@ -55,8 +55,10 @@ export function getWorldLayout(): Record<string, WorldCoord> {
   for (let d = 0; d <= maxDepth; d++) {
     const row = byDepth[d] ?? [];
     row.forEach((id, i) => {
-      const x = row.length <= 1 ? 50 : 8 + (i * 84) / (row.length - 1);
-      const y = 86 - d * (74 / maxDepth);
+      // 优先使用按群岛背景图标定的坐标；缺失时退回到 depth 算法兜底
+      const arch = ARCHIPELAGO_COORDS[id];
+      const x = arch?.x ?? (row.length <= 1 ? 50 : 8 + (i * 84) / (row.length - 1));
+      const y = arch?.y ?? 86 - d * (74 / maxDepth);
       coord[id] = { x, y, depth: d };
     });
   }

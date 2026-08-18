@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { travelToIsland } from "@/lib/actions";
 import UiButton, { UiTag } from "@/components/UiButton";
-import { WORLD_MAP_SRC, getUnifiedCoord } from "@/lib/worldMapData";
+import { WORLD_MAP_SRC, getUnifiedCoord, EVIL_ISLAND_META_ID, EVIL_ISLAND_NAME } from "@/lib/worldMapData";
+import { getUiIcon } from "@/lib/uiIcons";
 
 export type WorldNode = {
   metaId: string;
@@ -188,13 +189,31 @@ export default function WorldMap({
     setTransform(newTx, newTy, newScale);
   }
 
-  function handleWheel(e: React.WheelEvent) {
-    e.preventDefault();
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const factor = e.deltaY < 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
-    zoomAt(e.clientX - rect.left, e.clientY - rect.top, factor);
-  }
+  // 用原生 wheel 监听（passive:false）才能真正 preventDefault，
+  // 否则 React 合成事件在部分浏览器被当作 passive，滚轮会同时滚动整页
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    function onWheel(e: WheelEvent) {
+      if (!el) return;
+      // 仅在指针位于地图容器内时拦截，避免误吞页面其它滚动
+      const rect = el.getBoundingClientRect();
+      if (
+        e.clientX < rect.left ||
+        e.clientX > rect.right ||
+        e.clientY < rect.top ||
+        e.clientY > rect.bottom
+      ) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      const factor = e.deltaY < 0 ? ZOOM_FACTOR : 1 / ZOOM_FACTOR;
+      zoomAt(e.clientX - rect.left, e.clientY - rect.top, factor);
+    }
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   function beginDrag(clientX: number, clientY: number) {
     cancelInertia();
@@ -291,7 +310,8 @@ export default function WorldMap({
     onPickIsland(island);
   }
 
-  const unlockedCount = nodes.filter((n) => n.unlocked).length;
+  const unlockedCount = nodes.filter((n) => n.metaId !== EVIL_ISLAND_META_ID && n.unlocked).length;
+  const totalIslands = nodes.filter((n) => n.metaId !== EVIL_ISLAND_META_ID).length;
 
   const currentNode = useMemo(() => {
     return nodes.find((n) => n.island === initialIsland) ?? nodes.find((n) => n.isCurrent);
@@ -340,7 +360,7 @@ export default function WorldMap({
             <span className="text-2xl">🗺️</span>
             <span className="text-xl font-black text-[#2b3a4a]">数学世界地图</span>
             <span className="text-base font-bold text-[#7a8a9a]">
-              · 已点亮 {unlockedCount}/{nodes.length}
+              · 已点亮 {unlockedCount}/{totalIslands}
             </span>
           </div>
         </div>
@@ -362,7 +382,6 @@ export default function WorldMap({
               beginDrag(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top);
             }
           }}
-          onWheel={handleWheel}
         >
           {!loaded && !loadError && (
             <div className="absolute inset-0 flex items-center justify-center">
@@ -401,7 +420,33 @@ export default function WorldMap({
               {/* 岛屿节点 */}
               {nodes.map((n) => {
                 const coord = getUnifiedCoord(n.metaId);
+                const isEvil = n.metaId === EVIL_ISLAND_META_ID;
                 const locked = !n.unlocked;
+
+                // —— 终章 · 邪恶岛（最终大 Boss 老巢）：恒解锁、暗红魔气、专属样式 ——
+                if (isEvil) {
+                  return (
+                    <button
+                      key={n.metaId}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onClick={() => {
+                        enter(n.island);
+                      }}
+                      className="group absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"
+                      style={{ left: `${coord.x}%`, top: `${coord.y}%` }}
+                      title={"👿 " + EVIL_ISLAND_NAME + " · 通往最终决战"}
+                    >
+                      <span className="relative flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#7a1020] bg-[#1a0d12] shadow-[0_0_18px_rgba(220,40,60,0.95)] transition-transform group-hover:scale-125 animate-node-pulse">
+                        <span className="text-lg leading-none drop-shadow">👿</span>
+                      </span>
+                      <UiTag size="auto" locked={false} className="mt-1 text-base text-[#ff5d6c]">
+                        {EVIL_ISLAND_NAME}
+                      </UiTag>
+                    </button>
+                  );
+                }
+
                 return (
                   <button
                     key={n.metaId}
@@ -467,10 +512,10 @@ export default function WorldMap({
                   const rect = containerRef.current?.getBoundingClientRect();
                   if (rect) zoomAt(rect.width / 2, rect.height / 2, ZOOM_FACTOR);
                 }}
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f79228] text-2xl font-black text-white shadow-[0_3px_0_#c4620f] transition-transform active:translate-y-0.5 active:shadow-[0_1px_0_#c4620f] hover:scale-110"
+                className="flex h-10 w-10 items-center justify-center rounded-xl transition-transform active:translate-y-0.5 hover:scale-110"
                 aria-label="放大"
               >
-                +
+                <img src={getUiIcon("zoomIn")} alt="放大" className="h-full w-full object-contain drop-shadow-md" />
               </button>
               <div className="flex h-8 items-center justify-center text-sm font-black text-[#2b3a4a]">
                 {Math.round(scale * 100)}%
@@ -482,10 +527,10 @@ export default function WorldMap({
                   const rect = containerRef.current?.getBoundingClientRect();
                   if (rect) zoomAt(rect.width / 2, rect.height / 2, 1 / ZOOM_FACTOR);
                 }}
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7dd3fc] text-2xl font-black text-[#2b3a4a] shadow-[0_3px_0_#3b82b7] transition-transform active:translate-y-0.5 active:shadow-[0_1px_0_#3b82b7] hover:scale-110"
+                className="flex h-10 w-10 items-center justify-center rounded-xl transition-transform active:translate-y-0.5 hover:scale-110"
                 aria-label="缩小"
               >
-                −
+                <img src={getUiIcon("zoomOut")} alt="缩小" className="h-full w-full object-contain drop-shadow-md" />
               </button>
               <button
                 onMouseDown={(e) => e.stopPropagation()}

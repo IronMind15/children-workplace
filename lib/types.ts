@@ -80,6 +80,11 @@ export type Mistake = {
   correct_answer: string;
   created_at: string;
   resolved: number;
+  resolved_at?: string | null;   // 订正时间（重做答对）
+  step_json?: string | null;     // 出错那道题的完整 SolveStep（用于战斗里精准重做）
+  review_count?: number;         // 在战斗中被安排重做的次数
+  kp?: string | null;            // 知识点（比元认知更细，如「加法·20以内」「加法交换律」），错题本按此分组
+  wrong_count?: number;          // 同一道题累计做错次数（同题只记一行，累加错次）
 };
 
 // 解题步骤（steps 的 JSON 反序列化结构）
@@ -90,6 +95,10 @@ export type SolveStep = {
   requires?: string[];          // 该题需要的元认知（多只精灵联手）；缺省 = 战斗的 correct_meta
   requires_properties?: string[]; // 觉醒联手：要求已觉醒的性质（如 ["PP-05"]）
   explain?: string;             // 内置讲解文案（选错时弹出，结合具体题目数字演示正确思路）
+  // —— 错题重做注入专用 ——
+  isReview?: boolean;           // 该招式是「旧错题重做」
+  mistakeId?: number;           // 对应 mistake 表 id（答对后精准订正这一条）
+  kp?: string;                  // 知识点标签（更细于元认知），用于错题本按知识点分组
 };
 
 // ============ 第二阶段 · 属性策略 / 觉醒 ============

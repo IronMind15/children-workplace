@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>最终决战 · 契约验证桩</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at 50% 30%, #3a1622, #1a0d12); color: #fde9d0;
+    }
+    h1 { font-size: 22px; margin: 0; color: #ff5d6c; }
+    p { margin: 0; font-size: 14px; color: #fde9d0cc; }
+    .row { display: flex; gap: 12px; }
+    button {
+      font-size: 16px; font-weight: 800; padding: 12px 20px; border: none; border-radius: 12px;
+      cursor: pointer; transition: transform .1s;
+    }
+    button:active { transform: translateY(2px); }
+    .win { background: #f79228; color: #fff; box-shadow: 0 3px 0 #c96a14; }
+    .lose { background: #7a1020; color: #fff; box-shadow: 0 3px 0 #4a0a14; }
+    .ready { background: #ffd9a0; color: #2b3a4a; box-shadow: 0 3px 0 #c9a86a; }
+    .hint { font-size: 12px; color: #fde9d0aa; }
+  </style>
+</head>
+<body>
+  <h1>👿 最终决战 · 契约验证桩</h1>
+  <p>这是队友小游戏的接入占位。加载后自动发送 <code>finalboss:ready</code>，点按钮验证 win/lose。</p>
+  <div class="row">
+    <button class="ready" onclick="postReady()">发送 ready</button>
+    <button class="win" onclick="postWin()">击败 Boss (win)</button>
+    <button class="lose" onclick="postLose()">失败 (lose)</button>
+  </div>
+  <p class="hint">打开后请回知识岛看对应横幅是否出现。</p>
+
+  <script>
+    function postReady() {
+      window.parent.postMessage({ type: "finalboss:ready" }, "*");
+    }
+    function postWin() {
+      window.parent.postMessage({ type: "finalboss:win", score: 100 }, "*");
+    }
+    function postLose() {
+      window.parent.postMessage({ type: "finalboss:lose" }, "*");
+    }
+    // 加载即通知宿主就绪
+    window.addEventListener("load", postReady);
+  </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 {
   "name": "knowledge-island",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "知识岛 · 游戏化小学数学元认知学习应用（儿童友好，驯养 AI 伙伴）",
   "author": "IronMind15",
@@ -12,6 +12,10 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
+    "start:clean": "node scripts/server.mjs",
+    "dev:clean": "node scripts/server.mjs --dev",
+    "restart": "node scripts/server.mjs --build",
+    "stop": "node scripts/server.mjs --stop",
     "lint": "eslint",
     "electron:dev": "next build --webpack && python scripts/prepare-standalone.py && electron .",
     "electron:build": "next build --webpack && python scripts/prepare-standalone.py && electron-builder --win portable",
@@ -45,6 +49,10 @@
       "artifactName": "知识岛-v${version}-portable.exe"
     },
     "asar": true,
+    "asarUnpack": [
+      ".next/standalone/**",
+      "electron/icon.ico"
+    ],
     "npmRebuild": false
   },
   "dependencies": {},

@@ -5,7 +5,7 @@ import {
   getConfigNum, bumpIslandLevel, bumpBossAttempt, getPurifiedBossCount, setExplorerLevelTitle,
   getGuards as getAllGuards,
 } from "./repo";
-import type { GuardInfo, Property } from "./types";
+import type { GuardInfo, Property, SolveStep } from "./types";
 import { computeRankLevel, getRankByLevel } from "./ranks";
 import { getCurrentUser } from "./session";
 
@@ -185,15 +185,193 @@ export function purify(monsterId: string): { ok: boolean; targetMeta?: string; n
 
 // ============ 错题集 ============
 
-/** 记录一次答错（选错时调用，写入错题集） */
-export function recordMistake(metaId: string, question: string, userAnswer: string, correctAnswer: string): void {
-  db.prepare("INSERT INTO mistake (user_id, meta_id, question, user_answer, correct_answer, created_at) VALUES (?, ?, ?, ?, ?, ?)")
-    .run(getCurrentUser(), metaId, question, userAnswer, correctAnswer, new Date().toISOString());
+/** 成长日志统一写入（其他模块复用，避免重复拼接 SQL） */
+export function recordGrowth(event: string, detail: unknown): void {
+  db.prepare("INSERT INTO growth_log (user_id, event, detail) VALUES (?, ?, ?)").run(
+    getCurrentUser(),
+    event,
+    detail == null ? null : JSON.stringify(detail)
+  );
 }
 
-/** 重做答对后，把该知识点的未掌握错题标记为已掌握 */
+/**
+ * 记录一次答错（选错时调用）。
+ * - 同一道题只记一行：按「用户 + 元认知 + 题干（忽略大小写/首尾空格）」去重；
+ *   若该题干已存在错题库，则「错次 +1、刷新答案快照、重新打开（刚又错了）」而非新增行。
+ * - 知识点 kp：优先用题目自带的 kp（更细，如「加法·20以内」），否则回退到元认知名。
+ */
+export function recordMistake(
+  metaId: string,
+  question: string,
+  userAnswer: string,
+  correctAnswer: string,
+  stepJson?: string | null,
+  kp?: string | null
+): void {
+  const uid = getCurrentUser();
+  const q = (question ?? "").trim().toLowerCase();
+  const existing = db
+    .prepare(
+      "SELECT id, kp, resolved FROM mistake WHERE user_id = ? AND meta_id = ? AND LOWER(TRIM(question)) = ? ORDER BY id DESC LIMIT 1"
+    )
+    .get(uid, metaId, q) as { id: number; kp: string | null; resolved: number } | undefined;
+  if (existing) {
+    db.prepare(
+      `UPDATE mistake SET user_answer = ?, correct_answer = ?, step_json = ?, wrong_count = wrong_count + 1, resolved = 0, resolved_at = NULL, kp = COALESCE(NULLIF(?, ''), kp) WHERE id = ?`
+    ).run(userAnswer, correctAnswer, stepJson ?? null, kp ?? "", existing.id);
+    return;
+  }
+  const finalKp = kp && kp.trim() ? kp : (getMeta(metaId)?.name ?? metaId);
+  db.prepare(
+    "INSERT INTO mistake (user_id, meta_id, question, user_answer, correct_answer, created_at, step_json, kp, wrong_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)"
+  ).run(uid, metaId, question, userAnswer, correctAnswer, new Date().toISOString(), stepJson ?? null, finalKp, 1);
+}
+
+/** 重做答对后，把该知识点的【所有】未掌握错题标记为已掌握（Boss 净化等"整岛掌握"场景用） */
 export function resolveMistakes(metaId: string): void {
-  db.prepare("UPDATE mistake SET resolved = 1 WHERE user_id = ? AND meta_id = ? AND resolved = 0").run(getCurrentUser(), metaId);
+  const uid = getCurrentUser();
+  const rows = db
+    .prepare("SELECT id FROM mistake WHERE user_id = ? AND meta_id = ? AND resolved = 0")
+    .all(uid, metaId) as { id: number }[];
+  if (!rows.length) return;
+  db.prepare(
+    `UPDATE mistake SET resolved = 1, resolved_at = ? WHERE user_id = ? AND id IN (${rows.map(() => "?").join(",")})`
+  ).run(new Date().toISOString(), uid, ...rows.map((r) => r.id));
+  recordGrowth("mistake_resolved_bulk", { meta_id: metaId, count: rows.length });
+}
+
+/**
+ * 重做答对后，精准订正【单条】错题：优先按 mistake_id 定位（战斗重做注入的场景），
+ * 否则按「元认知 + 题干」定位（同一场战斗里先错后对的场景）。
+ * 命中即标记 resolved=1 + resolved_at，并写成长日志（记录孩子的"改对"成长）。
+ * 返回是否真的订正到了一条错题。
+ */
+export function resolveMistakeQuestion(metaId: string, question: string, mistakeId?: number | null): boolean {
+  const uid = getCurrentUser();
+  let target: { id: number } | undefined;
+  if (mistakeId != null) {
+    target = db
+      .prepare("SELECT id FROM mistake WHERE user_id = ? AND id = ? AND resolved = 0")
+      .get(uid, mistakeId) as { id: number } | undefined;
+  } else {
+    const q = (question ?? "").trim().toLowerCase();
+    if (!q) return false;
+    target = db
+      .prepare(
+        "SELECT id FROM mistake WHERE user_id = ? AND meta_id = ? AND resolved = 0 AND LOWER(TRIM(question)) = ? ORDER BY id DESC LIMIT 1"
+      )
+      .get(uid, metaId, q) as { id: number } | undefined;
+  }
+  if (!target) return false;
+  db.prepare("UPDATE mistake SET resolved = 1, resolved_at = ? WHERE user_id = ? AND id = ?").run(
+    new Date().toISOString(),
+    uid,
+    target.id
+  );
+  recordGrowth("mistake_resolved", { meta_id: metaId, mistake_id: target.id });
+  return true;
+}
+
+/** 某元认知未掌握的错题数（用于战斗里"更可能碰到旧错题"的加权） */
+export function getUnresolvedMistakeCountByMeta(metaId: string): number {
+  const r = db
+    .prepare("SELECT COUNT(*) AS c FROM mistake WHERE user_id = ? AND meta_id = ? AND resolved = 0")
+    .get(getCurrentUser(), metaId) as { c: number };
+  return r.c;
+}
+
+/** 某元认知的熟练度评估（知识掌握度） */
+export type MetaProficiency = {
+  metaId: string;
+  metaName: string;
+  mastery: number; // 精灵等级 1~10
+  total: number; // 累计错题
+  resolved: number; // 已订正
+  unresolved: number; // 待复习
+  score: number; // 0~100
+  level: "精通" | "良好" | "待加强" | "薄弱" | "未涉及";
+  color: string; // 徽章配色（hex）
+};
+
+/**
+ * 知识熟练度评估：精灵等级占 60%，错题订正率占 40%（无错题视为满分）。
+ * 既看"练得熟不熟"（mastery），也看"错得多不多、改没改对"（订正率），
+ * 给家长和孩子一个直观的掌握度信号。
+ */
+export function evaluateMetaProficiency(metaId: string): MetaProficiency {
+  const uid = getCurrentUser();
+  const im = getInternalized(metaId);
+  const meta = getMeta(metaId);
+  const mastery = im?.mastery_level ?? 0;
+  const total = (db.prepare("SELECT COUNT(*) AS c FROM mistake WHERE user_id = ? AND meta_id = ?").get(uid, metaId) as { c: number }).c;
+  const resolved = (db.prepare("SELECT COUNT(*) AS c FROM mistake WHERE user_id = ? AND meta_id = ? AND resolved = 1").get(uid, metaId) as { c: number }).c;
+  const unresolved = total - resolved;
+  const base: MetaProficiency = {
+    metaId,
+    metaName: meta?.name ?? metaId,
+    mastery,
+    total,
+    resolved,
+    unresolved,
+    score: 0,
+    level: "未涉及",
+    color: "#9aa7b2",
+  };
+  if (!im && total === 0) return base; // 既没内化也没错过错题：还没接触
+
+  const masteryPart = (mastery / 10) * 60;
+  const mistakePart = total === 0 ? 40 : (resolved / total) * 40;
+  const score = Math.max(0, Math.min(100, Math.round(masteryPart + mistakePart)));
+
+  let level: MetaProficiency["level"];
+  let color: string;
+  if (score >= 90) {
+    level = "精通";
+    color = "#3fb984";
+  } else if (score >= 70) {
+    level = "良好";
+    color = "#185fa5";
+  } else if (score >= 45) {
+    level = "待加强";
+    color = "#f79228";
+  } else {
+    level = "薄弱";
+    color = "#e2582e";
+  }
+  return { ...base, score, level, color };
+}
+
+/**
+ * 取出某元认知【未掌握且存了完整题目】的错题，重建成 SolveStep 用于战斗重做。
+ * 仅取 step_json 存在的（老库或升级前的错题没有，自然不参与重做，逐步覆盖）。
+ * 取走时 review_count +1，记录"被安排重做的次数"。
+ */
+export function getReviewSteps(metaId: string, maxCount = 3): SolveStep[] {
+  const uid = getCurrentUser();
+  const rows = db
+    .prepare(
+      "SELECT id, step_json FROM mistake WHERE user_id = ? AND meta_id = ? AND resolved = 0 AND step_json IS NOT NULL ORDER BY id DESC LIMIT ?"
+    )
+    .all(uid, metaId, maxCount) as { id: number; step_json: string }[];
+  const steps: SolveStep[] = [];
+  const ids: number[] = [];
+  for (const r of rows) {
+    try {
+      const s = JSON.parse(r.step_json) as SolveStep;
+      if (s && s.prompt && Array.isArray(s.options) && s.options.length > 0) {
+        steps.push({ ...s, isReview: true, mistakeId: r.id });
+        ids.push(r.id);
+      }
+    } catch {
+      /* 跳过损坏记录 */
+    }
+  }
+  if (ids.length) {
+    db.prepare(
+      `UPDATE mistake SET review_count = review_count + 1 WHERE user_id = ? AND id IN (${ids.map(() => "?").join(",")})`
+    ).run(uid, ...ids);
+  }
+  return steps;
 }
 
 // ============ 第二阶段 · 知识守卫 / 觉醒 ============

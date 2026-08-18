@@ -28,9 +28,9 @@ const MENU_ITEMS = [
   { href: "/spirits", label: "精灵图鉴", iconSrc: getUiIcon("spirit"), desc: "进化路线 + 已得精灵" },
   { href: "/journal", label: "知识家园", iconSrc: getUiIcon("knowledgeHome"), desc: "岛屿图鉴 + 精灵档案" },
   { href: "/mistakes", label: "错题集", iconSrc: getUiIcon("mistakeBook"), desc: "收集错题、复盘弱点" },
-  { href: "/parent", label: "家长端", icon: "👨‍👩‍👧", desc: "学习进度、错题、每日总结" },
-  { href: "/profile", label: "我的资料", iconSrc: getUiIcon("atlas"), desc: "头衔、火花、净化进度" },
-  { href: "/?tutorial=1", label: "新手引导", icon: "📖", desc: "重看玩法讲解" },
+  { href: "/parent", label: "家长端", iconSrc: getUiIcon("parent"), desc: "学习进度、错题、每日总结" },
+  { href: "/profile", label: "我的资料", iconSrc: getUiIcon("profile"), desc: "头衔、火花、净化进度" },
+  { href: "/?tutorial=1", label: "新手引导", iconSrc: getUiIcon("tutorial"), desc: "重看玩法讲解" },
 ];
 
 export default function AvatarMenu({ avatarSrc, rank }: { avatarSrc: string; rank?: AvatarMenuRank }) {
@@ -100,11 +100,7 @@ export default function AvatarMenu({ avatarSrc, rank }: { avatarSrc: string; ran
                   active ? "bg-[#fff3c4]" : ""
                 }`}
               >
-                {it.iconSrc ? (
-                  <img src={it.iconSrc} alt="" className="h-9 w-9 object-contain" />
-                ) : (
-                  <span className="text-2xl">{it.icon}</span>
-                )}
+                <img src={it.iconSrc} alt="" className="h-9 w-9 object-contain" />
                 <span className="flex-1">
                   <span className="block text-base font-black text-[#2b3a4a]">
                     {it.label}

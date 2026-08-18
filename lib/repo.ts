@@ -13,6 +13,7 @@ import {
   CONTENT_STRATEGIES,
   getMeta as getMetaContent,
   getMonster as getMonsterContent,
+  getMonsters as getMonstersContent,
   getPropertiesByMeta as getPropertiesByMetaContent,
   getGuards as getGuardsContent,
   getGuard as getGuardContent,
@@ -205,6 +206,12 @@ export function getMistakes(limit = 200): Mistake[] {
   return db
     .prepare("SELECT * FROM mistake WHERE user_id = ? ORDER BY id DESC LIMIT ?")
     .all(getCurrentUser(), limit) as Mistake[];
+}
+
+/** 取该元认知对应的一个小怪（错题本「再挑战」按钮跳转用；无则 null） */
+export function getMinionByMeta(metaId: string): Monster | null {
+  const list = getMonstersContent().filter((m) => m.correct_meta === metaId && m.type === "minion");
+  return list[0] ?? null;
 }
 
 /** 未掌握的错题数（用于展示「错题本里有几道题待复习」） */

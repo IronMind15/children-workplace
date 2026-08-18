@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { askQuestion, askFree } from "@/lib/actions";
 import FeynmanChat from "@/components/FeynmanChat";
@@ -61,15 +61,76 @@ export default function AskFlow({
     function onMsg(e: Event) {
       const detail = (e as CustomEvent<{ text: string }>).detail;
       if (detail?.text) {
-        setPartnerMsgs((prev) => [...prev.slice(-4), { text: detail.text, key: Date.now() + Math.random() }]);
+        // 上限保护：只保留最近 8 条，配合滚动窗可回看，不会无限撑高
+        setPartnerMsgs((prev) => [...prev.slice(-7), { text: detail.text, key: Date.now() + Math.random() }]);
       }
     }
     window.addEventListener("partner-message", onMsg);
     return () => window.removeEventListener("partner-message", onMsg);
   }, []);
 
+  // 聊天窗自动滚到最新（讲解累计时也能看到最新一条）
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = chatScrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [partnerMsgs, answer]);
+
+  const sparkBadge = gainSpark ? (
+    <span key={gainSpark} className="animate-spark pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 text-base font-black text-[#ffb300]">
+      +1 ✨
+    </span>
+  ) : null;
+
   // 自由提问
   const [freeText, setFreeText] = useState("");
+  // 窗口内分段：聊天 / 费曼（二合一，不再把费曼单独甩到下方）
+  const [tab, setTab] = useState<"chat" | "feynman">("chat");
+
+  // 语音输入（Web Speech API，仅浏览器支持时显示麦克风）
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recogRef = useRef<any>(null);
+  const voiceTextRef = useRef("");
+  useEffect(() => {
+    const w = window as any;
+    if (w.SpeechRecognition || w.webkitSpeechRecognition) setVoiceSupported(true);
+  }, []);
+  function toggleVoice() {
+    const w = window as any;
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!SR) return;
+    if (listening) {
+      recogRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    voiceTextRef.current = "";
+    const rec = new SR();
+    rec.lang = "zh-CN";
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.onresult = (e: any) => {
+      let txt = "";
+      for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
+      voiceTextRef.current = txt;
+      setFreeText(txt);
+    };
+    rec.onerror = () => setListening(false);
+    rec.onend = () => {
+      setListening(false);
+      const t = voiceTextRef.current.trim();
+      // 说完自动发送（类主流 AI 软件的语音输入体验）；空内容不发送
+      if (t) askFreeQuestion(t);
+    };
+    recogRef.current = rec;
+    try {
+      rec.start();
+      setListening(true);
+    } catch {
+      setListening(false);
+    }
+  }
 
   const nextReward = rewards.find((r) => r.required > total);
   const lastReward = nextReward ?? rewards[rewards.length - 1];
@@ -154,148 +215,215 @@ export default function AskFlow({
         </div>
       </header>
 
-      {/* 分岛费曼 · 岛上小课堂（化身在某岛时聚焦该岛领域，按觉醒/等级分层） */}
-      {currentMeta && (
-        <div className="card mt-2 border-2 border-[#8fd14f] p-2.5">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🏝️</span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-black text-[#2b3a4a]">岛上小课堂 · {currentMeta.island}</p>
-              <p className="truncate text-[11px] font-bold text-[#7a8a9a]">领域：{currentMeta.domain} · {currentMeta.name}</p>
-            </div>
-            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${tierBadge[currentMeta.tier].cls}`}>
-              {tierBadge[currentMeta.tier].label}
-            </span>
-          </div>
-          <p className="mt-2 text-xs font-bold leading-relaxed text-[#2b3a4a]">{tierGuidance[currentMeta.tier]}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {islandQuestions.map((q, i) => (
-              <button
-                key={i}
-                onClick={() => askFreeQuestion(q)}
-                disabled={!aiConfigured || !!loading}
-                className="rounded-full bg-[#eaf7e4] px-2.5 py-1 text-[11px] font-black text-[#3a8f2f] transition-transform active:scale-95 disabled:opacity-50"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
+      {/* 分段切换：聊天 / 费曼（二合一窗口） */}
+      {feynmanMetas.length > 0 && (
+        <div className="mt-1 flex gap-1 rounded-full bg-[#efe7da] p-1">
+          <button
+            type="button"
+            onClick={() => setTab("chat")}
+            className={`flex-1 rounded-full py-1.5 text-sm font-black transition-colors ${
+              tab === "chat" ? "bg-white text-[#2b3a4a] shadow-[0_2px_0_rgba(43,58,74,0.15)]" : "text-[#7a8a9a]"
+            }`}
+          >
+            💬 聊天
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("feynman")}
+            className={`flex-1 rounded-full py-1.5 text-sm font-black transition-colors ${
+              tab === "feynman" ? "bg-white text-[#7e57c2] shadow-[0_2px_0_rgba(43,58,74,0.15)]" : "text-[#7a8a9a]"
+            }`}
+          >
+            📚 费曼小课堂
+          </button>
         </div>
       )}
 
-      {/* 伙伴 + 回答区 */}
-      <div className="mt-2 flex items-start gap-2.5">
-        <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-4 border-[#2b3a4a] bg-[#fff8e1] text-3xl shadow-[0_5px_0_rgba(43,58,74,0.25)]">
-          🦊
-          {gainSpark && (
-            <span key={gainSpark} className="animate-spark pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 text-base font-black text-[#ffb300]">
-              +1 ✨
-            </span>
-          )}
-        </div>
-        <div className="card-dark relative min-h-[60px] flex-1 p-2.5">
-          {loading ? (
-            <div className="flex items-center gap-2 pt-3">
-              <span className="text-base text-white">🦊 正在想一想</span>
-              <span className="typing-dot inline-block h-2 w-2 rounded-full bg-white" />
-              <span className="typing-dot inline-block h-2 w-2 rounded-full bg-white" />
-              <span className="typing-dot inline-block h-2 w-2 rounded-full bg-white" />
+      {tab === "chat" ? (
+        <>
+          {/* 分岛费曼 · 岛上小课堂（化身在某岛时聚焦该岛领域，按觉醒/等级分层） */}
+          {currentMeta && (
+            <div className="card mt-2 border-2 border-[#8fd14f] p-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🏝️</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black text-[#2b3a4a]">岛上小课堂 · {currentMeta.island}</p>
+                  <p className="truncate text-[11px] font-bold text-[#7a8a9a]">领域：{currentMeta.domain} · {currentMeta.name}</p>
+                </div>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${tierBadge[currentMeta.tier].cls}`}>
+                  {tierBadge[currentMeta.tier].label}
+                </span>
+              </div>
+              <p className="mt-2 text-xs font-bold leading-relaxed text-[#2b3a4a]">{tierGuidance[currentMeta.tier]}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {islandQuestions.map((q, i) => (
+                  <button
+                    key={i}
+                    onClick={() => askFreeQuestion(q)}
+                    disabled={!aiConfigured || !!loading}
+                    className="rounded-full bg-[#eaf7e4] px-2.5 py-1 text-[11px] font-black text-[#3a8f2f] transition-transform active:scale-95 disabled:opacity-50"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
-          ) : answer ? (
-            <div className="animate-pop">
-              <p className="text-xs font-bold text-[#ffd54f]">你问：{askedLabel}</p>
-              <p className="mt-1 text-sm font-bold leading-relaxed text-white">{answer}</p>
-              <p className="mt-1.5 text-[11px] font-semibold text-white/60">🦊 想知道更多？继续问我，或者把答案讲给爸爸妈妈听！</p>
+          )}
+
+          {/* 伙伴聊天窗口：可滚动回看；战斗讲解累计时不再无限撑高，可一键清空 */}
+          <div className={embedded ? "mt-2 flex min-h-0 flex-1 flex-col" : "mt-2 flex items-start gap-2.5"}>
+            {!embedded && (
+              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-4 border-[#2b3a4a] bg-[#fff8e1] text-3xl shadow-[0_5px_0_rgba(43,58,74,0.25)]">
+                🦊
+                {sparkBadge}
+              </div>
+            )}
+            <div className={embedded ? "min-h-0 flex-1" : "relative min-h-[60px] flex-1"}>
+              {embedded && (
+                <div className="mb-1 flex items-center justify-between px-1 pr-10">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex h-9 w-9 items-center justify-center rounded-xl border-4 border-[#2b3a4a] bg-[#fff8e1] text-2xl shadow-[0_4px_0_rgba(43,58,74,0.25)]">
+                      🦊
+                      {sparkBadge}
+                    </div>
+                    <span className="font-story text-sm font-black text-[#2b3a4a]">小狐狸的聊天</span>
+                  </div>
+                  {partnerMsgs.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setPartnerMsgs([])}
+                      className="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-black text-[#7a8a9a] shadow-[0_2px_0_rgba(43,58,74,0.18)] transition-transform active:translate-y-0.5 hover:scale-105"
+                      title="清空战斗讲解历史"
+                    >
+                      🧹 清空讲解
+                    </button>
+                  )}
+                </div>
+              )}
+              {!embedded && partnerMsgs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setPartnerMsgs([])}
+                  className="absolute right-2 top-2 z-10 rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-black text-[#7a8a9a] transition-transform hover:scale-105"
+                  title="清空战斗讲解历史"
+                >
+                  🧹
+                </button>
+              )}
+              <div
+                ref={chatScrollRef}
+                className={
+                  embedded
+                    ? "card-dark flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2.5"
+                    : "card-dark max-h-[55vh] min-h-[60px] overflow-y-auto p-2.5"
+                }
+              >
+                {loading ? (
+                  <div className="flex items-center gap-2 pt-3">
+                    <span className="text-base text-white">🦊 正在想一想</span>
+                    <span className="typing-dot inline-block h-2 w-2 rounded-full bg-white" />
+                    <span className="typing-dot inline-block h-2 w-2 rounded-full bg-white" />
+                    <span className="typing-dot inline-block h-2 w-2 rounded-full bg-white" />
+                  </div>
+                ) : answer ? (
+                  <div className="animate-pop rounded-xl bg-white/5 px-3 py-2">
+                    <p className="text-xs font-bold text-[#ffd54f]">你问：{askedLabel}</p>
+                    <p className="mt-1 break-words whitespace-pre-wrap text-[15px] font-bold leading-relaxed text-white">{answer}</p>
+                    <p className="mt-1.5 text-[11px] font-semibold text-white/60">🦊 想知道更多？继续问我，或者把答案讲给爸爸妈妈听！</p>
+                  </div>
+                ) : (
+                  <p className="text-[15px] font-bold text-white">
+                    {currentMeta ? (
+                      <>
+                        🏝️ 小小探险家现在在「{currentMeta.island}」！这一带属于「{currentMeta.domain}」领域，
+                        我们正好可以聊聊「{currentMeta.name}」～ 点下面的岛域问题，或自己打字问我都可以，每次提问都能收集 ✨火花！
+                      </>
+                    ) : (
+                      <>
+                        嘿嘿，我是你的伙伴🦊！点下面的问题来问我，或者自己打字提问，每次提问都能收集 ✨火花，
+                        火花够了，神秘小怪就会出现在岛上！
+                      </>
+                    )}
+                  </p>
+                )}
+                {partnerMsgs.length > 0 && (
+                  <div className="mt-1 space-y-2 border-t border-white/10 pt-2">
+                    {partnerMsgs.map((m) => (
+                      <div key={m.key} className="animate-pop rounded-xl border border-[#f79228]/40 bg-[#fff3e0] px-3 py-2 text-sm font-bold leading-relaxed text-[#7a4a2a]">
+                        {m.text}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 自由提问 */}
+          <div className="card mt-2 flex flex-col gap-2 p-2 sm:flex-row sm:items-center">
+            {voiceSupported && (
+              <button
+                type="button"
+                onClick={toggleVoice}
+                disabled={!aiConfigured}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-[#2b3a4a] text-xl transition-transform active:scale-95 disabled:opacity-50 ${
+                  listening ? "animate-breathe bg-[#ff8c8c] text-white" : "bg-white"
+                }`}
+                title={listening ? "正在听…点击停止" : "语音输入"}
+                aria-label="语音输入"
+              >
+                🎤
+              </button>
+            )}
+            <input
+              value={freeText}
+              onChange={(e) => setFreeText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && askFreeQuestion()}
+              placeholder={listening ? "🎤 正在聆听…" : aiConfigured ? "自己想问什么？打字或语音问我吧～" : "自由提问需要先在「设置 ⚙️ → AI 伙伴连接」配置 DeepSeek Key"}
+              disabled={!aiConfigured}
+              className="min-w-0 flex-1 rounded-md border-2 border-[#2b3a4a] px-3 py-2 text-[15px] font-bold text-[#2b3a4a] disabled:bg-[#e8edf2] disabled:text-[#7a8a9a]"
+            />
+            <button onClick={() => askFreeQuestion()} disabled={!aiConfigured || !!loading || !freeText.trim()} className="btn btn-blue px-4 py-2 text-sm disabled:opacity-50">
+              {listening ? "…" : "🚀 问伙伴"}
+            </button>
+          </div>
+
+          {/* 问题卡片（可滚动） */}
+          {embedded ? (
+            <div className="ask-embedded-scroll mt-2 flex-1 overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 gap-2">
+                {questions.map((q) => (
+                  <button
+                    key={q.id}
+                    onClick={() => ask(q)}
+                    disabled={!!loading}
+                    className="btn btn-white flex items-center gap-2 p-2.5 text-left disabled:opacity-60"
+                  >
+                    <span className="text-2xl">{q.emoji}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-black text-[#2b3a4a]">{q.label}</span>
+                      <span className="mt-0.5 flex items-center gap-1.5">
+                        <span
+                          className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
+                          style={{ background: CATEGORY_COLOR[q.category] ?? "#7a8a9a" }}
+                        >
+                          {q.category}
+                        </span>
+                        {q.badge && (
+                          <span
+                            className="inline-block rounded px-1.5 py-0.5 text-[10px] font-black text-white"
+                            style={{ background: BADGE_COLOR[q.badge] }}
+                          >
+                            ⭐ {q.badge}
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
-            <p className="text-sm font-bold text-white">
-              {currentMeta ? (
-                <>
-                  🏝️ 小小探险家现在在「{currentMeta.island}」！这一带属于「{currentMeta.domain}」领域，
-                  我们正好可以聊聊「{currentMeta.name}」～ 点下面的岛域问题，或自己打字问我都可以，每次提问都能收集 ✨火花！
-                </>
-              ) : (
-                <>
-                  嘿嘿，我是你的伙伴🦊！点下面的问题来问我，或者自己打字提问，每次提问都能收集 ✨火花，
-                  火花够了，神秘小怪就会出现在岛上！
-                </>
-              )}
-            </p>
-          )}
-          {partnerMsgs.length > 0 && (
-            <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
-              {partnerMsgs.map((m) => (
-                <div key={m.key} className="animate-pop rounded-xl bg-white/10 px-3 py-2 text-sm font-bold leading-relaxed text-white">
-                  {m.text}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 自由提问 */}
-      <div className="card mt-2 flex flex-col gap-2 p-2 sm:flex-row sm:items-center">
-        <input
-          value={freeText}
-          onChange={(e) => setFreeText(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && askFreeQuestion()}
-          placeholder={aiConfigured ? "自己想问什么？打字问我吧～" : "自由提问需要先在「设置 ⚙️ → AI 伙伴连接」配置 DeepSeek Key"}
-          disabled={!aiConfigured}
-          className="min-w-0 flex-1 rounded-md border-2 border-[#2b3a4a] px-3 py-2 text-sm font-bold text-[#2b3a4a] disabled:bg-[#e8edf2] disabled:text-[#7a8a9a]"
-        />
-        <button onClick={() => askFreeQuestion()} disabled={!aiConfigured || !!loading || !freeText.trim()} className="btn btn-blue px-4 py-2 text-sm disabled:opacity-50">
-          🚀 问伙伴
-        </button>
-      </div>
-
-      {/* 问题卡片（可滚动） */}
-      {embedded ? (
-        <div className="ask-embedded-scroll mt-2 flex-1 overflow-y-auto pr-1">
-          {feynmanMetas.length > 0 && (
-            <div className="mb-2">
-              <FeynmanChat
-                metas={feynmanMetas}
-                defaultMetaId={currentMeta?.metaId}
-                tier={currentMeta?.tier}
-                key={currentMeta?.metaId ?? "recent"}
-                compact
-              />
-            </div>
-          )}
-          <div className="grid grid-cols-1 gap-2">
-            {questions.map((q) => (
-              <button
-                key={q.id}
-                onClick={() => ask(q)}
-                disabled={!!loading}
-                className="btn btn-white flex items-center gap-2 p-2.5 text-left disabled:opacity-60"
-              >
-                <span className="text-2xl">{q.emoji}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-black text-[#2b3a4a]">{q.label}</span>
-                  <span className="mt-0.5 flex items-center gap-1.5">
-                    <span
-                      className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
-                      style={{ background: CATEGORY_COLOR[q.category] ?? "#7a8a9a" }}
-                    >
-                      {q.category}
-                    </span>
-                    {q.badge && (
-                      <span
-                        className="inline-block rounded px-1.5 py-0.5 text-[10px] font-black text-white"
-                        style={{ background: BADGE_COLOR[q.badge] }}
-                      >
-                        ⭐ {q.badge}
-                      </span>
-                    )}
-                  </span>
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
         <>
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {questions.map((q) => (
@@ -367,21 +495,23 @@ export default function AskFlow({
             <p className="mt-2 text-[10px] font-bold text-[#7a8a9a]">
               每次提问 +1 ✨火花（推荐问题和小贴士也一样），保持爱提问的好习惯！
             </p>
-
-            {/* 费曼小课堂：当小老师，教 AI 学数学（默认聚焦当前岛元认知，按分层解锁） */}
-            {feynmanMetas.length > 0 && (
-              <div className="mt-4">
-                <FeynmanChat
-                  metas={feynmanMetas}
-                  defaultMetaId={currentMeta?.metaId}
-                  tier={currentMeta?.tier}
-                  key={currentMeta?.metaId ?? "recent"}
-                  compact
-                />
-              </div>
-            )}
           </div>
         </>
+      )}
+
+      </>) : null}
+
+      {/* 费曼小课堂标签：与聊天同一窗口，点顶部「📚 费曼小课堂」切换 */}
+      {feynmanMetas.length > 0 && tab === "feynman" && (
+        <div className={embedded ? "mt-2 flex min-h-0 flex-1 flex-col overflow-y-auto" : "mt-3"}>
+          <FeynmanChat
+            metas={feynmanMetas}
+            defaultMetaId={currentMeta?.metaId}
+            tier={currentMeta?.tier}
+            key={currentMeta?.metaId ?? "recent"}
+            compact={embedded}
+          />
+        </div>
       )}
     </div>
   );

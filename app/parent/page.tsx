@@ -1,6 +1,7 @@
 import { seedIfEmpty } from "@/lib/seed";
 import { requireUser } from "@/lib/session";
 import { getExplorer, getInternalizedMetas, getMetas, getMistakes, getGrowthLogs, getMeta } from "@/lib/repo";
+import { evaluateMetaProficiency } from "@/lib/game";
 import Guide from "@/components/Guide";
 import PageHeader from "@/components/PageHeader";
 
@@ -142,12 +143,24 @@ export default async function ParentJournal() {
               </div>
               {mistakeSummary.length > 0 && (
                 <div className="mt-3 space-y-2">
-                  {mistakeSummary.map(([metaId, { count, name }]) => (
-                    <div key={metaId} className="flex items-center justify-between rounded-lg bg-[#faf8f3] px-3 py-2">
-                      <span className="text-xs font-bold text-ink">「{name}」</span>
-                      <span className="text-xs font-black text-[#e2582e]">{count} 道待复习</span>
-                    </div>
-                  ))}
+                  {mistakeSummary.map(([metaId, { count, name }]) => {
+                    const p = evaluateMetaProficiency(metaId);
+                    return (
+                      <div key={metaId} className="flex items-center justify-between rounded-lg bg-[#faf8f3] px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-ink">「{name}」</span>
+                          <span
+                            className="rounded-full px-2 py-0.5 text-[10px] font-black text-white"
+                            style={{ background: p.color }}
+                            title={`掌握度 ${p.score} 分（精灵等级 ${p.mastery}）`}
+                          >
+                            {p.level}
+                          </span>
+                        </div>
+                        <span className="text-xs font-black text-[#e2582e]">{count} 道待复习</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               {unresolved.length > 0 && (

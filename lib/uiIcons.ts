@@ -11,6 +11,12 @@ export const UI_ICONS = {
   arrowLeft: "/ui/arrow_left.png",          // #5 左键
   arrowRight: "/ui/arrow_right.png",        // #6 右键
   knowledgeHome: "/ui/knowledge_home.png",  // #10 知识家园
+  parent: "/ui/parent.png",                 // 家长端
+  profile: "/ui/profile.png",               // 我的资料
+  tutorial: "/ui/tutorial.png",             // 新手引导
+  feynman: "/ui/feynman.png",               // 费曼小课堂
+  zoomIn: "/ui/zoom_in.png",                // 大地图放大
+  zoomOut: "/ui/zoom_out.png",              // 大地图缩小
 } as const;
 
 export const BUTTON_BGS = {

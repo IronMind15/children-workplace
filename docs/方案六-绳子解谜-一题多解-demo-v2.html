@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>绳子解谜 · 无字交互</title>
+  <style>
+    :root {
+      --navy: #293b4e;
+      --cream: #fffaf0;
+      --paper: #ffffff;
+      --line: #e8dfd0;
+      --muted: #738294;
+      --green: #63b96e;
+      --green-soft: #eaf7df;
+      --blue: #4b9ce8;
+      --blue-soft: #e8f4ff;
+      --gold: #f3be44;
+      --gold-soft: #fff3bd;
+      --rope: #c98c4c;
+      --rope-light: #e8bb77;
+      --rope-dark: #81552e;
+      --shadow: 0 6px 0 rgba(41,59,78,.14);
+      font-family: "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--navy);
+      background:
+        radial-gradient(circle at 8% 8%, rgba(243,190,68,.2), transparent 23%),
+        radial-gradient(circle at 92% 13%, rgba(99,185,110,.16), transparent 24%),
+        linear-gradient(180deg, #fffef9, #f7efdf);
+      font-size: 18px;
+    }
+
+    button { font: inherit; }
+
+    .topbar {
+      display: flex;
+      min-height: 80px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 10px clamp(16px, 4vw, 58px);
+      border-bottom: 4px solid var(--navy);
+      background: rgba(255,255,255,.94);
+    }
+    .brand { display: flex; align-items: center; gap: 13px; font-size: clamp(23px, 2.5vw, 31px); font-weight: 950; }
+    .brand-mark { display: grid; width: 53px; aspect-ratio: 1; place-items: center; border: 4px solid var(--navy); border-radius: 16px; background: var(--gold-soft); box-shadow: 0 4px 0 rgba(41,59,78,.14); font-size: 30px; }
+    .top-actions { display: flex; gap: 10px; }
+    .top-button { min-height: 50px; cursor: pointer; border: 4px solid var(--navy); border-radius: 14px; padding: 6px 15px; color: var(--navy); background: #fff; box-shadow: 0 4px 0 rgba(41,59,78,.12); font-size: 19px; font-weight: 950; }
+    .top-button.active { color: #fff; background: var(--navy); }
+
+    .page { width: min(1500px, calc(100% - 24px)); margin: 0 auto; padding: 18px 0 28px; }
+    .shell { min-height: calc(100vh - 128px); overflow: hidden; border: 4px solid var(--navy); border-radius: 25px; background: var(--cream); box-shadow: 0 8px 0 rgba(41,59,78,.14); }
+
+    .mission {
+      display: flex;
+      min-height: 94px;
+      align-items: center;
+      justify-content: center;
+      gap: 17px;
+      padding: 12px 20px;
+      border-bottom: 4px solid var(--navy);
+      background: #fff;
+    }
+    .mission-knot { position: relative; width: 82px; height: 58px; }
+    .mission-knot i { position: absolute; left: 8px; top: 22px; width: 68px; height: 18px; border: 7px solid var(--rope); border-radius: 50%; transform: rotate(var(--r)); }
+    .mission-arrow { font-size: 38px; font-weight: 950; }
+    .mission-pet { font-size: 44px; }
+    .mission-rack { display: flex; align-items: center; gap: 6px; }
+    .mission-rack i { display: block; width: 48px; height: 17px; border: 6px solid var(--rope); border-radius: 50%; }
+    .mission-question { display: grid; width: 52px; aspect-ratio: 1; place-items: center; border: 4px solid var(--navy); border-radius: 50%; background: var(--gold-soft); font-size: 31px; font-weight: 950; }
+
+    .strategy-bar {
+      display: flex;
+      min-height: 108px;
+      align-items: center;
+      justify-content: center;
+      gap: 13px;
+      padding: 10px 16px;
+      border-bottom: 4px solid var(--navy);
+      background: #fffdf7;
+    }
+    .strategy-prompt { margin-right: 4px; font-size: 22px; font-weight: 950; }
+    .strategy-button {
+      display: grid;
+      width: 112px;
+      min-height: 82px;
+      cursor: pointer;
+      place-items: center;
+      grid-template-columns: 1fr;
+      gap: 2px;
+      border: 4px solid var(--navy);
+      border-radius: 20px;
+      color: var(--navy);
+      background: #fff;
+      box-shadow: 0 5px 0 rgba(41,59,78,.13);
+      transition: .18s ease;
+    }
+    .strategy-button:hover { transform: translateY(-2px); }
+    .strategy-button.active { background: var(--gold-soft); transform: translateY(2px); box-shadow: 0 2px 0 rgba(41,59,78,.14); }
+    .strategy-icon { font-size: 35px; line-height: 1; }
+    .strategy-name { font-size: 18px; font-weight: 950; }
+
+    .game {
+      display: grid;
+      grid-template-columns: 245px minmax(520px, 1fr) 292px;
+      min-height: 610px;
+      gap: 17px;
+      padding: 17px;
+      background:
+        linear-gradient(rgba(255,255,255,.56), rgba(255,255,255,.56)),
+        repeating-linear-gradient(0deg, transparent 0 49px, rgba(41,59,78,.035) 50px);
+    }
+
+    .pet-panel,
+    .tangle-panel,
+    .rack-panel {
+      position: relative;
+      overflow: hidden;
+      border: 4px solid var(--navy);
+      border-radius: 23px;
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .pet-panel { display: flex; min-height: 560px; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 44%, rgba(99,185,110,.22), transparent 43%), linear-gradient(180deg, #fff, #fff8e4); }
+    .pet-image { width: 225px; max-width: 95%; height: auto; filter: drop-shadow(0 12px 5px rgba(41,59,78,.18)); transform-origin: 50% 88%; user-select: none; pointer-events: none; }
+    .pet-image.pull { animation: pet-pull .8s ease; }
+    @keyframes pet-pull {
+      0%,100% { transform: translateX(0) rotate(0); }
+      30% { transform: translateX(14px) rotate(5deg); }
+      62% { transform: translateX(-12px) rotate(-5deg); }
+    }
+
+    .hand-target {
+      position: absolute;
+      right: 13px;
+      bottom: 100px;
+      z-index: 4;
+      display: grid;
+      width: 88px;
+      aspect-ratio: 1;
+      cursor: pointer;
+      place-items: center;
+      border: 5px solid var(--navy);
+      border-radius: 26px;
+      color: var(--navy);
+      background: var(--gold-soft);
+      box-shadow: var(--shadow);
+      font-size: 49px;
+      transition: .2s ease;
+    }
+    .hand-target.ready { animation: hand-pulse .8s ease infinite alternate; }
+    .hand-target.hit { background: #dff5ce; transform: scale(1.09); }
+    @keyframes hand-pulse { from { transform: scale(1); box-shadow: var(--shadow); } to { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(243,190,68,.22), var(--shadow); } }
+
+    .pet-hint {
+      position: absolute;
+      right: 34px;
+      top: 115px;
+      display: grid;
+      width: 70px;
+      height: 70px;
+      place-items: center;
+      color: var(--gold);
+      font-size: 53px;
+      font-weight: 950;
+      animation: hint-float 1s ease-in-out infinite alternate;
+    }
+    @keyframes hint-float { from { transform: translateX(8px); } to { transform: translateX(-8px); } }
+
+    .tangle-panel { min-height: 560px; background: radial-gradient(circle at 52% 48%, #fff7dd, #eef8ff 73%); }
+    .tangle-title { position: absolute; left: 50%; top: 8px; z-index: 8; margin: 0; font-size: clamp(27px, 2.5vw, 36px); font-weight: 950; transform: translateX(-50%); white-space: nowrap; }
+    .tangle-hint { position: absolute; left: 50%; top: 49px; z-index: 8; margin: 0; color: var(--muted); font-size: 20px; font-weight: 850; transform: translateX(-50%); white-space: nowrap; }
+
+    .tangle-svg { width: 100%; height: 100%; min-height: 560px; touch-action: none; }
+    .rope { transform-box: fill-box; transform-origin: center; transition: opacity .45s ease, transform .55s ease, filter .2s ease; }
+    .rope-outline { fill: none; stroke: var(--rope-dark); stroke-width: 24; stroke-linecap: round; stroke-linejoin: round; }
+    .rope-core { fill: none; stroke: var(--rope); stroke-width: 16; stroke-linecap: round; stroke-linejoin: round; filter: url(#ropeRough); }
+    .rope-highlight { fill: none; stroke: var(--rope-light); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 4 11; opacity: .9; }
+    .rope-trace { fill: none; stroke: #fff6b7; stroke-width: 7; stroke-linecap: round; stroke-dasharray: 18 28; opacity: 0; filter: drop-shadow(0 0 6px #fff); }
+    .rope-brush { fill: none; stroke: #ef6a58; stroke-width: 10; stroke-linecap: round; opacity: 0; filter: drop-shadow(0 0 4px rgba(255,255,255,.95)); }
+    .rope.selected { filter: drop-shadow(0 0 8px rgba(243,190,68,.9)); }
+    .rope.selected .rope-trace { opacity: 1; animation: trace-run .75s linear infinite; }
+    .rope.brushing .rope-trace { opacity: 0; animation: none; }
+    .rope.paired .rope-core { stroke: var(--pair-color, #63b96e); }
+    .rope.paired .rope-highlight { stroke: #fff; }
+    .rope.extracting { opacity: 0; transform: translateX(-130px) scale(.45) rotate(-9deg); }
+    .rope.gone { display: none; }
+    @keyframes trace-run { to { stroke-dashoffset: -46; } }
+
+    .endpoint { cursor: grab; fill: #fff6cf; stroke: var(--navy); stroke-width: 6; filter: drop-shadow(0 4px 2px rgba(41,59,78,.22)); transition: .15s ease; }
+    .endpoint:hover, .endpoint.active { r: 20; fill: var(--gold); }
+    .endpoint.clip-first { r: 21; fill: #ef6a58; stroke-width: 8; }
+    .endpoint.used-end { fill: #d7dee4; opacity: .55; pointer-events: none; }
+    .endpoint.disabled { opacity: 0; pointer-events: none; }
+    .endpoint-halo { fill: rgba(243,190,68,.22); pointer-events: none; animation: endpoint-pulse 1s ease-in-out infinite alternate; }
+    @keyframes endpoint-pulse { from { r: 23; opacity: .25; } to { r: 31; opacity: .75; } }
+
+    .tangle-count {
+      position: absolute;
+      left: 18px;
+      bottom: 17px;
+      z-index: 9;
+      display: flex;
+      min-height: 58px;
+      align-items: center;
+      gap: 9px;
+      border: 4px solid var(--navy);
+      border-radius: 16px;
+      padding: 7px 13px;
+      background: rgba(255,255,255,.9);
+      box-shadow: 0 4px 0 rgba(41,59,78,.12);
+    }
+    .tangle-count:empty { display: none; }
+    .count-bead { width: 29px; aspect-ratio: 1; border: 4px solid var(--navy); border-radius: 50%; background: var(--rope); }
+
+    .reset {
+      position: absolute;
+      right: 15px;
+      bottom: 14px;
+      z-index: 20;
+      display: grid;
+      width: 62px;
+      aspect-ratio: 1;
+      cursor: pointer;
+      place-items: center;
+      border: 4px solid var(--navy);
+      border-radius: 17px;
+      color: var(--navy);
+      background: #fff;
+      box-shadow: 0 5px 0 rgba(41,59,78,.15);
+      font-size: 34px;
+      font-weight: 950;
+    }
+
+    .rack-panel { display: flex; min-height: 560px; flex-direction: column; padding: 18px; background: linear-gradient(180deg, #fff, #fff8e4); }
+    .rack-title { margin: 0; font-size: 28px; font-weight: 950; text-align: center; }
+    .live-count { display: grid; width: 100px; min-height: 78px; place-items: center; margin: 14px auto 18px; border: 5px solid var(--navy); border-radius: 22px; background: var(--gold-soft); box-shadow: var(--shadow); font-size: 48px; font-weight: 950; }
+    .rope-rack { position: relative; display: flex; flex: 1; flex-direction: column; gap: 17px; border: 5px solid var(--navy); border-radius: 22px; padding: 28px 14px 18px; background: #f4f9ee; }
+    .rope-rack::before { content: ""; position: absolute; left: 14px; right: 14px; top: 18px; height: 10px; border: 4px solid var(--navy); border-radius: 8px; background: #c88947; }
+    .rack-rope { display: grid; min-height: 120px; place-items: center; border: 4px solid var(--navy); border-radius: 19px; background: #fff; box-shadow: 0 4px 0 rgba(41,59,78,.1); animation: rack-in .55s ease both; }
+    .rack-rope svg { width: 95%; height: 86px; }
+    .rack-rope .small-outline { fill: none; stroke: var(--rope-dark); stroke-width: 17; stroke-linecap: round; }
+    .rack-rope .small-core { fill: none; stroke: var(--rope); stroke-width: 11; stroke-linecap: round; }
+    .rack-rope .small-highlight { fill: none; stroke: var(--rope-light); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 3 9; }
+    @keyframes rack-in { from { opacity: 0; transform: translateX(-40px) rotate(-4deg); } to { opacity: 1; transform: translateX(0) rotate(0); } }
+
+    .pair-card { display: grid; min-height: 92px; place-items: center; border: 4px solid var(--navy); border-radius: 18px; background: #fff; animation: rack-in .45s ease both; }
+    .pair-line { position: relative; width: 150px; height: 18px; border-radius: 12px; background: var(--pair-color); }
+    .pair-line::before, .pair-line::after { content: ""; position: absolute; top: 50%; width: 34px; aspect-ratio: 1; border: 5px solid var(--navy); border-radius: 50%; background: var(--pair-color); transform: translateY(-50%); }
+    .pair-line::before { left: -15px; } .pair-line::after { right: -15px; }
+
+    .end-group-card { display: flex; min-height: 92px; align-items: center; justify-content: center; gap: 18px; border: 4px solid var(--navy); border-radius: 18px; background: #fff; animation: rack-in .4s ease both; }
+    .end-token { width: 40px; aspect-ratio: 1; border: 5px solid var(--navy); border-radius: 50%; background: var(--rope-light); }
+    .end-link { font-size: 32px; font-weight: 950; }
+
+    .method-history { display: grid; gap: 8px; margin-top: 13px; }
+    .method-label { font-size: 20px; font-weight: 950; text-align: center; }
+    .method-badges { display: flex; min-height: 54px; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; border: 4px solid var(--navy); border-radius: 16px; padding: 7px; background: #fff; }
+    .method-badge { display: grid; width: 42px; aspect-ratio: 1; place-items: center; border: 3px solid var(--navy); border-radius: 12px; background: #eaf7df; font-size: 25px; animation: stamp-method .38s ease both; }
+    @keyframes stamp-method { from { transform: scale(1.6) rotate(-12deg); opacity: 0; } to { transform: scale(1) rotate(0); opacity: 1; } }
+
+    .drag-ghost {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 100;
+      display: none;
+      width: 68px;
+      height: 28px;
+      border: 8px solid var(--rope-dark);
+      border-left: 0;
+      border-radius: 0 30px 30px 0;
+      background: var(--rope);
+      box-shadow: inset 0 4px 0 var(--rope-light), 0 5px 5px rgba(41,59,78,.18);
+      pointer-events: none;
+      transform: translate(-12px, -14px) rotate(-10deg);
+    }
+    .drag-ghost.show { display: block; }
+
+    .result-pop {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      z-index: 120;
+      display: none;
+      min-width: 220px;
+      min-height: 180px;
+      place-items: center;
+      border: 6px solid var(--navy);
+      border-radius: 32px;
+      color: var(--navy);
+      background: #fff1a9;
+      box-shadow: 0 10px 0 rgba(41,59,78,.18);
+      font-size: 102px;
+      font-weight: 950;
+      transform: translate(-50%, -50%);
+    }
+    .result-pop.show { display: grid; animation: result-in 1.8s ease both; }
+    @keyframes result-in {
+      0% { opacity: 0; transform: translate(-50%, -38%) scale(.4) rotate(-8deg); }
+      20%,77% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); }
+      100% { opacity: 0; transform: translate(-50%, -60%) scale(.86); }
+    }
+
+    .confetti { position: fixed; inset: 0; z-index: 115; pointer-events: none; overflow: hidden; }
+    .confetti i { position: absolute; top: -40px; width: 18px; height: 30px; border: 3px solid var(--navy); border-radius: 6px; animation: confetti-fall 1.8s ease-in both; }
+    @keyframes confetti-fall { to { transform: translate(var(--drift), 110vh) rotate(560deg); } }
+
+    body.wordless .optional-text,
+    body.wordless .tangle-title,
+    body.wordless .tangle-hint,
+    body.wordless .rack-title { display: none; }
+    body.wordless .tangle-svg { min-height: 600px; }
+    body.wordless .strategy-button { width: 86px; min-height: 72px; }
+    body.wordless .strategy-name { display: none; }
+
+    @media (max-width: 1120px) {
+      .game { grid-template-columns: 190px minmax(470px, 1fr) 240px; }
+      .pet-image { width: 185px; }
+      .hand-target { width: 72px; font-size: 39px; }
+      .rack-panel { padding: 13px; }
+      .rack-rope { min-height: 108px; }
+    }
+
+    @media (max-width: 820px) {
+      .topbar { min-height: 70px; padding: 8px 10px; }
+      .brand-mark { width: 45px; }
+      .page { width: calc(100% - 10px); padding-top: 8px; }
+      .game { grid-template-columns: 1fr; }
+      .pet-panel { min-height: 240px; }
+      .pet-image { width: 170px; }
+      .hand-target { right: 23%; bottom: 33px; }
+      .pet-hint { top: 30px; right: 18%; }
+      .tangle-panel, .tangle-svg { min-height: 600px; }
+      .rack-panel { min-height: 400px; }
+      .rope-rack { min-height: 300px; }
+      .strategy-bar { overflow-x: auto; justify-content: flex-start; }
+      .strategy-prompt { display: none; }
+      .strategy-button { flex: 0 0 98px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">🪢</span><span class="optional-text">绳子解谜</span></div>
+    <div class="top-actions"><button class="top-button" id="wordlessButton" type="button" aria-pressed="false">◉ <span class="optional-text">无字模式</span></button></div>
+  </header>
+
+  <main class="page">
+    <section class="shell">
+      <div class="mission" aria-label="把缠绕的绳子交给宠物并分开">
+        <span class="mission-knot"><i style="--r:25deg"></i><i style="--r:-24deg"></i></span>
+        <span class="mission-arrow">→</span><span class="mission-pet">🌱</span><span class="mission-arrow">→</span>
+        <span class="mission-rack"><i></i></span><span class="mission-question">?</span>
+      </div>
+
+      <div class="strategy-bar" aria-label="选择一种解题方法">
+        <span class="strategy-prompt optional-text">选择方法</span>
+        <button class="strategy-button active" data-strategy="pull" type="button"><span class="strategy-icon">🖐</span><span class="strategy-name">抽出来</span></button>
+        <button class="strategy-button" data-strategy="clip" type="button"><span class="strategy-icon">📎</span><span class="strategy-name">配两端</span></button>
+        <button class="strategy-button" data-strategy="brush" type="button"><span class="strategy-icon">🖌</span><span class="strategy-name">沿线描</span></button>
+        <button class="strategy-button" data-strategy="ends" type="button"><span class="strategy-icon">◉◉</span><span class="strategy-name">数端点</span></button>
+      </div>
+
+      <div class="game">
+        <aside class="pet-panel">
+          <img class="pet-image" id="petImage" src="assets/变形伙伴/主宠物-皇冠草芽.png" alt="绿色皇冠草芽主宠物">
+          <button class="hand-target" id="handTarget" type="button" aria-label="把选中的绳头交给宠物">🖐</button>
+          <span class="pet-hint" id="petHint">←</span>
+        </aside>
+
+        <section class="tangle-panel">
+          <h1 class="tangle-title">解开绳团</h1>
+          <p class="tangle-hint">抓住绳头，拖给小伙伴</p>
+          <svg class="tangle-svg" id="tangleSvg" viewBox="0 0 800 520" role="img" aria-label="三根相互交叉缠绕的绳子">
+            <defs>
+              <filter id="ropeRough" x="-8%" y="-8%" width="116%" height="116%">
+                <feTurbulence type="fractalNoise" baseFrequency=".7" numOctaves="1" seed="5" result="noise"/>
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.2" xChannelSelector="R" yChannelSelector="G" result="rough"/>
+                <feDropShadow in="rough" dx="0" dy="5" stdDeviation="3" flood-color="#293b4e" flood-opacity=".22"/>
+              </filter>
+            </defs>
+            <g id="ropeLayer"></g>
+            <g id="endpointLayer"></g>
+          </svg>
+          <div class="tangle-count" id="tangleCount" aria-label="已解开的绳子"></div>
+          <button class="reset" id="resetButton" type="button" aria-label="重新开始">↻</button>
+        </section>
+
+        <aside class="rack-panel">
+          <h2 class="rack-title" id="rackTitle">已解开</h2>
+          <div class="live-count" id="liveCount">0</div>
+          <div class="rope-rack" id="ropeRack"></div>
+          <div class="method-history">
+            <div class="method-label optional-text">我的方法</div>
+            <div class="method-badges" id="methodBadges"></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <div class="drag-ghost" id="dragGhost"></div>
+  <div class="result-pop" id="resultPop" aria-live="polite">3</div>
+  <div class="confetti" id="confetti"></div>
+
+  <script type="text/plain" id="legacyScript">
+    const ropes = [
+      {
+        id: 0,
+        d: "M 105 205 C 205 93 392 329 522 212 C 650 97 425 52 304 126 C 178 203 307 361 499 331 C 636 310 682 205 710 145",
+        ends: [[105,205],[710,145]]
+      },
+      {
+        id: 1,
+        d: "M 102 337 C 213 228 418 434 562 303 C 704 174 640 86 520 131 C 396 178 468 348 302 371 C 176 389 136 255 251 220 C 380 181 523 265 697 391",
+        ends: [[102,337],[697,391]]
+      },
+      {
+        id: 2,
+        d: "M 350 66 C 506 166 253 198 319 301 C 391 413 606 252 541 181 C 478 113 261 90 188 241 C 119 389 349 449 470 445",
+        ends: [[350,66],[470,445]]
+      }
+    ];
+
+    const state = {
+      extracted: new Set(),
+      selected: null,
+      dragging: false,
+      pointerId: null,
+      moved: false
+    };
+
+    const svgNS = "http://www.w3.org/2000/svg";
+    const ropeLayer = document.querySelector("#ropeLayer");
+    const endpointLayer = document.querySelector("#endpointLayer");
+    const handTarget = document.querySelector("#handTarget");
+    const dragGhost = document.querySelector("#dragGhost");
+    const petImage = document.querySelector("#petImage");
+    const ropeRack = document.querySelector("#ropeRack");
+    const liveCount = document.querySelector("#liveCount");
+    const tangleCount = document.querySelector("#tangleCount");
+    const resultPop = document.querySelector("#resultPop");
+
+    function svgElement(name, attrs = {}) {
+      const element = document.createElementNS(svgNS, name);
+      Object.entries(attrs).forEach(([key, value]) => element.setAttribute(key, value));
+      return element;
+    }
+
+    function makePath(className, d) {
+      return svgElement("path", { class: className, d });
+    }
+
+    function renderTangle() {
+      ropeLayer.innerHTML = "";
+      endpointLayer.innerHTML = "";
+      ropes.forEach(rope => {
+        const group = svgElement("g", { class: "rope", "data-rope": rope.id });
+        group.append(
+          makePath("rope-outline", rope.d),
+          makePath("rope-core", rope.d),
+          makePath("rope-highlight", rope.d),
+          makePath("rope-trace", rope.d)
+        );
+        ropeLayer.appendChild(group);
+
+        rope.ends.forEach((point, endIndex) => {
+          const halo = svgElement("circle", { class: "endpoint-halo", cx: point[0], cy: point[1], r: 24, "data-halo": `${rope.id}-${endIndex}` });
+          const endpoint = svgElement("circle", {
+            class: "endpoint",
+            cx: point[0],
+            cy: point[1],
+            r: 15,
+            tabindex: "0",
+            role: "button",
+            "aria-label": "可拖动的绳头",
+            "data-endpoint": `${rope.id}-${endIndex}`,
+            "data-rope": rope.id
+          });
+          endpoint.addEventListener("pointerdown", startDrag);
+          endpoint.addEventListener("keydown", event => {
+            if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectRope(rope.id); }
+          });
+          endpointLayer.append(halo, endpoint);
+        });
+      });
+    }
+
+    function selectRope(id) {
+      if (state.extracted.has(id)) return;
+      state.selected = id;
+      document.querySelectorAll(".rope").forEach(group => group.classList.toggle("selected", Number(group.dataset.rope) === id));
+      document.querySelectorAll(".endpoint").forEach(endpoint => endpoint.classList.toggle("active", Number(endpoint.dataset.rope) === id));
+      handTarget.classList.add("ready");
+      document.querySelector("#petHint").style.display = "none";
+    }
+
+    function startDrag(event) {
+      const endpoint = event.currentTarget;
+      const ropeId = Number(endpoint.dataset.rope);
+      if (state.extracted.has(ropeId)) return;
+      event.preventDefault();
+      state.dragging = true;
+      state.pointerId = event.pointerId;
+      state.moved = false;
+      selectRope(ropeId);
+      endpoint.setPointerCapture?.(event.pointerId);
+      dragGhost.classList.add("show");
+      moveGhost(event.clientX, event.clientY);
+    }
+
+    function moveGhost(x, y) {
+      dragGhost.style.left = `${x}px`;
+      dragGhost.style.top = `${y}px`;
+    }
+
+    function pointerMove(event) {
+      if (!state.dragging || event.pointerId !== state.pointerId) return;
+      state.moved = true;
+      moveGhost(event.clientX, event.clientY);
+      const rect = handTarget.getBoundingClientRect();
+      const hit = event.clientX >= rect.left - 18 && event.clientX <= rect.right + 18 && event.clientY >= rect.top - 18 && event.clientY <= rect.bottom + 18;
+      handTarget.classList.toggle("hit", hit);
+    }
+
+    function pointerUp(event) {
+      if (!state.dragging || event.pointerId !== state.pointerId) return;
+      state.dragging = false;
+      dragGhost.classList.remove("show");
+      const rect = handTarget.getBoundingClientRect();
+      const hit = event.clientX >= rect.left - 18 && event.clientX <= rect.right + 18 && event.clientY >= rect.top - 18 && event.clientY <= rect.bottom + 18;
+      handTarget.classList.remove("hit");
+      if (hit && state.selected !== null) extractRope(state.selected);
+    }
+
+    window.addEventListener("pointermove", pointerMove, { passive: false });
+    window.addEventListener("pointerup", pointerUp);
+
+    handTarget.addEventListener("click", () => {
+      if (state.selected !== null && !state.extracted.has(state.selected)) extractRope(state.selected);
+    });
+
+    function extractRope(id) {
+      if (state.extracted.has(id)) return;
+      state.extracted.add(id);
+      const group = document.querySelector(`.rope[data-rope="${id}"]`);
+      group.classList.add("extracting");
+      document.querySelectorAll(`.endpoint[data-rope="${id}"]`).forEach(endpoint => endpoint.classList.add("disabled"));
+      document.querySelectorAll(`[data-halo^="${id}-"]`).forEach(halo => halo.style.display = "none");
+      handTarget.classList.remove("ready", "hit");
+      petImage.classList.remove("pull");
+      void petImage.offsetWidth;
+      petImage.classList.add("pull");
+      document.querySelector("#tangleSvg").animate(
+        [{ transform: "scale(1)" }, { transform: "scale(.985) rotate(-.3deg)" }, { transform: "scale(1)" }],
+        { duration: 520, easing: "ease" }
+      );
+      setTimeout(() => {
+        group.classList.add("gone");
+        addRackRope(id);
+        updateProgress();
+        state.selected = null;
+        document.querySelectorAll(".rope").forEach(item => item.classList.remove("selected"));
+        if (state.extracted.size === ropes.length) finish();
+      }, 560);
+    }
+
+    function addRackRope(id) {
+      const item = document.createElement("div");
+      item.className = "rack-rope";
+      item.dataset.rackRope = String(id);
+      const waves = [
+        "M22 46 C58 13 93 77 132 44 C168 13 207 73 244 38",
+        "M20 42 C62 75 91 11 133 43 C171 74 204 18 246 47",
+        "M20 48 C55 18 83 20 111 50 C140 80 171 77 199 43 C218 20 237 22 249 41"
+      ];
+      item.innerHTML = `
+        <svg viewBox="0 0 270 90" aria-label="已经解开的一根绳子">
+          <path class="small-outline" d="${waves[id]}"></path>
+          <path class="small-core" d="${waves[id]}"></path>
+          <path class="small-highlight" d="${waves[id]}"></path>
+        </svg>`;
+      ropeRack.appendChild(item);
+    }
+
+    function updateProgress() {
+      liveCount.textContent = String(state.extracted.size);
+      tangleCount.innerHTML = Array.from({ length: state.extracted.size }, () => `<i class="count-bead"></i>`).join("");
+    }
+
+    function finish() {
+      resultPop.classList.remove("show");
+      void resultPop.offsetWidth;
+      resultPop.classList.add("show");
+      const colors = ["#f3be44", "#63b96e", "#4b9ce8", "#ef6a58"];
+      const confetti = document.querySelector("#confetti");
+      confetti.innerHTML = Array.from({ length: 26 }, (_, index) => {
+        const left = (index * 37) % 100;
+        const delay = (index % 7) * .07;
+        const drift = `${(index % 2 ? 1 : -1) * (35 + (index % 5) * 18)}px`;
+        return `<i style="left:${left}%;background:${colors[index % colors.length]};animation-delay:${delay}s;--drift:${drift}"></i>`;
+      }).join("");
+      setTimeout(() => confetti.innerHTML = "", 2400);
+    }
+
+    function resetGame() {
+      state.extracted = new Set();
+      state.selected = null;
+      state.dragging = false;
+      state.pointerId = null;
+      ropeRack.innerHTML = "";
+      liveCount.textContent = "0";
+      tangleCount.innerHTML = "";
+      resultPop.classList.remove("show");
+      dragGhost.classList.remove("show");
+      handTarget.classList.remove("ready", "hit");
+      document.querySelector("#petHint").style.display = "grid";
+      renderTangle();
+    }
+
+    document.querySelector("#resetButton").addEventListener("click", resetGame);
+    document.querySelector("#wordlessButton").addEventListener("click", event => {
+      const active = document.body.classList.toggle("wordless");
+      event.currentTarget.classList.toggle("active", active);
+      event.currentTarget.setAttribute("aria-pressed", String(active));
+    });
+
+    resetGame();
+    if (new URLSearchParams(location.search).get("autoplay") === "1") {
+      setTimeout(() => extractRope(0), 250);
+      setTimeout(() => extractRope(1), 1050);
+      setTimeout(() => extractRope(2), 1850);
+    }
+  </script>
+  <script src="方案六-绳子解谜-一题多解-demo-v2.js"></script>
+</body>
+</html>

@@ -293,6 +293,26 @@ h2, .text-h2 { font-size: var(--fs-h2); font-weight: 600; line-height: 1.4; }
   50% { transform: translateY(4px); }
 }
 
+/* ============================================================
+   战斗 · 换题视觉提示（2026-08-19）
+   - 题目文字 / 选项切入时滑入，强调「已换题」
+   - 顶部横幅「第 N 题 →」短闪，一眼可见切换
+   ============================================================ */
+@keyframes questionIn {
+  0% { transform: translateY(12px) scale(0.97); opacity: 0; }
+  60% { transform: translateY(0) scale(1.02); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.animate-question-in { animation: questionIn 0.42s ease-out both; }
+
+@keyframes qBannerIn {
+  0% { transform: translate(-50%, 6px) scale(0.6); opacity: 0; }
+  18% { transform: translate(-50%, 0) scale(1.08); opacity: 1; }
+  78% { transform: translate(-50%, 0) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -12px) scale(1); opacity: 0; }
+}
+.animate-q-banner { animation: qBannerIn 0.75s ease-out forwards; }
+
 /* ===== 地图 L1 雾效（云雾遮挡小岛）
    - 三层径向渐变 + 慢速漂移
    - .fog-heavy：未解锁，重雾 60%+ 🔒

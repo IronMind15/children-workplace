@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { trainWin, logMistake, explainMistake, resolveMistake, guardWinAction } from "@/lib/actions";
+import { trainWin, logMistake, explainMistake, resolveMistakeQuestion, guardWinAction } from "@/lib/actions";
 import ImgSprite from "@/components/ImgSprite";
 import UiButton from "@/components/UiButton";
 import { getMonsterImage, getSpiritImage, getSpiritStage, getCompanionImage, AWAKENED_STAGE } from "@/lib/sprites";
@@ -104,6 +104,7 @@ export default function BattleFlow({
   const [pickHint, setPickHint] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [wrongOnThisStep, setWrongOnThisStep] = useState(false);
+  const [qBanner, setQBanner] = useState<{ n: number; key: number } | null>(null);
 
   const isGuard = mode === "guard";
   const total = steps.length;
@@ -134,11 +135,46 @@ export default function BattleFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 换题提示：stepIdx 变化时闪一下「第 N 题 →」横幅，强调题目已切换
+  const prevStepRef = useRef(-1);
+  useEffect(() => {
+    if (prevStepRef.current !== stepIdx && prevStepRef.current >= 0) {
+      setQBanner({ n: stepIdx + 1, key: Date.now() });
+      const t = setTimeout(() => setQBanner(null), 760);
+      return () => clearTimeout(t);
+    }
+    prevStepRef.current = stepIdx;
+  }, [stepIdx]);
+
   // 当前招式需要的本领：单题 = 主精灵；联手题 = 主精灵 + 帮手精灵
   const currentStep = steps[stepIdx];
   const requiredMetas = currentStep?.requires ?? [correctMeta];
   const missingMeta =
     requiredMetas.find((m) => m !== correctMeta && !helpers.some((h) => h.meta_id === m)) ?? null;
+
+  // 精灵选择：候选超过 6 个时只出 6 个（必含正确精灵），降低小朋友的选择负担；≤6 全出
+  function sampleSpirits(list: SpiritOption[], mustId: string | null, n: number): SpiritOption[] {
+    if (list.length <= n) return list;
+    const pool = [...list];
+    const mustIdx = mustId ? pool.findIndex((s) => s.meta_id === mustId) : -1;
+    const chosen: SpiritOption[] = [];
+    if (mustIdx >= 0) {
+      chosen.push(pool[mustIdx]);
+      pool.splice(mustIdx, 1);
+    }
+    // Fisher–Yates 洗牌后取剩余名额
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return [...chosen, ...pool.slice(0, n - chosen.length)];
+  }
+
+  const pickOptions = useMemo(() => sampleSpirits(spirits, correctMeta, 6), [spirits, correctMeta]);
+  const helperOptions = useMemo(
+    () => (missingMeta ? sampleSpirits(spirits.filter((s) => s.meta_id !== picked?.meta_id), missingMeta, 6) : []),
+    [spirits, picked, missingMeta]
+  );
 
   function flash(e: Effect) {
     setEffect(e);
@@ -181,9 +217,9 @@ export default function BattleFlow({
 
   function answer(opt: { label: string; correct?: boolean }) {
     if (opt.correct) {
-      // 重做答对：把该知识点的未掌握错题标记为已掌握
+      // 重做答对：精准订正这一条（或这道）错题 —— 作对即自动识别、统计成长
       if (wrongOnThisStep) {
-        resolveMistake(correctMeta);
+        resolveMistakeQuestion(correctMeta, currentStep.prompt, currentStep.mistakeId ?? null);
         setWrongOnThisStep(false);
       }
       const nextCombo = combo + 1;
@@ -214,9 +250,12 @@ export default function BattleFlow({
       setHp((h) => Math.max(0, h - 20));
       setWrongOnThisStep(true);
       hit();
-      // 记录错题
+      // 记录错题（连同完整题目，便于之后在战斗里精准重做）
+      // 注意：复习步骤（mistakeId 存在）本身是错题本里的旧题，已记录过，不再重复入库，避免堆积重复行
       const correctLabel = currentStep.options.find((o) => o.correct)?.label ?? "";
-      logMistake(correctMeta, currentStep.prompt, opt.label, correctLabel);
+      if (!currentStep.mistakeId) {
+        logMistake(correctMeta, currentStep.prompt, opt.label, correctLabel, JSON.stringify(currentStep), currentStep.kp ?? null);
+      }
       // 答错讲解：统一推送到右侧 AI 对话区（AskPanel），不弹独立浮窗
       const base = currentStep.explain ?? "再仔细看看题目，答案就藏在里面哦～";
       const note = { text: base, userAnswer: opt.label, correctAnswer: correctLabel };
@@ -402,6 +441,15 @@ export default function BattleFlow({
         <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_400px]">
           {/* 对话框 */}
           <div className="card-dark relative min-h-[120px] p-4 lg:min-h-[150px]">
+            {/* 换题横幅：一眼可见「已切换到第 N 题」 */}
+            {qBanner && (
+              <div
+                key={qBanner.key}
+                className="animate-q-banner pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2 rounded-full border-2 border-[#ffb300] bg-[#fff8e1] px-4 py-1 text-base font-black text-[#2b3a4a] shadow-[0_4px_0_rgba(43,58,74,0.25)]"
+              >
+                第 {qBanner.n} 题 →
+              </div>
+            )}
             <p className="text-lg font-bold leading-relaxed text-white">
               {phase === "intro" && (
                 <>
@@ -442,9 +490,9 @@ export default function BattleFlow({
                   {helpers.length > 0 && <span className="text-[#ff8fb1]"> + {helpers.map((h) => h.nickname).join(" + ")}</span>}
                   准备出招！
                   <br />
-                  <span className="text-base font-semibold text-white/90">{steps[stepIdx].prompt}</span>
+                  <span key={stepIdx} className="animate-question-in mt-1 inline-block text-base font-semibold text-white/90">{steps[stepIdx].prompt}</span>
                   <br />
-                  <span className="text-xs font-semibold text-white/60">
+                  <span key={`meta-${stepIdx}`} className="animate-question-in text-xs font-semibold text-white/60">
                     拆招 {stepIdx + 1} / {total}
                     {missingMeta && " · ⚡ 还需要帮手！"}
                   </span>
@@ -512,7 +560,7 @@ export default function BattleFlow({
 
             {phase === "pick" && (
               <div className="grid grid-cols-2 gap-3">
-                {spirits.map((s) => (
+                {pickOptions.map((s) => (
                   <button key={s.meta_id} onClick={() => pickSpirit(s)} className="btn btn-white flex items-center gap-2 p-2.5 text-left">
                     <ImgSprite src={getSpiritImage(s.meta_id, s.level, s.awakened)} size={44} />
                     <span className="min-w-0">
@@ -525,28 +573,26 @@ export default function BattleFlow({
             )}
 
             {phase === "solve" && missingMeta && (
-              <div>
+              <div key={stepIdx} className="animate-question-in">
                 <div className="mb-2 rounded-xl border-2 border-[#ff8fb1] bg-[#fff0f5] px-3 py-2 text-sm font-bold text-[#2b3a4a]">
                   ⚡ 联合出招！这题还需要「{spirits.find((s) => s.meta_id === missingMeta)?.meta_name}」帮忙，挑一个帮手：
                 </div>
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-                  {spirits
-                    .filter((s) => s.meta_id !== picked?.meta_id)
-                    .map((s) => (
-                      <button key={s.meta_id} onClick={() => pickHelper(s)} className="btn btn-white flex items-center gap-2 p-2 text-left">
-                        <ImgSprite src={getSpiritImage(s.meta_id, s.level, s.awakened)} size={40} />
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-black">{s.nickname}</span>
-                          <span className="block truncate text-xs font-semibold text-[#7a8a9a]">{s.meta_name}</span>
-                        </span>
-                      </button>
-                    ))}
+                  {helperOptions.map((s) => (
+                    <button key={s.meta_id} onClick={() => pickHelper(s)} className="btn btn-white flex items-center gap-2 p-2 text-left">
+                      <ImgSprite src={getSpiritImage(s.meta_id, s.level, s.awakened)} size={40} />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-black">{s.nickname}</span>
+                        <span className="block truncate text-xs font-semibold text-[#7a8a9a]">{s.meta_name}</span>
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
 
             {phase === "solve" && !missingMeta && (
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
+              <div key={stepIdx} className="animate-question-in grid grid-cols-2 gap-3 lg:grid-cols-1">
                 {steps[stepIdx].options.map((o) => (
                   <button key={o.label} onClick={() => answer(o)} className="btn btn-green py-4 text-2xl">
                     {o.label}

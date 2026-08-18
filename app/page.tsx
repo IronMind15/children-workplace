@@ -1,5 +1,7 @@
 import { seedIfEmpty } from "@/lib/seed";
 import { requireUser } from "@/lib/session";
+import fs from "node:fs";
+import path from "node:path";
 import { getWorldLayout, getWorldPages, pageOf, pageOfIsland } from "@/lib/worldLayout";
 import { QUESTIONS, AI_TIPS, RECOMMEND_BY_META } from "@/lib/askBank";
 import {
@@ -26,7 +28,7 @@ import {
   getMetaAwakened,
   getGuardsByIsland,
 } from "@/lib/repo";
-import { getSparkStats, checkAwakenings, getIslandDifficulty } from "@/lib/game";
+import { getSparkStats, checkAwakenings, getIslandDifficulty, getReviewSteps, getUnresolvedMistakeCountByMeta } from "@/lib/game";
 import { getAiConfig } from "@/lib/ai";
 import { generateSteps, guardSteps } from "@/lib/questions";
 import { pickGuardStyle } from "@/lib/guardStyles";
@@ -43,7 +45,7 @@ import type { SolveStep } from "@/lib/types";
 // 数据全部来自 SQLite（会随游戏进程变化），禁用静态缓存
 export const dynamic = "force-dynamic";
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ battle?: string; boss?: string; island?: string }> }) {
+export default async function Home({ searchParams }: { searchParams: Promise<{ battle?: string; boss?: string; island?: string; finalboss?: string }> }) {
   // 先完成全部 await（searchParams / cookie 会话），此后主体保持同步执行，
   // 避免异步点让出事件循环导致并发请求覆盖「当前用户上下文」。
   const sp = await searchParams;
@@ -267,10 +269,25 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
       } else if (m.type === "minion") {
         const metaName = getMeta(m.correct_meta)?.name ?? "";
         const level = getIslandDifficulty(m.correct_meta);
-        steps = generateSteps(m.correct_meta, undefined, level, {
+        const baseSteps = generateSteps(m.correct_meta, undefined, level, {
           islandLevel: getIslandLevel(`${metaName}岛`),
           awakened: getAwakenedPropertyIds(),
         });
+        // 错题重做：按未掌握错题数加权，把旧错题插进招式之间，让孩子更可能碰到并改对
+        const unresolved = getUnresolvedMistakeCountByMeta(m.correct_meta);
+        const reviewSteps =
+          unresolved > 0
+            ? getReviewSteps(m.correct_meta, Math.min(3, Math.max(1, Math.ceil(unresolved / 2))))
+            : [];
+        steps = baseSteps;
+        if (reviewSteps.length > 0 && baseSteps.length > 0) {
+          steps = [...baseSteps];
+          let at = Math.min(1, steps.length);
+          for (const rs of reviewSteps) {
+            steps.splice(at, 0, rs);
+            at += 2;
+          }
+        }
       } else {
         steps = JSON.parse(m.steps) as SolveStep[];
       }
@@ -311,9 +328,33 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
     if (islandData[sp.island]) {
       view = { kind: "island", island: sp.island };
     }
+  } else if (sp.finalboss) {
+    // 终章 · 最终决战新区域（暗影终焉岛入口）
+    view = { kind: "finalboss" };
   }
 
   const avatarSrc = getExplorerAvatarSrc(explorer);
+
+  // 终章「最终决战」：自动识别 public/finalboss 下队友放的互动小游戏 HTML（不只一个）
+  let finalbossGames: { name: string; src: string }[] = [];
+  try {
+    const dir = path.join(process.cwd(), "public", "finalboss");
+    const files = fs
+      .readdirSync(dir)
+      .filter((f) => f.toLowerCase().endsWith(".html") && !f.toLowerCase().startsWith("readme"));
+    finalbossGames = files
+      .map((f) => ({
+        name: f
+          .replace(/\.html$/i, "")
+          .replace(/[-_]/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase()),
+        src: `/finalboss/${f}`,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    finalbossGames = [];
+  }
+
   const rank = getExplorerRankInfo();
   const rankForUi = {
     level: rank.level,
@@ -354,6 +395,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
           battleData={battleData}
           bossData={bossData}
           brain={brain}
+          finalbossGames={finalbossGames}
           chainNodes={chainNodes}
           chainEdges={chainEdges}
         />

@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f5efe3">
+  <title>遮挡侦探 · 被盖住的点</title>
+  <style>
+    :root{
+      --ink:#252b2a;
+      --ink-soft:#59615e;
+      --paper:#fffdf8;
+      --canvas:#f5efe3;
+      --cream:#f2ead9;
+      --mint:#a9d8bd;
+      --mint-deep:#347257;
+      --sun:#f6c85f;
+      --coral:#ec765f;
+      --sky:#9fc8e7;
+      --lilac:#c4b4df;
+      --line:#d9d2c4;
+      --shadow:0 16px 38px rgba(41,44,42,.11),0 3px 0 rgba(37,43,42,.07);
+      --soft-shadow:0 7px 18px rgba(41,44,42,.08),0 2px 0 rgba(37,43,42,.06);
+      font-family:"Microsoft YaHei","PingFang SC","Noto Sans SC",system-ui,sans-serif;
+    }
+    *{box-sizing:border-box}
+    html{min-height:100%;background:var(--canvas)}
+    body{min-height:100%;margin:0;color:var(--ink);background:
+      radial-gradient(circle at 7% 3%,rgba(255,255,255,.82) 0 6%,transparent 25%),
+      radial-gradient(circle at 96% 18%,rgba(169,216,189,.22),transparent 25%),
+      linear-gradient(135deg,#f8f3e9,#efe6d7);font-size:16px}
+    button,input{font:inherit;color:inherit}
+    button{cursor:pointer}
+    button:focus-visible,input:focus-visible{outline:4px solid rgba(52,114,87,.34);outline-offset:3px}
+    .app{width:min(1540px,100%);min-height:100vh;margin:0 auto;padding:18px clamp(15px,2vw,32px) 28px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:22px;margin-bottom:16px}
+    .brand{display:flex;align-items:center;gap:13px}
+    .brand-mark{position:relative;display:grid;width:52px;aspect-ratio:1;place-items:center;border:2px solid var(--ink);border-radius:17px;background:var(--paper);box-shadow:var(--soft-shadow)}
+    .brand-mark::before,.brand-mark::after{content:"";position:absolute;width:9px;aspect-ratio:1;border:2px solid var(--ink);border-radius:50%}
+    .brand-mark::before{left:10px;top:18px;background:var(--ink)}
+    .brand-mark::after{right:10px;top:18px;background:#fff}
+    .brand-mark svg{width:30px;height:30px}
+    .brand-copy strong{display:block;font-size:19px;letter-spacing:.04em}
+    .brand-copy span{display:block;margin-top:2px;color:var(--ink-soft);font-size:12px;font-weight:700;letter-spacing:.12em}
+    .progress{display:flex;align-items:center;gap:10px;padding:8px 13px;border:1px solid rgba(37,43,42,.11);border-radius:999px;background:rgba(255,253,248,.72);color:var(--ink-soft);font-size:13px;font-weight:800}
+    .progress-dots{display:flex;gap:5px}
+    .progress-dots i{width:8px;aspect-ratio:1;border:1.5px solid var(--ink);border-radius:50%;background:transparent}
+    .progress-dots i.on{background:var(--mint-deep)}
+    .top-actions{display:flex;gap:9px}
+    .icon-button{display:flex;min-height:42px;align-items:center;gap:8px;border:1.5px solid var(--ink);border-radius:13px;padding:7px 12px;background:var(--paper);box-shadow:0 3px 0 rgba(37,43,42,.1);font-weight:800}
+    .icon-button:hover{transform:translateY(-1px)}
+    .icon-button:active{transform:translateY(2px);box-shadow:none}
+
+    .workspace{overflow:hidden;border:1.5px solid var(--ink);border-radius:30px;background:rgba(255,253,248,.92);box-shadow:var(--shadow)}
+    .question-head{position:relative;display:flex;align-items:center;justify-content:space-between;gap:22px;padding:20px 25px 18px;border-bottom:1.5px solid var(--ink);background:var(--paper)}
+    .question-head::after{content:"";position:absolute;right:30%;bottom:-7px;width:58px;height:12px;background:rgba(246,200,95,.55);transform:rotate(-1.5deg);clip-path:polygon(2% 16%,100% 0,96% 87%,0 100%)}
+    .question-title{display:flex;align-items:center;gap:14px}
+    .q-number{display:grid;width:56px;aspect-ratio:1;place-items:center;border:1.5px solid var(--ink);border-radius:17px;background:var(--sun);font-size:15px;font-weight:1000;box-shadow:0 4px 0 rgba(37,43,42,.1)}
+    .question-title h1{margin:0;font-size:clamp(22px,2.3vw,34px);letter-spacing:-.02em}
+    .question-title p{margin:5px 0 0;color:var(--ink-soft);font-size:14px;font-weight:700}
+    .question-badge{display:flex;align-items:center;gap:8px;white-space:nowrap;border:1px solid rgba(37,43,42,.16);border-radius:999px;padding:8px 12px;background:#f3f8f4;color:var(--mint-deep);font-size:13px;font-weight:900}
+    .question-badge i{width:9px;aspect-ratio:1;border-radius:50%;background:var(--mint-deep);box-shadow:0 0 0 5px rgba(52,114,87,.12)}
+
+    .lab{display:grid;grid-template-columns:238px minmax(540px,1fr) 280px;gap:16px;padding:16px;background:
+      linear-gradient(rgba(255,253,248,.76),rgba(255,253,248,.76)),
+      repeating-linear-gradient(0deg,transparent 0 31px,rgba(74,85,80,.06) 32px),
+      repeating-linear-gradient(90deg,transparent 0 31px,rgba(74,85,80,.045) 32px)}
+    .panel{border:1.5px solid var(--ink);border-radius:22px;background:var(--paper);box-shadow:var(--soft-shadow)}
+    .panel-label{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .panel-label strong{font-size:15px}
+    .panel-label span{color:var(--ink-soft);font-size:11px;font-weight:800;letter-spacing:.08em}
+
+    .methods{padding:16px 14px}
+    .method-list{display:grid;gap:9px}
+    .method{position:relative;display:grid;grid-template-columns:45px 1fr 22px;min-height:66px;align-items:center;gap:10px;width:100%;border:1.5px solid transparent;border-radius:17px;padding:9px;text-align:left;background:#f2f0ea;transition:.18s ease}
+    .method:hover{border-color:rgba(37,43,42,.32);transform:translateX(2px)}
+    .method.active{border-color:var(--ink);background:#edf5ef;box-shadow:0 3px 0 rgba(37,43,42,.1)}
+    .method.done::after{content:"✓";position:absolute;right:-4px;top:-5px;display:grid;width:20px;aspect-ratio:1;place-items:center;border:1.5px solid var(--ink);border-radius:50%;background:var(--mint);font-size:11px;font-weight:1000}
+    .method-icon{display:grid;width:45px;aspect-ratio:1;place-items:center;border:1.5px solid var(--ink);border-radius:14px;background:var(--paper);font-family:Georgia,serif;font-size:20px;font-weight:800}
+    .method:nth-child(2) .method-icon{background:#fff4d7}
+    .method:nth-child(3) .method-icon{background:#e6f2fa}
+    .method:nth-child(4) .method-icon{background:#f0eaf8}
+    .method-copy strong{display:block;font-size:14px}
+    .method-copy small{display:block;margin-top:3px;color:var(--ink-soft);font-size:11px;font-weight:700}
+    .method-arrow{color:var(--ink-soft);font-size:18px;font-weight:900;text-align:center}
+    .lens-note{position:relative;margin-top:13px;border:1.5px dashed rgba(37,43,42,.42);border-radius:17px;padding:13px 12px 12px;background:#fff9e8}
+    .lens-note::before{content:"";position:absolute;left:18px;top:-7px;width:48px;height:12px;background:rgba(246,200,95,.55);transform:rotate(-2deg)}
+    .lens-kicker{color:#8a6720;font-size:10px;font-weight:1000;letter-spacing:.12em}
+    .lens-note h2{margin:6px 0 5px;font-size:15px}
+    .lens-note p{min-height:48px;margin:0;color:var(--ink-soft);font-size:12px;font-weight:700;line-height:1.6}
+    .method-progress{display:flex;align-items:center;gap:6px;margin-top:11px;color:var(--ink-soft);font-size:11px;font-weight:800}
+    .method-progress span{display:block;height:5px;flex:1;overflow:hidden;border-radius:5px;background:#e4dfd4}
+    .method-progress span i{display:block;width:25%;height:100%;border-radius:inherit;background:var(--mint-deep);transition:.25s width}
+
+    .puzzle{position:relative;min-height:575px;padding:13px}
+    .puzzle-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:2px 4px 10px}
+    .view-label{display:flex;align-items:center;gap:8px;color:var(--ink-soft);font-size:12px;font-weight:800}
+    .view-label b{color:var(--ink)}
+    .tiny-actions{display:flex;gap:7px}
+    .tiny-button{border:1px solid rgba(37,43,42,.28);border-radius:10px;padding:6px 9px;background:#fff;font-size:11px;font-weight:900}
+    .tiny-button:hover{background:#f5f1e8}
+    .paper-stage{position:relative;overflow:hidden;border:1.5px solid var(--ink);border-radius:18px;background:
+      radial-gradient(circle at 20% 10%,rgba(255,255,255,.92),transparent 36%),
+      linear-gradient(180deg,#fbfaf5,#f4f0e7);box-shadow:inset 0 0 28px rgba(55,53,47,.04)}
+    .paper-stage::before{content:"";position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(rgba(55,58,54,.07) .7px,transparent .7px);background-size:6px 6px;opacity:.35}
+    .puzzle-svg{position:relative;display:block;width:100%;height:auto;aspect-ratio:900/350}
+    .thread{fill:none;stroke:#beb7aa;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
+    .dot{stroke:var(--ink);stroke-width:2.1;transition:.22s ease}
+    .dot.black{fill:var(--ink)}
+    .dot.white{fill:#fff}
+    .dot.hidden{filter:drop-shadow(0 2px 2px rgba(37,43,42,.14))}
+    .cover{transform-origin:590px 95px;transition:1s cubic-bezier(.2,.76,.2,1);filter:drop-shadow(0 12px 8px rgba(37,43,42,.18))}
+    .cover-paper{fill:#fdfcf8;stroke:var(--ink);stroke-width:2.2}
+    .cover-fold{fill:#ebe6da;stroke:var(--ink);stroke-width:1.5}
+    .cover-line{stroke:#d2cbc0;stroke-width:2}
+    .cover-tape{fill:rgba(246,200,95,.52)}
+    .cover-handle{fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+    .cover-mark{fill:var(--ink-soft);font-size:14px;font-weight:800;text-anchor:middle}
+    .puzzle.solved .cover{transform:translate(142px,-112px) rotate(10deg)}
+    .puzzle.solved .hidden{animation:hiddenPop .55s calc(var(--n)*70ms + 350ms) ease both}
+    @keyframes hiddenPop{0%{transform:translateY(7px) scale(.72);opacity:.2}70%{transform:translateY(-4px) scale(1.12)}100%{transform:none;opacity:1}}
+    .method-overlay{opacity:0;transition:.2s opacity;pointer-events:none}
+    .puzzle[data-method="group"] .overlay-group,
+    .puzzle[data-method="count"] .overlay-count,
+    .puzzle[data-method="reverse"] .overlay-reverse,
+    .puzzle[data-method="symbol"] .overlay-symbol{opacity:1}
+    .group-halo{fill:none;stroke:#347257;stroke-width:2;stroke-dasharray:5 5}
+    .svg-note{fill:#fffdf8;stroke:var(--ink);stroke-width:1.4}
+    .svg-note-text{fill:var(--ink);font-size:14px;font-weight:900;text-anchor:middle}
+    .count-bracket{fill:none;stroke:#9b6e14;stroke-width:2;stroke-linecap:round}
+    .reverse-arrow{fill:none;stroke:#397aa8;stroke-width:3;stroke-linecap:round;marker-end:url(#arrowHead)}
+    .symbol-pill{fill:#f0eaf8;stroke:var(--ink);stroke-width:1.4}
+    .symbol-text{fill:var(--ink);font-family:Georgia,serif;font-size:15px;font-weight:900;text-anchor:middle}
+    .cover-hint{animation:coverFloat 2.2s ease-in-out infinite}
+    @keyframes coverFloat{50%{transform:translateY(-3px)}}
+    .stage-caption{position:absolute;left:13px;bottom:10px;display:flex;align-items:center;gap:7px;border-radius:999px;padding:6px 9px;background:rgba(255,253,248,.86);color:var(--ink-soft);font-size:10px;font-weight:800;backdrop-filter:blur(5px)}
+    .stage-caption i{width:6px;aspect-ratio:1;border-radius:50%;background:var(--coral)}
+
+    .answer-zone{padding:14px 3px 0}
+    .answer-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}
+    .answer-heading strong{font-size:13px}
+    .answer-heading span{color:var(--ink-soft);font-size:10px;font-weight:800}
+    .answers{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+    .answer{position:relative;display:flex;min-width:0;min-height:58px;align-items:center;justify-content:center;gap:4px;border:1.5px solid #c9c3b8;border-radius:15px;background:#fff;box-shadow:0 3px 0 #e2ddd2;transition:.16s ease}
+    .answer:hover{border-color:var(--ink);transform:translateY(-2px)}
+    .answer.selected{border-color:var(--ink);background:#fff4d7;box-shadow:0 3px 0 var(--sun)}
+    .answer.correct{border-color:var(--ink);background:#e1f1e6;box-shadow:0 3px 0 var(--mint)}
+    .answer.wrong{background:#fbe5df;animation:answerShake .38s ease}
+    .answer b{position:absolute;left:6px;top:5px;color:var(--ink-soft);font-size:9px}
+    .mini-dot{display:block;width:16px;aspect-ratio:1;border:1.5px solid var(--ink);border-radius:50%;background:#fff}
+    .mini-dot.black{background:var(--ink)}
+    @keyframes answerShake{25%{transform:translateX(-5px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+    .submit-row{display:grid;grid-template-columns:1fr 160px;gap:9px;margin-top:10px}
+    .selection-summary{display:flex;min-height:44px;align-items:center;gap:8px;border:1px dashed rgba(37,43,42,.35);border-radius:13px;padding:7px 10px;color:var(--ink-soft);font-size:11px;font-weight:800}
+    .selection-summary i{font-style:normal;font-size:17px}
+    .submit{border:1.5px solid var(--ink);border-radius:13px;background:var(--ink);color:#fff;font-size:12px;font-weight:1000;box-shadow:0 4px 0 rgba(37,43,42,.22)}
+    .submit:disabled{cursor:not-allowed;border-color:#b9b5ad;background:#cbc7be;box-shadow:none}
+    .submit:not(:disabled):active{transform:translateY(3px);box-shadow:none}
+
+    .coach{display:flex;min-height:575px;flex-direction:column;padding:16px 14px;background:linear-gradient(180deg,#fffdf8,#f7f2e8)}
+    .coach-head{display:flex;align-items:center;gap:10px;padding-bottom:13px;border-bottom:1px solid var(--line)}
+    .coach-avatar{position:relative;display:grid;width:44px;aspect-ratio:1;place-items:center;border:1.5px solid var(--ink);border-radius:50% 50% 45% 48%;background:var(--mint);box-shadow:0 3px 0 rgba(37,43,42,.1);font-size:22px}
+    .coach-avatar::after{content:"";position:absolute;right:2px;bottom:0;width:11px;aspect-ratio:1;border:1.5px solid var(--ink);border-radius:50%;background:var(--sun)}
+    .coach-head strong{display:block;font-size:15px}
+    .coach-head span{display:block;margin-top:2px;color:var(--ink-soft);font-size:10px;font-weight:800}
+    .coach-card{position:relative;margin-top:13px;border:1.5px solid var(--ink);border-radius:18px 18px 18px 5px;padding:15px 14px 13px;background:#fff;box-shadow:0 4px 0 rgba(37,43,42,.07)}
+    .coach-card::before{content:"";position:absolute;left:-8px;top:19px;width:14px;height:14px;border-left:1.5px solid var(--ink);border-bottom:1.5px solid var(--ink);background:#fff;transform:rotate(45deg)}
+    .coach-kicker{color:var(--mint-deep);font-size:10px;font-weight:1000;letter-spacing:.1em}
+    .coach-question{min-height:68px;margin:8px 0 10px;font-size:16px;font-weight:900;line-height:1.55}
+    .think-chips{display:flex;flex-wrap:wrap;gap:6px}
+    .think-chip{border:1px solid rgba(37,43,42,.25);border-radius:999px;padding:5px 8px;background:#f6f3ed;color:var(--ink-soft);font-size:10px;font-weight:900}
+    .think-chip.active{border-color:#8a6720;background:#fff2c9;color:#684d18}
+    .next-prompt{display:flex;width:100%;align-items:center;justify-content:center;gap:7px;margin-top:11px;border:1px solid rgba(37,43,42,.28);border-radius:11px;padding:7px;background:transparent;font-size:10px;font-weight:900}
+    .next-prompt:hover{background:#f4f0e7}
+    .observation{margin-top:14px}
+    .observation label{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;font-size:11px;font-weight:900}
+    .observation label span{color:var(--ink-soft);font-size:9px}
+    .discovery-row{display:flex;gap:6px}
+    .discovery-input{width:100%;min-width:0;border:1px solid #c9c3b8;border-radius:11px;padding:9px;background:#fff;font-size:11px;font-weight:700}
+    .pin-button{flex:0 0 37px;border:1.5px solid var(--ink);border-radius:11px;background:var(--sun);font-size:16px;font-weight:900}
+    .discoveries{display:flex;max-height:75px;flex-wrap:wrap;gap:5px;margin-top:7px;overflow:auto}
+    .discovery{border-radius:8px;padding:5px 7px;background:#e7f2ea;color:#285d46;font-size:9px;font-weight:800}
+    .hint-box{margin-top:auto;border-top:1px solid var(--line);padding-top:13px}
+    .hint-state{min-height:45px;margin-bottom:8px;color:var(--ink-soft);font-size:11px;font-weight:700;line-height:1.55}
+    .hint-button{display:flex;width:100%;min-height:42px;align-items:center;justify-content:center;gap:8px;border:1.5px solid var(--ink);border-radius:13px;background:#fff4d7;font-size:11px;font-weight:1000;box-shadow:0 3px 0 rgba(37,43,42,.1)}
+    .hint-button:hover{background:#ffedb7}
+
+    .diverge{padding:0 16px 16px}
+    .diverge-inner{position:relative;overflow:hidden;border:1.5px solid var(--ink);border-radius:22px;background:#2d4f43;color:#fff;box-shadow:var(--soft-shadow)}
+    .diverge-inner::before{content:"";position:absolute;right:-30px;top:-70px;width:260px;aspect-ratio:1;border:1px solid rgba(255,255,255,.12);border-radius:50%;box-shadow:0 0 0 35px rgba(255,255,255,.035),0 0 0 75px rgba(255,255,255,.025)}
+    .diverge-head{position:relative;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 18px 12px}
+    .diverge-title{display:flex;align-items:center;gap:10px}
+    .spark{display:grid;width:34px;aspect-ratio:1;place-items:center;border:1px solid rgba(255,255,255,.5);border-radius:11px;background:var(--sun);color:var(--ink);font-size:17px;font-weight:1000}
+    .diverge-title strong{display:block;font-size:15px}
+    .diverge-title span{display:block;margin-top:2px;color:rgba(255,255,255,.68);font-size:10px;font-weight:700}
+    .diverge-status{border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:6px 9px;color:rgba(255,255,255,.76);font-size:9px;font-weight:900}
+    .diverge-grid{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 10px 10px}
+    .diverge-card{min-height:75px;border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:11px;background:rgba(255,255,255,.08);color:#fff;text-align:left;transition:.16s ease}
+    .diverge-card:hover,.diverge-card.active{background:#fff;color:var(--ink);transform:translateY(-2px)}
+    .diverge-card b{display:block;margin-bottom:5px;color:var(--sun);font-size:10px;letter-spacing:.08em}
+    .diverge-card:hover b,.diverge-card.active b{color:var(--mint-deep)}
+    .diverge-card span{font-size:11px;font-weight:800;line-height:1.45}
+    .feedback-toast{position:fixed;z-index:50;left:50%;bottom:25px;display:flex;max-width:calc(100vw - 30px);align-items:center;gap:10px;border:1.5px solid var(--ink);border-radius:15px;padding:11px 16px;background:var(--paper);box-shadow:0 12px 34px rgba(37,43,42,.2);font-size:12px;font-weight:900;opacity:0;transform:translate(-50%,20px);pointer-events:none;transition:.25s ease}
+    .feedback-toast.show{opacity:1;transform:translate(-50%,0)}
+    .feedback-toast i{display:grid;width:25px;aspect-ratio:1;place-items:center;border:1px solid var(--ink);border-radius:50%;background:var(--sun);font-style:normal}
+    .confetti{position:fixed;z-index:49;left:50%;top:48%;width:8px;height:14px;border-radius:2px;pointer-events:none;animation:confetti 1.5s ease-out forwards}
+    @keyframes confetti{0%{opacity:1;transform:translate(-50%,-50%) rotate(0)}100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y))) rotate(var(--r))}}
+
+    @media(max-width:1180px){
+      .lab{grid-template-columns:200px minmax(500px,1fr)}
+      .coach{grid-column:1/-1;min-height:auto;display:grid;grid-template-columns:210px 1fr 240px;gap:13px;align-items:start}
+      .coach-head{border-bottom:0}.coach-card{margin-top:0}.observation{margin-top:0}.hint-box{grid-column:3;margin-top:82px}
+      .method-copy small{display:none}.method{grid-template-columns:42px 1fr 18px}.method-icon{width:42px}
+    }
+    @media(max-width:800px){
+      .app{padding:10px}.progress,.question-badge{display:none}.brand-copy span{display:none}.icon-button span{display:none}
+      .question-head{padding:15px}.q-number{width:48px}.question-title h1{font-size:21px}.question-title p{font-size:12px}
+      .lab{display:flex;flex-direction:column;padding:10px}.methods{order:1}.puzzle{order:0;min-height:auto}.coach{order:2;display:flex;min-height:auto}.hint-box{margin-top:14px}
+      .method-list{grid-template-columns:repeat(4,1fr)}.method{display:flex;min-height:75px;flex-direction:column;justify-content:center;gap:3px;padding:7px;text-align:center}.method-arrow,.method-copy small{display:none}.method-copy strong{font-size:11px}.method-icon{width:36px}.lens-note{display:none}
+      .answers{grid-template-columns:repeat(5,minmax(58px,1fr));overflow-x:auto}.answer{gap:2px}.mini-dot{width:12px}.submit-row{grid-template-columns:1fr 130px}
+      .diverge-grid{grid-template-columns:1fr 1fr}.diverge-status{display:none}
+    }
+    @media(max-width:520px){
+      .question-title p{display:none}.puzzle{padding:8px}.paper-stage{border-radius:13px}.answers{grid-template-columns:repeat(2,1fr)}.answer:last-child{grid-column:1/-1}
+      .submit-row{grid-template-columns:1fr}.submit{min-height:44px}.selection-summary{display:none}.diverge-grid{grid-template-columns:1fr}.topbar{margin-bottom:9px}
+    }
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+    /* Focus revision: larger type, fewer containers, stronger hierarchy. */
+    body{font-size:18px}
+    .app{width:min(1600px,100%);padding-top:14px}
+    .topbar{margin-bottom:12px}
+    .brand-mark{width:58px}
+    .brand-copy strong{font-size:22px}
+    .progress{padding:10px 15px;font-size:15px}
+    .progress-dots i{width:10px}
+    .icon-button{width:48px;min-height:48px;justify-content:center;padding:0;font-size:22px}
+    .workspace{border-width:2px}
+    .question-head{min-height:106px;justify-content:flex-start;padding:20px 30px}
+    .question-head::after{right:auto;left:292px;bottom:19px;width:205px;height:13px;z-index:0}
+    .question-title{position:relative;z-index:1}
+    .q-number{width:64px;border-width:2px;font-size:17px}
+    .question-title h1{font-size:clamp(32px,3vw,44px);line-height:1.15}
+    .lab{grid-template-columns:200px minmax(620px,1fr) 250px;gap:18px;padding:18px}
+    .panel{border-width:2px}
+    .methods{padding:20px 14px}
+    .panel-label{margin-bottom:16px}
+    .panel-label strong{font-size:19px}
+    .method-list{gap:11px}
+    .method{grid-template-columns:50px 1fr;min-height:78px;gap:12px;border-width:2px;padding:11px}
+    .method-icon{width:50px;border-width:2px;font-size:22px}
+    .method-copy strong{font-size:17px}
+    .method.active{background:#dfeee4;box-shadow:0 4px 0 rgba(52,114,87,.22)}
+    .method-tip{margin:18px 4px 0;border-top:2px solid var(--ink);padding-top:14px}
+    .method-tip span{display:inline-block;margin-bottom:7px;border-radius:999px;padding:4px 8px;background:var(--sun);font-size:11px;font-weight:1000;letter-spacing:.08em}
+    .method-tip p{margin:0;color:var(--ink-soft);font-size:14px;font-weight:800;line-height:1.65}
+    .puzzle{min-height:640px;padding:16px}
+    .puzzle-top{min-height:42px;padding:0 4px 12px}
+    .view-label{gap:10px;font-size:15px}
+    .view-label b{border-radius:999px;padding:5px 10px;background:#dfeee4;color:#285d46}
+    .paper-stage{border-width:2px;border-radius:22px}
+    .answer-zone{padding:18px 2px 0}
+    .answer-heading{margin-bottom:12px}
+    .answer-heading strong{position:relative;font-size:19px}
+    .answer-heading strong::after{content:"";position:absolute;left:0;right:-12px;bottom:-3px;height:7px;background:rgba(246,200,95,.58);z-index:-1;transform:rotate(-1deg)}
+    .answers{gap:10px}
+    .answer{min-height:72px;border-width:2px;border-radius:17px;gap:5px}
+    .answer b{left:9px;top:7px;font-size:11px}
+    .mini-dot{width:20px;border-width:2px}
+    .submit-row{grid-template-columns:1fr 190px;gap:12px;margin-top:13px}
+    .selection-summary{min-height:52px;border-width:1.5px;padding:9px 13px;font-size:14px}
+    .submit{border-width:2px;font-size:16px}
+    .coach{min-height:640px;padding:20px 18px;background:var(--paper)}
+    .coach-head{padding-bottom:18px}
+    .coach-avatar{width:54px;border-width:2px;font-size:27px}
+    .coach-head strong{font-size:20px}
+    .coach-card{margin-top:0;border:0;border-radius:0;padding:24px 0 20px;background:transparent;box-shadow:none}
+    .coach-card::before{display:none}
+    .coach-kicker{display:inline-block;border-radius:999px;padding:5px 9px;background:#dfeee4;font-size:11px}
+    .coach-question{min-height:132px;margin:14px 0 18px;font-size:21px;line-height:1.65}
+    .next-prompt{min-height:48px;border-width:1.5px;font-size:14px}
+    .hint-box{padding-top:18px}
+    .hint-state{min-height:92px;margin-bottom:12px;font-size:14px;line-height:1.7}
+    .hint-button{min-height:50px;border-width:2px;font-size:14px}
+    .diverge{padding:0 18px 18px}
+    .diverge-head{padding:18px 20px 14px}
+    .spark{width:40px;font-size:20px}
+    .diverge-title strong{font-size:19px}
+    .diverge-grid{gap:0;padding:0 12px 12px}
+    .diverge-card{min-height:68px;border:0;border-left:1px solid rgba(255,255,255,.17);border-radius:0;padding:12px 18px;background:transparent}
+    .diverge-card:first-child{border-left:0}
+    .diverge-card b{font-size:11px}
+    .diverge-card span{font-size:13px}
+    @media(max-width:1180px){
+      .lab{grid-template-columns:185px minmax(510px,1fr)}
+      .coach{grid-template-columns:190px 1fr 225px;min-height:auto;padding:17px}
+      .coach-card{padding:0 15px}.coach-question{min-height:80px;margin-top:9px;font-size:18px}.hint-box{margin-top:0;padding-top:0;border-top:0}
+    }
+    @media(max-width:800px){
+      .question-head{min-height:88px;padding:14px 16px}.question-head::after{left:132px;bottom:19px;width:165px}
+      .question-title h1{font-size:27px}.q-number{width:54px}
+      .lab{padding:10px}.puzzle{min-height:auto;padding:10px}.methods{padding:16px 12px}
+      .method-list{grid-template-columns:repeat(4,1fr)}.method{display:flex;min-height:88px;flex-direction:column;gap:6px;padding:8px}.method-icon{width:42px}.method-copy strong{font-size:13px}.method-tip{display:none}
+      .coach{display:flex;padding:17px}.coach-card{padding:18px 0}.coach-question{min-height:auto;font-size:19px}.hint-box{padding-top:16px;border-top:1px solid var(--line)}
+      .answer{min-height:66px}.mini-dot{width:17px}.diverge-card{border-left:0;border-top:1px solid rgba(255,255,255,.17)}.diverge-card:nth-child(-n+2){border-top:0}
+    }
+    @media(max-width:520px){
+      .question-head::after{display:none}.question-title h1{font-size:23px}.q-number{width:49px}
+      .submit-row{grid-template-columns:1fr}.submit{min-height:50px}.diverge-card:nth-child(2){border-top:1px solid rgba(255,255,255,.17)}
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M6 24 24 6m-6 0h6v6" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/><path d="M7 11v13h13" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg></span>
+        <span class="brand-copy"><strong>遮挡侦探</strong></span>
+      </div>
+      <div class="progress" aria-label="已查看一种推理方法"><span class="progress-dots" id="progressDots"><i class="on"></i><i></i><i></i><i></i></span><b id="progressText">1 / 4</b></div>
+      <div class="top-actions"><button class="icon-button" id="resetButton" type="button" title="重新开始" aria-label="重新开始"><b aria-hidden="true">↻</b></button></div>
+    </header>
+
+    <section class="workspace">
+      <header class="question-head">
+        <div class="question-title"><span class="q-number">Q·03</span><div><h1>纸片下面，藏着哪些点？</h1></div></div>
+      </header>
+
+      <div class="lab">
+        <aside class="panel methods" aria-label="推理镜头">
+          <div class="panel-label"><strong>选择观察方法</strong></div>
+          <div class="method-list" id="methodList">
+            <button class="method active done" data-method="group" type="button"><span class="method-icon">◌</span><span class="method-copy"><strong>圈成小组</strong></span></button>
+            <button class="method" data-method="count" type="button"><span class="method-icon">1·2</span><span class="method-copy"><strong>数一数</strong></span></button>
+            <button class="method" data-method="reverse" type="button"><span class="method-icon">↤</span><span class="method-copy"><strong>从后往前看</strong></span></button>
+            <button class="method" data-method="symbol" type="button"><span class="method-icon">●○</span><span class="method-copy"><strong>画成记号</strong></span></button>
+          </div>
+          <div class="method-tip" aria-live="polite"><span>怎么看</span><p id="lensText">沿着线走一遍：每次颜色改变，就轻轻停一下。你看到了几组？</p></div>
+        </aside>
+
+        <section class="panel puzzle" id="puzzle" data-method="group">
+          <div class="puzzle-top"><span class="view-label"><span aria-hidden="true">◎</span> 观察方式 <b id="viewName">圈成小组</b></span></div>
+          <div class="paper-stage" id="paperStage">
+            <svg class="puzzle-svg" viewBox="0 0 900 350" role="img" aria-labelledby="puzzleSvgTitle puzzleSvgDesc">
+              <title id="puzzleSvgTitle">一串黑白圆点，中间有五个点被纸片盖住</title>
+              <desc id="puzzleSvgDesc">圆点按连续同色组排列。请根据左右可见部分推测被盖住的点。</desc>
+              <defs>
+                <marker id="arrowHead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#397aa8"/></marker>
+              </defs>
+              <path class="thread" d="M48 132C101 142 134 178 206 188S303 161 356 132s93 6 136 34 94 20 136-6 66-45 102-48 92-8 136-5"/>
+              <g aria-hidden="true">
+                <circle class="dot black" cx="50" cy="130" r="15"/><circle class="dot white" cx="84" cy="142" r="15"/>
+                <circle class="dot black" cx="118" cy="157" r="15"/><circle class="dot black" cx="152" cy="172" r="15"/>
+                <circle class="dot white" cx="186" cy="186" r="15"/><circle class="dot white" cx="220" cy="190" r="15"/>
+                <circle class="dot black" cx="254" cy="184" r="15"/><circle class="dot black" cx="288" cy="170" r="15"/><circle class="dot black" cx="322" cy="152" r="15"/>
+                <circle class="dot white" cx="356" cy="130" r="15"/><circle class="dot white" cx="390" cy="126" r="15"/><circle class="dot white" cx="424" cy="132" r="15"/>
+                <circle class="dot black" cx="458" cy="148" r="15"/><circle class="dot black" cx="492" cy="166" r="15"/>
+                <circle class="dot black hidden" style="--n:0" cx="526" cy="178" r="15"/><circle class="dot black hidden" style="--n:1" cx="560" cy="183" r="15"/>
+                <circle class="dot white hidden" style="--n:2" cx="594" cy="176" r="15"/><circle class="dot white hidden" style="--n:3" cx="628" cy="160" r="15"/><circle class="dot white hidden" style="--n:4" cx="662" cy="141" r="15"/>
+                <circle class="dot white" cx="696" cy="125" r="15"/>
+                <circle class="dot black" cx="730" cy="112" r="15"/><circle class="dot black" cx="764" cy="104" r="15"/><circle class="dot black" cx="798" cy="102" r="15"/><circle class="dot black" cx="832" cy="103" r="15"/><circle class="dot black" cx="866" cy="106" r="15"/>
+              </g>
+
+              <g class="method-overlay overlay-group" aria-hidden="true">
+                <ellipse class="group-halo" cx="50" cy="130" rx="24" ry="28"/><ellipse class="group-halo" cx="84" cy="142" rx="24" ry="28"/>
+                <rect class="group-halo" x="94" y="132" width="82" height="65" rx="30"/><rect class="group-halo" x="162" y="161" width="82" height="55" rx="27"/>
+                <rect class="group-halo" x="228" y="126" width="118" height="84" rx="40"/><rect class="group-halo" x="332" y="100" width="116" height="58" rx="28"/>
+                <g transform="translate(34 72)"><rect class="svg-note" width="32" height="24" rx="12"/><text class="svg-note-text" x="16" y="17">1</text></g>
+                <g transform="translate(68 84)"><rect class="svg-note" width="32" height="24" rx="12"/><text class="svg-note-text" x="16" y="17">1</text></g>
+                <g transform="translate(119 220)"><rect class="svg-note" width="32" height="24" rx="12"/><text class="svg-note-text" x="16" y="17">2</text></g>
+                <g transform="translate(187 220)"><rect class="svg-note" width="32" height="24" rx="12"/><text class="svg-note-text" x="16" y="17">2</text></g>
+                <g transform="translate(272 219)"><rect class="svg-note" width="32" height="24" rx="12"/><text class="svg-note-text" x="16" y="17">3</text></g>
+                <g transform="translate(374 71)"><rect class="svg-note" width="32" height="24" rx="12"/><text class="svg-note-text" x="16" y="17">3</text></g>
+              </g>
+              <g class="method-overlay overlay-count" aria-hidden="true">
+                <path class="count-bracket" d="M37 73v-8h60v8M37 65c0-10 7-15 15-15h30c8 0 15 5 15 15"/>
+                <text class="svg-note-text" x="67" y="42">1 + 1</text>
+                <path class="count-bracket" d="M104 220v8h126v-8"/><text class="svg-note-text" x="167" y="251">2 + 2</text>
+                <path class="count-bracket" d="M240 225v8h197v-8"/><text class="svg-note-text" x="338" y="256">3 + 3</text>
+                <path class="count-bracket" d="M721 58v-8h158v8"/><text class="svg-note-text" x="800" y="35">5 个黑点</text>
+              </g>
+              <g class="method-overlay overlay-reverse" aria-hidden="true">
+                <path class="reverse-arrow" d="M865 50C805 21 735 31 694 69"/><text x="784" y="25" class="svg-note-text">从这里往回走</text>
+                <path class="reverse-arrow" d="M698 230C659 247 625 246 588 231"/><text x="644" y="271" class="svg-note-text">前一组应有几个？</text>
+              </g>
+              <g class="method-overlay overlay-symbol" aria-hidden="true">
+                <g transform="translate(44 260)"><rect class="symbol-pill" width="76" height="30" rx="15"/><text class="symbol-text" x="38" y="20">1黑 1白</text></g>
+                <g transform="translate(130 260)"><rect class="symbol-pill" width="76" height="30" rx="15"/><text class="symbol-text" x="38" y="20">2黑 2白</text></g>
+                <g transform="translate(216 260)"><rect class="symbol-pill" width="76" height="30" rx="15"/><text class="symbol-text" x="38" y="20">3黑 3白</text></g>
+                <g transform="translate(302 260)"><rect class="symbol-pill" width="76" height="30" rx="15"/><text class="symbol-text" x="38" y="20">4黑 4白</text></g>
+                <path class="reverse-arrow" d="M392 275h76"/><g transform="translate(484 260)"><rect class="symbol-pill" width="58" height="30" rx="15"/><text class="symbol-text" x="29" y="20">5黑</text></g>
+              </g>
+
+              <g class="cover cover-hint" id="cover" aria-hidden="true">
+                <path class="cover-paper" d="M504 94h177l-5 18 8 104c.8 10-5 16-14 16H516c-9 0-15-6-14-16l8-105z"/>
+                <path class="cover-fold" d="M660 94h21l-5 18-18-2z"/>
+                <path class="cover-tape" d="m557 86 70 1-2 17-70-2z"/>
+                <path class="cover-line" d="M527 191h130M530 201h87"/>
+                <path class="cover-handle" d="M562 146c5-22 51-22 58 0"/>
+                <text class="cover-mark" x="591" y="174">别急着掀开</text>
+              </g>
+            </svg>
+          </div>
+
+          <div class="answer-zone">
+            <div class="answer-heading"><strong>你选哪个？</strong></div>
+            <div class="answers" id="answers">
+              <button class="answer" data-seq="BBWW" type="button" aria-label="选项 A：两个黑点，两个白点"><b>A</b><i class="mini-dot black"></i><i class="mini-dot black"></i><i class="mini-dot"></i><i class="mini-dot"></i></button>
+              <button class="answer" data-seq="BWW" type="button" aria-label="选项 B：一个黑点，两个白点"><b>B</b><i class="mini-dot black"></i><i class="mini-dot"></i><i class="mini-dot"></i></button>
+              <button class="answer" data-seq="BBWWW" type="button" aria-label="选项 C：两个黑点，三个白点"><b>C</b><i class="mini-dot black"></i><i class="mini-dot black"></i><i class="mini-dot"></i><i class="mini-dot"></i><i class="mini-dot"></i></button>
+              <button class="answer" data-seq="BBBBW" type="button" aria-label="选项 D：四个黑点，一个白点"><b>D</b><i class="mini-dot black"></i><i class="mini-dot black"></i><i class="mini-dot black"></i><i class="mini-dot black"></i><i class="mini-dot"></i></button>
+              <button class="answer" data-seq="BWWBB" type="button" aria-label="选项 E：一个黑点，两个白点，两个黑点"><b>E</b><i class="mini-dot black"></i><i class="mini-dot"></i><i class="mini-dot"></i><i class="mini-dot black"></i><i class="mini-dot black"></i></button>
+            </div>
+            <div class="submit-row"><div class="selection-summary" id="selectionSummary"><i>☝</i><span>先选一个答案，再看看对不对。</span></div><button class="submit" id="submitButton" type="button" disabled>看看对不对</button></div>
+          </div>
+        </section>
+
+        <aside class="panel coach">
+          <div class="coach-head"><span class="coach-avatar" aria-hidden="true">✦</span><div><strong>思维提示</strong></div></div>
+          <section class="coach-card" aria-live="polite"><span class="coach-kicker">想一想</span><p class="coach-question" id="coachQuestion">左边每一小组的圆点，个数怎么变了？</p><button class="next-prompt" id="nextPrompt" type="button"><span>换一个问题</span><b>→</b></button></section>
+          <section class="hint-box"><div class="hint-state" id="hintState">卡住时，可以看一小步提示。</div><button class="hint-button" id="hintButton" type="button"><span aria-hidden="true">◐</span><span>给我一步提示</span><b id="hintLevel">0 / 3</b></button></section>
+        </aside>
+      </div>
+
+      <section class="diverge" aria-label="发散思维挑战">
+        <div class="diverge-inner">
+          <div class="diverge-head"><div class="diverge-title"><span class="spark">✦</span><div><strong>答案之外，再想一步</strong></div></div></div>
+          <div class="diverge-grid" id="divergeGrid">
+            <button class="diverge-card" type="button" data-prompt="如果把纸片向右挪一点，盖住的圆点会变成什么？"><b>挪一挪</b><span>把纸片向右挪一点，会发生什么？</span></button>
+            <button class="diverge-card" type="button" data-prompt="接着往右画，下一组白点和黑点各有几个？"><b>接着画</b><span>把圆点串再往右画两组。</span></button>
+            <button class="diverge-card" type="button" data-prompt="你也来做一个很像正确答案的错误选项吧。"><b>我来出题</b><span>自己做一个“差一点就对”的选项。</span></button>
+            <button class="diverge-card" type="button" data-prompt="不用黑白圆点，能不能用拍手、跺脚来表示这个规律？"><b>换个玩法</b><span>用形状、声音或动作再玩一次。</span></button>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+  <div class="feedback-toast" id="toast" role="status" aria-live="polite"><i>✦</i><span id="toastText"></span></div>
+
+  <script>
+    (()=>{
+      const puzzle=document.getElementById('puzzle');
+      const methodButtons=[...document.querySelectorAll('.method')];
+      const answerButtons=[...document.querySelectorAll('.answer')];
+      const progressDots=[...document.querySelectorAll('#progressDots i')];
+      const methodInfo={
+        group:{name:'圈成小组',text:'颜色变了，就停一下，把同样颜色的圆点圈在一起。你看到了几组？',question:'左边每一小组的圆点，个数怎么变了？'},
+        count:{name:'数一数',text:'从左边数：1个黑、1个白，2个黑、2个白，接下来呢？',question:'1、1、2、2、3、3，后面应该接哪两个数？'},
+        reverse:{name:'从后往前看',text:'最右边有5个黑点。它前面的一组是什么颜色？有几个？',question:'最右边是5个黑点，它前面应该是哪一组？'},
+        symbol:{name:'画成记号',text:'把每组写成“1黑1白、2黑2白、3黑3白”，会更容易看。',question:'“3黑3白”后面，应该接“几黑几白”？'}
+      };
+      const prompts=[
+        '左边每一小组的圆点，个数怎么变了？',
+        '先猜一猜：纸片下一共有几个圆点？',
+        '从左边看和从右边看，答案一样吗？',
+        '哪个错误选项最像正确答案？哪里不一样？',
+        '不画完整的圆点，还能怎样简单记下来？',
+        '不掀开纸片，你能说说为什么选它吗？'
+      ];
+      const hints=[
+        '提示 1：把挨在一起、颜色相同的圆点圈成一组。',
+        '提示 2：前几组的个数是 1、1、2、2、3、3。',
+        '提示 3：纸片左边已经露出2个黑点，右边露出1个白点。'
+      ];
+      const state={method:'group',visited:new Set(['group']),selected:null,solved:false,hint:0,prompt:0};
+      const $=id=>document.getElementById(id);
+
+      function updateMethod(method){
+        state.method=method;state.visited.add(method);puzzle.dataset.method=method;
+        const info=methodInfo[method];
+        $('viewName').textContent=info.name;$('lensText').textContent=info.text;$('coachQuestion').textContent=info.question;
+        methodButtons.forEach(btn=>{const on=btn.dataset.method===method;btn.classList.toggle('active',on);btn.classList.toggle('done',state.visited.has(btn.dataset.method));btn.setAttribute('aria-pressed',String(on))});
+        const count=state.visited.size;$('progressText').textContent=count+' / 4';
+        progressDots.forEach((dot,i)=>dot.classList.toggle('on',i<count));
+      }
+
+      function dotsText(seq){
+        const runs=[];let last='';
+        [...seq].forEach(c=>{if(c===last)runs[runs.length-1].n++;else{runs.push({c,n:1});last=c}});
+        return runs.map(r=>r.n+'个'+(r.c==='B'?'黑点':'白点')).join('、');
+      }
+
+      function selectAnswer(button){
+        if(state.solved)return;
+        state.selected=button.dataset.seq;
+        answerButtons.forEach(btn=>{const on=btn===button;btn.classList.toggle('selected',on);btn.setAttribute('aria-pressed',String(on))});
+        $('selectionSummary').innerHTML='<i>✎</i><span>你选了：'+dotsText(state.selected)+'。</span>';
+        $('submitButton').disabled=false;
+      }
+
+      let toastTimer;
+      function toast(message,icon='✦'){
+        clearTimeout(toastTimer);$('toast').querySelector('i').textContent=icon;$('toastText').textContent=message;$('toast').classList.add('show');
+        toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2800);
+      }
+
+      function confetti(){
+        const colors=['#f6c85f','#a9d8bd','#ec765f','#9fc8e7','#c4b4df'];
+        for(let i=0;i<24;i++){
+          const bit=document.createElement('i');bit.className='confetti';bit.style.background=colors[i%colors.length];
+          bit.style.setProperty('--x',((Math.random()-.5)*620)+'px');bit.style.setProperty('--y',((-90-Math.random()*360))+'px');bit.style.setProperty('--r',((Math.random()*900-450))+'deg');
+          document.body.appendChild(bit);setTimeout(()=>bit.remove(),1700);
+        }
+      }
+
+      function submit(){
+        if(!state.selected||state.solved)return;
+        const chosen=answerButtons.find(btn=>btn.dataset.seq===state.selected);
+        if(state.selected==='BBWWW'){
+          state.solved=true;puzzle.classList.add('solved');chosen.classList.remove('selected');chosen.classList.add('correct');
+          $('submitButton').textContent='答对啦 ✓';$('submitButton').disabled=true;
+          $('selectionSummary').innerHTML='<i>✓</i><span>还差2个黑点和3个白点，正好接完整。</span>';
+          $('coachQuestion').textContent='答对啦！你能用自己的话说说，圆点是怎么变多的吗？';
+          $('hintState').textContent='每轮黑点和白点一样多，下一轮都多1个。';
+          document.querySelector('.diverge-inner').scrollIntoView({behavior:'smooth',block:'nearest'});confetti();toast('纸片掀开啦，和你选的一模一样！','✓');
+        }else{
+          chosen.classList.add('wrong');setTimeout(()=>chosen.classList.remove('wrong'),500);
+          toast('这个选项和两边接不上。换个方法再看一看。','↻');
+          $('coachQuestion').textContent='用这个选项，能先补足4个黑点吗？';
+        }
+      }
+
+      function nextHint(){
+        if(state.hint<3)state.hint++;
+        $('hintState').textContent=hints[state.hint-1];$('hintLevel').textContent=state.hint+' / 3';
+        if(state.hint===1)updateMethod('group');if(state.hint===2)updateMethod('count');if(state.hint===3)updateMethod('reverse');
+        if(state.hint===3)$('hintButton').querySelector('span:nth-child(2)').textContent='提示已经到这里';
+      }
+
+      function reset(){
+        state.method='group';state.visited=new Set(['group']);state.selected=null;state.solved=false;state.hint=0;state.prompt=0;
+        puzzle.classList.remove('solved');answerButtons.forEach(btn=>{btn.classList.remove('selected','correct','wrong');btn.setAttribute('aria-pressed','false')});
+        $('submitButton').textContent='看看对不对';$('submitButton').disabled=true;$('selectionSummary').innerHTML='<i>☝</i><span>先选一个答案，再看看对不对。</span>';
+        $('hintState').textContent='卡住时，可以看一小步提示。';$('hintLevel').textContent='0 / 3';$('hintButton').querySelector('span:nth-child(2)').textContent='给我一步提示';
+        document.querySelectorAll('.diverge-card').forEach(c=>c.classList.remove('active'));updateMethod('group');toast('重新开始，再换一种方法看看。','↻');
+      }
+
+      methodButtons.forEach(btn=>btn.addEventListener('click',()=>updateMethod(btn.dataset.method)));
+      answerButtons.forEach(btn=>btn.addEventListener('click',()=>selectAnswer(btn)));
+      $('submitButton').addEventListener('click',submit);$('hintButton').addEventListener('click',nextHint);$('resetButton').addEventListener('click',reset);
+      $('nextPrompt').addEventListener('click',()=>{state.prompt=(state.prompt+1)%prompts.length;$('coachQuestion').textContent=prompts[state.prompt]});
+      document.querySelectorAll('.diverge-card').forEach(card=>card.addEventListener('click',()=>{document.querySelectorAll('.diverge-card').forEach(c=>c.classList.remove('active'));card.classList.add('active');$('coachQuestion').textContent=card.dataset.prompt;card.scrollIntoView({behavior:'smooth',block:'nearest'});toast('这个问题可以有很多答案，大胆想！','?')}));
+      updateMethod('group');
+    })();
+  </script>
+</body>
+</html>

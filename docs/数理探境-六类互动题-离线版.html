@@ -1,0 +1,1213 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="小学数学互动实验室电脑端商业样板，包含六大知识家族的原创改编互动题。">
+  <title>数理探境 · 六大类互动样板</title>
+  <style>
+:root {
+  --ink: #203047;
+  --muted: #6c7a8c;
+  --line: #dbe2e9;
+  --paper: #ffffff;
+  --canvas: #f3f6f8;
+  --navy: #173b57;
+  --blue: #2f78c4;
+  --blue-soft: #e8f3ff;
+  --mint: #4ca985;
+  --mint-soft: #e7f7f0;
+  --amber: #f1ad3d;
+  --amber-soft: #fff3d8;
+  --coral: #e96f5d;
+  --violet: #765fc5;
+  --shadow: 0 18px 45px rgba(32, 48, 71, .08);
+  --small-shadow: 0 8px 22px rgba(32, 48, 71, .08);
+  font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  min-width: 1180px;
+  font-size: 15px;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 4% 2%, rgba(47, 120, 196, .11), transparent 21rem),
+    radial-gradient(circle at 96% 96%, rgba(76, 169, 133, .12), transparent 25rem),
+    var(--canvas);
+}
+button { font: inherit; color: inherit; }
+button:focus-visible { outline: 4px solid rgba(47, 120, 196, .34); outline-offset: 3px; }
+
+.app-frame { min-height: 100vh; }
+.topbar {
+  height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, .94);
+  backdrop-filter: blur(14px);
+}
+.brand-block { display: flex; align-items: center; gap: 13px; }
+.brand-mark {
+  width: 47px;
+  height: 47px;
+  display: grid;
+  place-items: center;
+  border-radius: 15px;
+  color: #fff;
+  background: var(--navy);
+  font-size: 28px;
+  font-weight: 900;
+  box-shadow: 0 5px 0 #0d2b42;
+}
+.brand-block strong { display: block; font-size: 23px; letter-spacing: .06em; }
+.brand-block span:not(.brand-mark) { display: block; margin-top: 2px; color: var(--muted); font-size: 14px; font-weight: 700; }
+.top-actions { display: flex; align-items: center; gap: 10px; }
+.safe-mode {
+  height: 39px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 13px;
+  border: 1px solid #bfe1d2;
+  border-radius: 999px;
+  color: #236c54;
+  background: var(--mint-soft);
+  font-size: 14px;
+  font-weight: 800;
+}
+.safe-mode i { width: 9px; height: 9px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 4px rgba(76, 169, 133, .14); }
+.quiet-button {
+  min-height: 41px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+}
+.quiet-button:hover { border-color: #9bb0c2; background: #f9fbfc; }
+
+.layout {
+  min-height: calc(100vh - 78px);
+  display: grid;
+  grid-template-columns: 258px minmax(680px, 1fr) 340px;
+  gap: 14px;
+  padding: 18px;
+}
+.sidebar, .thinking-panel, .workspace { min-width: 0; }
+.sidebar, .thinking-panel {
+  border: 1px solid var(--line);
+  border-radius: 21px;
+  background: rgba(255, 255, 255, .93);
+  box-shadow: var(--small-shadow);
+}
+
+.sidebar { padding: 20px 14px 14px; }
+.side-heading { padding: 0 8px 17px; border-bottom: 1px solid var(--line); }
+.side-heading p, .eyebrow { margin: 0; color: var(--blue); font-size: 13px; font-weight: 900; letter-spacing: .1em; }
+.side-heading h1 { margin: 5px 0 3px; font-size: 21px; }
+.side-heading span { color: var(--muted); font-size: 14px; font-weight: 700; }
+.family-nav { display: grid; gap: 7px; padding: 14px 0; }
+.family-button {
+  position: relative;
+  width: 100%;
+  min-height: 60px;
+  display: grid;
+  grid-template-columns: 40px 1fr 24px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 15px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.family-button:hover { background: #f5f8fa; }
+.family-button.active { border-color: #bfd5e7; background: var(--blue-soft); }
+.family-icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 13px; background: var(--family-soft); color: var(--family); font-size: 20px; font-weight: 950; }
+.family-copy strong { display: block; font-size: 15px; }
+.family-copy small { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; font-weight: 700; }
+.family-status { width: 21px; height: 21px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: transparent; font-size: 13px; font-weight: 900; }
+.family-button.done .family-status { border-color: var(--mint); color: #fff; background: var(--mint); }
+
+.progress-card { margin-top: 2px; padding: 14px; border-radius: 16px; background: #f5f8fa; }
+.progress-card > div:first-child { display: flex; justify-content: space-between; font-size: 14px; font-weight: 800; }
+.progress-card strong { color: var(--blue); }
+.progress-track { height: 8px; margin: 10px 0 8px; overflow: hidden; border-radius: 999px; background: #dfe7ed; }
+.progress-track i { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--mint)); transition: width .35s ease; }
+.progress-card small { color: var(--muted); font-size: 13px; line-height: 1.5; }
+.placeholder-note { display: grid; grid-template-columns: 31px 1fr; gap: 9px; margin-top: 12px; padding: 13px; border: 1px dashed #d9c69b; border-radius: 15px; background: #fffaf0; }
+.placeholder-note > span { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 10px; color: #8a6a25; background: var(--amber-soft); font-weight: 900; }
+.placeholder-note p { margin: 0; color: #77643e; font-size: 13px; line-height: 1.5; }
+.placeholder-note strong { display: block; color: #594921; font-size: 14px; }
+
+.workspace { display: flex; flex-direction: column; gap: 14px; }
+.question-head {
+  min-height: 170px;
+  padding: 22px 25px 18px;
+  border: 1px solid var(--line);
+  border-radius: 21px;
+  background: rgba(255, 255, 255, .95);
+  box-shadow: var(--small-shadow);
+}
+.question-meta { display: flex; align-items: center; gap: 8px; }
+.family-pill, .source-pill, .original-pill { padding: 6px 10px; border-radius: 9px; font-size: 13px; font-weight: 900; }
+.family-pill { color: var(--family); background: var(--family-soft); }
+.source-pill { color: #647487; background: #edf1f4; }
+.original-pill { color: #236c54; background: var(--mint-soft); }
+.question-head h2 { margin: 13px 0 7px; font-size: clamp(22px, 2vw, 29px); line-height: 1.25; }
+.question-head p { min-height: 25px; margin: 0; color: #435269; font-size: 17px; line-height: 1.65; font-weight: 650; }
+.skill-line { display: flex; gap: 7px; margin-top: 12px; }
+.skill-chip { padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); background: #fff; font-size: 13px; font-weight: 800; }
+
+.lab-card {
+  flex: 1;
+  min-height: 570px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 21px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+.lab-toolbar { min-height: 67px; display: flex; align-items: center; justify-content: space-between; padding: 11px 18px 11px 22px; border-bottom: 1px solid var(--line); }
+.lab-toolbar strong { display: block; margin-top: 3px; font-size: 16px; }
+.icon-button { min-height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; font-size: 14px; font-weight: 800; }
+.icon-button:hover { background: #f7f9fa; }
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 420px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 20px;
+  background:
+    linear-gradient(rgba(255, 255, 255, .86), rgba(255, 255, 255, .86)),
+    linear-gradient(90deg, rgba(47, 120, 196, .08) 1px, transparent 1px),
+    linear-gradient(rgba(47, 120, 196, .08) 1px, transparent 1px);
+  background-size: auto, 28px 28px, 28px 28px;
+}
+.stage-footer { min-height: 82px; display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 12px 18px; border-top: 1px solid var(--line); background: #fbfcfd; }
+.feedback { min-width: 0; display: flex; align-items: center; gap: 11px; }
+.feedback-icon { width: 35px; height: 35px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 11px; color: var(--blue); background: var(--blue-soft); font-size: 18px; font-weight: 950; }
+.feedback p { margin: 0; color: var(--muted); font-size: 14px; font-weight: 750; line-height: 1.45; }
+.feedback.success .feedback-icon { color: #fff; background: var(--mint); }
+.feedback.success p { color: #276b55; }
+.feedback.error .feedback-icon { color: #fff; background: var(--coral); }
+.feedback.error p { color: #9a4033; }
+.primary-button { min-width: 126px; min-height: 47px; border: 0; border-radius: 13px; color: #fff; background: var(--navy); box-shadow: 0 5px 0 #0c2a41; cursor: pointer; font-weight: 900; }
+.primary-button:hover { background: #214f70; }
+.primary-button:active { transform: translateY(3px); box-shadow: 0 2px 0 #0c2a41; }
+.primary-button:disabled { cursor: not-allowed; opacity: .48; transform: none; box-shadow: none; }
+.answer-actions { display: flex; align-items: center; gap: 10px; }
+.thinking-launch { min-height: 49px; padding: 0 18px; border: 0; border-radius: 14px; color: #fff; background: linear-gradient(135deg, #765fc5, #c45f9b); box-shadow: 0 5px 0 #55439a, 0 10px 24px rgba(118, 95, 197, .24); cursor: pointer; font-size: 15px; font-weight: 950; }
+.thinking-launch:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.thinking-launch:active { transform: translateY(3px); box-shadow: 0 2px 0 #55439a; }
+.thinking-launch[hidden] { display: none; }
+.question-nav { height: 46px; display: flex; align-items: center; justify-content: space-between; }
+.question-nav button { border: 0; color: var(--blue); background: transparent; cursor: pointer; font-size: 14px; font-weight: 900; }
+.question-nav button:hover { text-decoration: underline; }
+.question-nav span { color: var(--muted); font-size: 13px; font-weight: 800; }
+
+.thinking-panel { display: flex; flex-direction: column; gap: 13px; padding: 20px 18px 18px; background: linear-gradient(180deg, #fff, #f9fbfc); }
+.process-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 3px 14px; border-bottom: 1px solid var(--line); }
+.process-head h2 { margin: 6px 0 0; font-size: 23px; }
+.process-status { flex: 0 0 auto; padding: 6px 10px; border-radius: 999px; color: #2f6f9f; background: var(--blue-soft); font-size: 13px; font-weight: 900; }
+.process-status.done { color: #257157; background: var(--mint-soft); }
+.process-log-card { min-height: 182px; padding: 15px; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
+.process-log-card h3 { margin: 0 0 11px; font-size: 15px; }
+.process-log-card ol { display: grid; gap: 8px; margin: 0; padding: 0 0 0 24px; }
+.process-log-card li { padding-left: 3px; color: #56667a; font-size: 14px; line-height: 1.5; }
+.process-log-card li::marker { color: var(--family); font-weight: 900; }
+.process-log-card li.empty { color: #92a0ae; list-style: none; margin-left: -21px; }
+.discovery-card { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
+.discovery-card > span { font-size: 15px; font-weight: 900; }
+.discovery-card small { color: var(--muted); font-size: 13px; font-weight: 700; }
+.discovery-card textarea { width: 100%; min-height: 76px; resize: vertical; padding: 10px 11px; border: 1px solid #cbd5de; border-radius: 11px; color: var(--ink); background: #f9fbfc; font: 14px/1.55 inherit; }
+.discovery-card textarea:focus { border-color: var(--blue); outline: 3px solid rgba(47, 120, 196, .13); }
+.help-card { margin-top: 1px; }
+.hint-button { width: 100%; min-height: 54px; display: grid; grid-template-columns: 36px 1fr; align-items: center; gap: 9px; padding: 7px 10px; border: 1px solid #ead195; border-radius: 14px; background: var(--amber-soft); cursor: pointer; text-align: left; }
+.hint-button > span:first-child { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; color: #6f5214; background: #ffd978; font-size: 19px; }
+.hint-button > span:last-child { display: flex; align-items: center; justify-content: space-between; }
+.hint-button strong { font-size: 15px; }
+.hint-button small { color: #8b702e; font-size: 13px; }
+.hint-box { min-height: 58px; margin-top: 8px; padding: 12px 13px; border-left: 4px solid var(--amber); border-radius: 0 11px 11px 0; color: #6a5936; background: #fffaf0; font-size: 14px; line-height: 1.6; }
+.solution-reveal { display: grid; gap: 10px; margin-top: 2px; padding-top: 15px; border-top: 1px solid var(--line); }
+.solution-reveal[hidden], .hint-box[hidden] { display: none !important; }
+.solution-reveal > header { padding: 0 2px; }
+.solution-reveal > header h3 { margin: 5px 0 0; font-size: 18px; }
+.method-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 4px; border-radius: 12px; background: #eef2f5; }
+.method-tab { min-height: 42px; padding: 5px; border: 0; border-radius: 9px; color: var(--muted); background: transparent; cursor: pointer; font-size: 14px; font-weight: 900; }
+.method-tab.active { color: var(--navy); background: #fff; box-shadow: 0 2px 7px rgba(32, 48, 71, .09); }
+.method-card { min-height: 190px; margin-top: 0; padding: 17px; border: 1px solid var(--line); border-left: 5px solid var(--family); border-radius: 16px; background: #fff; }
+.method-card h3 { margin: 9px 0 7px; font-size: 17px; }
+.method-card p { margin: 0; color: #56667a; font-size: 14px; line-height: 1.7; }
+.method-card h3 { margin-top: 0; color: var(--family); }
+.method-formula { margin-top: 13px; padding: 12px; border-radius: 11px; color: var(--navy); background: var(--family-soft); font-family: Consolas, "Microsoft YaHei", sans-serif; font-size: 14px; font-weight: 900; line-height: 1.6; }
+.variation { display: block; margin-top: 12px; padding-top: 11px; border-top: 1px dashed var(--line); color: #5c6d81; font-size: 13px; line-height: 1.6; }
+/* Shared interaction pieces */
+.engine { width: min(100%, 760px); min-height: 330px; display: grid; place-items: center; align-content: center; gap: 24px; }
+.engine-label { display: flex; align-items: center; justify-content: center; gap: 9px; color: var(--muted); font-size: 14px; font-weight: 850; }
+.engine-label b { color: var(--ink); }
+.choice-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.choice-chip {
+  min-width: 66px;
+  min-height: 51px;
+  display: grid;
+  place-items: center;
+  padding: 6px 15px;
+  border: 2px solid #b9c5d0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 0 #d6dde3;
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: 950;
+}
+.choice-chip:hover { border-color: var(--blue); }
+.choice-chip.selected { border-color: var(--blue); background: var(--blue-soft); box-shadow: 0 4px 0 #a4cbe8; }
+.choice-chip:active { transform: translateY(2px); box-shadow: 0 2px 0 #d6dde3; }
+.choice-chip[draggable="true"] { cursor: grab; }
+.choice-chip[draggable="true"]:active { cursor: grabbing; }
+.mini-action { min-height: 40px; padding: 0 13px; border: 1px solid var(--line); border-radius: 10px; background: #fff; cursor: pointer; font-size: 14px; font-weight: 850; }
+.mini-action:hover { border-color: var(--blue); color: var(--blue); }
+
+/* Sequence */
+.train-line { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.train-car { position: relative; width: 71px; height: 62px; display: grid; place-items: center; border: 3px solid var(--navy); border-radius: 12px 12px 8px 8px; background: #fff; font-size: 21px; font-weight: 950; }
+.train-car::before { content: ""; position: absolute; left: -10px; top: 29px; width: 8px; border-top: 3px solid var(--navy); }
+.train-car:first-child::before { display: none; }
+.train-car::after { content: "●  ●"; position: absolute; bottom: -20px; color: var(--navy); font-size: 13px; letter-spacing: 11px; white-space: nowrap; }
+.train-car.missing { border-style: dashed; color: var(--blue); background: var(--blue-soft); }
+.train-car.filled { border-style: solid; color: #fff; background: var(--blue); }
+.train-car.missing[data-seq-drop], .pyramid-block[data-pyramid-drop] { outline-offset: 5px; }
+.difference-track { display: grid; grid-template-columns: repeat(5, 1fr); width: 390px; color: var(--muted); font-size: 13px; font-weight: 850; text-align: center; }
+.difference-track span::before { content: "← "; color: var(--blue); }
+
+/* Fraction */
+.fraction-wrap { display: grid; grid-template-columns: 280px 190px; align-items: center; gap: 35px; }
+.fraction-grid { width: 280px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; padding: 12px; border: 3px solid var(--navy); border-radius: 18px; background: #fff; box-shadow: var(--small-shadow); }
+.fraction-cell { aspect-ratio: 1.2; border: 2px solid #aab8c5; border-radius: 10px; background: #f4f7f9; cursor: pointer; }
+.fraction-cell:hover { border-color: var(--coral); }
+.fraction-cell.selected { border-color: #bd5040; background: var(--coral); box-shadow: inset 0 -5px 0 rgba(132, 46, 34, .16); }
+.fraction-meter { padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: #fff; text-align: center; }
+.fraction-meter strong { display: block; font-size: 42px; }
+.fraction-meter span { color: var(--muted); font-size: 14px; }
+.fraction-meter strong small { font-size: 17px; }
+.fraction-meter .fraction-target { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); color: var(--coral); font-size: 15px; font-weight: 900; }
+
+/* Pyramid */
+.pyramid { display: grid; justify-items: center; gap: 7px; }
+.pyramid-row { display: flex; gap: 8px; }
+.pyramid-block { width: 78px; height: 58px; display: grid; place-items: center; border: 3px solid var(--navy); border-radius: 12px; background: #fff; font-size: 22px; font-weight: 950; }
+.pyramid-block.sum { background: var(--amber-soft); }
+.pyramid-block.top { color: #fff; background: var(--navy); }
+.pyramid-block.unknown { border-style: dashed; color: var(--violet); background: #f1edff; }
+.pyramid-block.unknown.filled { border-style: solid; color: #fff; background: var(--violet); }
+.pyramid-rule { color: var(--muted); font-size: 14px; font-weight: 800; }
+
+/* Cubes */
+.cube-layout { width: 100%; display: grid; grid-template-columns: 1fr 180px; align-items: center; gap: 20px; }
+.cube-scene { position: relative; width: 520px; height: 315px; margin: auto; perspective: 900px; }
+.iso-cube { position: absolute; width: 58px; height: 64px; padding: 0; border: 0; background: transparent; cursor: pointer; filter: drop-shadow(0 5px 4px rgba(32, 48, 71, .12)); transition: opacity .2s, transform .2s, filter .2s; }
+.iso-cube span { position: absolute; display: block; }
+.iso-cube .cube-top { left: 0; top: 0; width: 58px; height: 31px; background: #dbeeff; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.iso-cube .cube-left { left: 0; top: 15px; width: 29px; height: 48px; background: #6aa9dc; clip-path: polygon(0 0, 100% 33%, 100% 100%, 0 67%); }
+.iso-cube .cube-right { right: 0; top: 15px; width: 29px; height: 48px; background: #3f83bd; clip-path: polygon(0 33%, 100% 0, 100% 67%, 0 100%); }
+.iso-cube.counted { filter: drop-shadow(0 0 8px rgba(76, 169, 133, .65)); transform: translateY(-5px); }
+.iso-cube.counted .cube-top { background: #bcebd7; }
+.iso-cube.counted .cube-left { background: #58b391; }
+.iso-cube.counted .cube-right { background: #318a6a; }
+.iso-cube.layer-hidden { opacity: .09; pointer-events: none; }
+.cube-controls { display: grid; gap: 8px; }
+.cube-controls button { min-height: 43px; border: 1px solid var(--line); border-radius: 11px; background: #fff; cursor: pointer; font-size: 14px; font-weight: 850; }
+.cube-controls button.active { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+.cube-count { margin-top: 8px; padding: 13px; border-radius: 13px; color: var(--navy); background: var(--amber-soft); text-align: center; }
+.cube-count strong { display: block; font-size: 28px; }
+.cube-count span { font-size: 13px; }
+
+/* Clock */
+.time-layout { display: grid; grid-template-columns: 235px 1fr; align-items: center; gap: 38px; }
+.clock-face { position: relative; width: 220px; height: 220px; border: 8px solid var(--navy); border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 9px var(--blue-soft), var(--small-shadow); }
+.clock-face::before { content: "12"; position: absolute; left: 50%; top: 17px; transform: translateX(-50%); font-weight: 900; }
+.clock-face::after { content: "6"; position: absolute; left: 50%; bottom: 17px; transform: translateX(-50%); font-weight: 900; }
+.clock-three, .clock-nine { position: absolute; top: 50%; transform: translateY(-50%); font-weight: 900; }
+.clock-three { right: 22px; }
+.clock-nine { left: 22px; }
+.hand { position: absolute; left: 50%; bottom: 50%; transform-origin: 50% 100%; border-radius: 99px; }
+.hour-hand { width: 7px; height: 54px; margin-left: -3.5px; background: var(--navy); }
+.minute-hand { width: 5px; height: 75px; margin-left: -2.5px; background: var(--coral); }
+.clock-pin { position: absolute; left: 50%; top: 50%; width: 17px; height: 17px; transform: translate(-50%, -50%); border: 4px solid #fff; border-radius: 50%; background: var(--navy); }
+.time-console { min-width: 350px; }
+.digital-time { font-size: 44px; font-weight: 950; letter-spacing: .04em; }
+.duration-badge { display: inline-block; margin: 7px 0 15px; padding: 6px 10px; border-radius: 9px; color: #8a5c0b; background: var(--amber-soft); font-size: 14px; font-weight: 900; }
+.time-buttons { display: flex; gap: 8px; }
+.time-buttons button { min-width: 67px; min-height: 43px; border: 2px solid #b8c6d2; border-radius: 11px; background: #fff; cursor: pointer; font-weight: 900; }
+.time-buttons button:hover { border-color: var(--blue); background: var(--blue-soft); }
+.time-history { min-height: 54px; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 15px; padding-top: 13px; border-top: 1px dashed var(--line); }
+.time-history span { padding: 5px 8px; border-radius: 8px; color: var(--muted); background: #edf2f5; font-size: 13px; font-weight: 800; }
+
+/* Combinations */
+.combo-wrap { width: min(100%, 690px); display: grid; gap: 18px; }
+.combo-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.combo-cell { aspect-ratio: 1; display: grid; place-items: center; border: 3px solid var(--navy); border-radius: 13px; background: #fff; cursor: pointer; font-size: 19px; font-weight: 900; }
+.combo-cell.selected { color: #fff; background: var(--violet); }
+.combo-cell.conflict { border-color: var(--coral); animation: shake .25s linear 2; }
+.combo-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.combo-actions p { margin: 0; color: var(--muted); font-size: 14px; font-weight: 800; }
+.combo-actions strong { color: var(--violet); font-size: 20px; }
+.recorded-list { min-height: 62px; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; padding: 10px; border: 1px dashed #bac6d0; border-radius: 13px; background: rgba(255,255,255,.7); }
+.recorded-list span { padding: 5px 8px; border-radius: 7px; color: #5c4a9f; background: #eeeaff; font-family: Consolas, monospace; font-size: 13px; font-weight: 800; }
+.answer-predict { display: flex; align-items: center; justify-content: center; gap: 10px; padding-top: 2px; }
+.answer-predict > span { color: var(--muted); font-size: 14px; font-weight: 800; }
+.process-gate { min-width: 250px; padding: 11px 15px; border: 1px dashed #b8c6d2; border-radius: 12px; background: rgba(255, 255, 255, .78); text-align: center; }
+
+/* Full-stage divergent thinking */
+.thinking-overlay { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; padding: 28px; background: rgba(18, 35, 52, .64); backdrop-filter: blur(10px); }
+.thinking-overlay[hidden] { display: none; }
+.thinking-stage { width: min(1220px, 94vw); max-height: 92vh; overflow: auto; border: 1px solid rgba(255, 255, 255, .7); border-radius: 28px; background: #f8fafc; box-shadow: 0 32px 90px rgba(8, 26, 43, .34); }
+.thinking-stage-head { min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 17px 23px 16px 28px; color: #fff; background: linear-gradient(115deg, #173b57 0%, #315d88 56%, #765fc5 100%); }
+.thinking-stage-head span { color: #cbe4ff; font-size: 13px; font-weight: 900; letter-spacing: .16em; }
+.thinking-stage-head h2 { margin: 4px 0 0; font-size: 28px; }
+.thinking-stage-head button { width: 48px; height: 48px; border: 1px solid rgba(255, 255, 255, .45); border-radius: 14px; color: #fff; background: rgba(255, 255, 255, .12); cursor: pointer; font-size: 30px; line-height: 1; }
+.thinking-stage-head button:hover { background: rgba(255, 255, 255, .23); }
+.thinking-map { position: relative; padding: 23px 35px 28px; border-bottom: 1px solid var(--line); background: radial-gradient(circle at 50% 4%, rgba(118, 95, 197, .15), transparent 230px), #f5f8fb; }
+.thinking-core { position: relative; z-index: 2; width: 235px; min-height: 83px; display: grid; grid-template-columns: 52px 1fr; grid-template-rows: auto auto; align-items: center; column-gap: 12px; margin: 0 auto; padding: 13px 16px; border: 2px solid #a9bad0; border-radius: 19px; background: #fff; box-shadow: 0 8px 24px rgba(32, 48, 71, .11); }
+.thinking-core i { grid-row: 1 / 3; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; color: #fff; background: var(--family); font-style: normal; font-size: 22px; font-weight: 950; }
+.thinking-core strong { overflow: hidden; font-size: 15px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.thinking-core span { color: var(--mint); font-size: 13px; font-weight: 900; }
+.thinking-core::after { content: ""; position: absolute; left: 50%; bottom: -32px; width: 2px; height: 30px; background: #b8c6d5; }
+.thinking-paths { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; padding-top: 49px; }
+.thinking-paths::before { content: ""; position: absolute; left: 16.66%; right: 16.66%; top: 31px; height: 2px; background: #b8c6d5; }
+.thinking-path-card { --path:#2f78c4; --path-soft:#e8f3ff; position: relative; min-height: 140px; display: grid; grid-template-columns: 48px 1fr; align-content: center; gap: 12px; padding: 18px; border: 2px solid transparent; border-radius: 19px; background: #fff; box-shadow: var(--small-shadow); cursor: pointer; text-align: left; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.thinking-path-card::before { content: ""; position: absolute; left: 50%; top: -19px; width: 2px; height: 18px; background: #b8c6d5; }
+.thinking-path-card:hover { transform: translateY(-4px); border-color: var(--path); }
+.thinking-path-card.active { border-color: var(--path); background: var(--path-soft); box-shadow: 0 14px 30px color-mix(in srgb, var(--path) 24%, transparent); }
+.thinking-path-icon { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; color: #fff; background: var(--path); font-size: 23px; font-weight: 950; }
+.thinking-path-card small { display: block; color: var(--path); font-size: 13px; font-weight: 950; }
+.thinking-path-card strong { display: block; margin-top: 4px; font-size: 17px; line-height: 1.35; }
+.thinking-path-card em { display: block; margin-top: 7px; color: var(--muted); font-size: 13px; font-style: normal; font-weight: 750; }
+.thinking-expanded { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(300px, .8fr); gap: 17px; padding: 20px; background: #fff; }
+.thinking-detail { min-height: 226px; padding: 21px 23px; border: 1px solid var(--line); border-left: 6px solid var(--path, var(--blue)); border-radius: 18px; background: #fff; }
+.thinking-detail > span { color: var(--path, var(--blue)); font-size: 13px; font-weight: 950; letter-spacing: .08em; }
+.thinking-detail h3 { margin: 7px 0 8px; font-size: 22px; }
+.thinking-detail p { margin: 0; color: #526276; font-size: 15px; line-height: 1.75; }
+.thinking-detail .method-formula { margin-top: 15px; background: var(--path-soft, var(--blue-soft)); font-size: 15px; }
+.thinking-challenge { min-height: 226px; display: flex; flex-direction: column; justify-content: center; padding: 22px; border: 1px solid #ecd28f; border-radius: 18px; background: linear-gradient(145deg, #fff7df, #ffedb8); }
+.thinking-challenge i { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; color: #6e4b0a; background: #ffd66f; font-style: normal; font-size: 24px; }
+.thinking-challenge span { margin-top: 14px; color: #9a6a13; font-size: 13px; font-weight: 950; letter-spacing: .1em; }
+.thinking-challenge h3 { margin: 5px 0 8px; font-size: 21px; }
+.thinking-challenge p { margin: 0; color: #6f5a2f; font-size: 14px; line-height: 1.7; }
+
+.toast { position: fixed; z-index: 20; left: 50%; bottom: 25px; max-width: 520px; padding: 12px 18px; border-radius: 12px; color: #fff; background: var(--navy); box-shadow: 0 12px 30px rgba(23, 59, 87, .28); font-size: 13px; font-weight: 800; opacity: 0; pointer-events: none; transform: translate(-50%, 15px); transition: .22s ease; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+
+@media (max-width: 1360px) {
+  .layout { grid-template-columns: 225px minmax(620px, 1fr) 320px; gap: 12px; padding: 12px; }
+  .thinking-panel { padding-left: 13px; padding-right: 13px; }
+  .cube-scene { width: 460px; transform: scale(.9); transform-origin: 50% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
+</style>
+</head>
+<body>
+  <div class="app-frame">
+    <header class="topbar">
+      <div class="brand-block">
+        <span class="brand-mark" aria-hidden="true">∑</span>
+        <div>
+          <strong>数理探境</strong>
+          <span>电脑端离线分享版</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="safe-mode"><i aria-hidden="true"></i>商业素材安全模式</span>
+        <button class="quiet-button" id="languageToggle" type="button" aria-pressed="false">中 / EN</button>
+        <button class="quiet-button" id="resetProgress" type="button">清空进度</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="sidebar" aria-label="知识家族导航">
+        <div class="side-heading">
+          <h1>六类互动题</h1>
+          <span>每类1题</span>
+        </div>
+        <nav class="family-nav" id="familyNav"></nav>
+        <section class="progress-card" aria-label="学习进度">
+          <div><span>本机进度</span><strong id="progressText">0 / 6</strong></div>
+          <div class="progress-track"><i id="progressBar"></i></div>
+          <small>进度仅保存在本机</small>
+        </section>
+        <section class="placeholder-note">
+          <span aria-hidden="true">◎</span>
+          <p><strong>角色图待接入</strong>当前使用文字徽章</p>
+        </section>
+      </aside>
+
+      <section class="workspace" aria-live="polite">
+        <header class="question-head">
+          <div class="question-meta">
+            <span class="family-pill" id="familyPill"></span>
+            <span class="source-pill" id="sourcePill"></span>
+            <span class="original-pill">原创改编</span>
+          </div>
+          <h2 id="questionTitle"></h2>
+          <p id="questionPrompt"></p>
+          <div class="skill-line" id="skillLine"></div>
+        </header>
+
+        <section class="lab-card">
+          <header class="lab-toolbar">
+            <div>
+              <span class="eyebrow">互动实验台</span>
+              <strong id="stageInstruction"></strong>
+            </div>
+            <button class="icon-button" id="resetQuestion" type="button" aria-label="重置本题">↻ <span>重置</span></button>
+          </header>
+          <div class="stage" id="stage"></div>
+          <footer class="stage-footer">
+            <div class="feedback" id="feedback" role="status">
+              <span class="feedback-icon">→</span>
+              <p>完成操作后检查结论。</p>
+            </div>
+            <div class="answer-actions">
+              <button class="thinking-launch" id="openThinking" type="button" hidden>✦ 展开三条思路</button>
+              <button class="primary-button" id="checkAnswer" type="button">检查结论</button>
+            </div>
+          </footer>
+        </section>
+
+        <footer class="question-nav">
+          <button id="previousQuestion" type="button">← 上一类</button>
+          <span id="questionCounter">1 / 6</span>
+          <button id="nextQuestion" type="button">下一类 →</button>
+        </footer>
+      </section>
+
+      <aside class="thinking-panel" aria-label="答题过程面板">
+        <header class="process-head">
+          <div><span class="eyebrow">我的过程</span><h2>先做，再总结</h2></div>
+          <span class="process-status" id="processStatus">探索中</span>
+        </header>
+        <section class="process-log-card">
+          <h3>操作记录</h3>
+          <ol id="processLog"><li class="empty">操作后会自动记录</li></ol>
+        </section>
+        <label class="discovery-card" for="discoveryInput">
+          <span>我的发现 <small>可选</small></span>
+          <textarea id="discoveryInput" maxlength="80" placeholder="例如：相邻数字每次……"></textarea>
+        </label>
+        <section class="help-card">
+          <button class="hint-button" id="hintButton" type="button">
+            <span aria-hidden="true">✦</span>
+            <span><strong>需要提示</strong><small id="hintProgress">0 / 3</small></span>
+          </button>
+          <div class="hint-box" id="hintBox" hidden></div>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <div class="thinking-overlay" id="thinkingOverlay" role="dialog" aria-modal="true" aria-labelledby="thinkingTitle" hidden>
+    <section class="thinking-stage">
+      <header class="thinking-stage-head">
+        <div><span>思维分岔</span><h2 id="thinkingTitle">同一道题，走三条路</h2></div>
+        <button id="closeThinking" type="button" aria-label="返回做题界面">×</button>
+      </header>
+      <div class="thinking-map">
+        <div class="thinking-core"><i id="thinkingCoreIcon">?</i><strong id="thinkingCoreTitle"></strong><span>已经解决</span></div>
+        <div class="thinking-paths" id="thinkingPaths"></div>
+      </div>
+      <div class="thinking-expanded">
+        <article class="thinking-detail" id="thinkingDetail"></article>
+        <aside class="thinking-challenge" id="thinkingChallenge"></aside>
+      </div>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script>
+const QUESTIONS = [
+  {
+    id: "P-01",
+    sourceId: "Q-001",
+    family: "数感与运算",
+    familyEn: "Number sense & operations",
+    icon: "−10",
+    color: "#2f78c4",
+    soft: "#e8f3ff",
+    badge: "嚼嚼（占位）",
+    title: "数字列车少了一节车厢",
+    titleEn: "A carriage is missing from the number train",
+    prompt: "列车上的数字按同一个规律前进。把正确的数字放进空车厢。",
+    promptEn: "The numbers follow one rule. Put the correct number into the empty carriage.",
+    instruction: "观察相邻车厢，再选择缺失数字",
+    engine: "sequence",
+    skills: ["连续减法", "规律递推", "双向验证"],
+    evidence: ["说出相邻变化", "双向验证", "主动修正规则"],
+    hints: ["只比较相邻的两节车厢。", "86到76发生了什么？76到66也一样。", "从46向前倒着走一次，也应得到同一个数。"],
+    methods: [
+      { title: "顺着轨道逐步走", body: "每经过一节车厢就减10。从66再减10，空车厢应放56。", formula: "86 → 76 → 66 → 56 → 46 → 36" },
+      { title: "从缺口两侧夹击", body: "左边给出66−10，右边给出46＋10。两边都指向56，因此不必重算整列。", formula: "66 − 10 = 56\n46 + 10 = 56" },
+      { title: "检查不变量并做变式", body: "把每对相邻数字的差都算一遍，结果始终是10，说明规则一致。", formula: "86−76 = 76−66 = 56−46 = 10", variation: "变式：若每节少8，从90开始，第5节是多少？" }
+    ]
+  },
+  {
+    id: "P-02",
+    sourceId: "Q-142",
+    family: "数的表达",
+    familyEn: "Representing numbers",
+    icon: "¾",
+    color: "#e96f5d",
+    soft: "#fff0ed",
+    badge: "切切（占位）",
+    title: "给四分之三的花圃铺上珊瑚石",
+    titleEn: "Cover three quarters of the garden with coral tiles",
+    prompt: "花圃被等分成12小格。点击格子，使珊瑚石正好占整个花圃的四分之三。",
+    promptEn: "The garden has 12 equal cells. Select exactly three quarters of them.",
+    instruction: "点击格子，做出12格的四分之三",
+    engine: "fraction",
+    skills: ["分数意义", "等分", "约分验证"],
+    evidence: ["确认整体等分", "理解分子分母", "用等值分数复核"],
+    hints: ["分母4表示把整体平均分成4份。", "12格平均分成4份，每份有3格。", "分子3表示取其中3份，也就是3×3格。"],
+    methods: [
+      { title: "先分组，再取三组", body: "把12格平均分成4组，每组3格；选中其中3组，共9格。", formula: "12 ÷ 4 = 3\n3 × 3 = 9" },
+      { title: "把分数看成一次运算", body: "求一个数的四分之三，可以先除以分母，再乘分子。", formula: "12 × 3/4 = 12 ÷ 4 × 3 = 9" },
+      { title: "用等值分数反向检查", body: "选中的9格占全部12格的9/12，分子分母同时除以3，正好是3/4。", formula: "9/12 = 3/4", variation: "变式：18格的5/6是多少格？能否仍然先分组？" }
+    ]
+  },
+  {
+    id: "P-03",
+    sourceId: "Q-012",
+    family: "代数初步",
+    familyEn: "Early algebra",
+    icon: "□",
+    color: "#765fc5",
+    soft: "#f0edff",
+    badge: "平平（占位）",
+    title: "数字金字塔的神秘石块",
+    titleEn: "The mystery block in a number pyramid",
+    prompt: "上层数字等于它下面相邻两块之和。选择一个数，让整座金字塔都成立。",
+    promptEn: "Each block equals the sum of the two adjacent blocks below it. Find the missing value.",
+    instruction: "选择未知数，同时检查左右两条关系",
+    engine: "pyramid",
+    skills: ["逆向倒推", "方程", "代入检验"],
+    evidence: ["从和倒推部分", "检查两个约束", "代回原结构"],
+    hints: ["先只看左下角的7和它上面的16。", "7加多少等于16？", "再检查这个数加5是不是14。"],
+    methods: [
+      { title: "从上层拆回下层", body: "左边中层16由7和未知数组成，因此拿走7，剩下9。", formula: "16 − 7 = 9" },
+      { title: "写成两个简单方程", body: "同一个未知数同时满足7＋x＝16与x＋5＝14；两式都得到x＝9。", formula: "7 + x = 16\nx + 5 = 14\n所以 x = 9" },
+      { title: "代回全部三层", body: "9放回后，中层是16和14，顶层16＋14＝30，所有关系同时成立。", formula: "7+9=16；9+5=14；16+14=30", variation: "变式：若顶层改成34、底层两端不变，中间未知数还能保持不变吗？" }
+    ]
+  },
+  {
+    id: "P-04",
+    sourceId: "Q-028",
+    family: "图形与空间",
+    familyEn: "Geometry & space",
+    icon: "▦",
+    color: "#4ca985",
+    soft: "#e7f7f0",
+    badge: "装装（占位）",
+    title: "旋转阶梯塔，找出全部方块",
+    titleEn: "Rotate the stepped tower and count every cube",
+    prompt: "这座塔由三层单位方块组成。切换视角、分层点数，并判断一共用了多少块。",
+    promptEn: "This tower has three layers of unit cubes. Rotate, inspect layers, and find the total.",
+    instruction: "旋转并逐层标记，避免漏掉被遮挡的方块",
+    engine: "cubes",
+    skills: ["空间想象", "分层计数", "视角转换"],
+    evidence: ["主动切换视角", "按层计数", "识别遮挡方块"],
+    hints: ["先只看底层，把每一块都点亮。", "中层是一个2×2的小平台。", "把三层数量相加，不要把上层占据的位置从下层扣掉。"],
+    methods: [
+      { title: "分层点亮", body: "底层按3×3数出9块，中层2×2有4块，顶层1块；三层相加。", formula: "9 + 4 + 1 = 14" },
+      { title: "识别平方数结构", body: "每层都是边长依次为3、2、1的正方形，可以直接写成平方数之和。", formula: "3² + 2² + 1² = 9 + 4 + 1 = 14" },
+      { title: "换视角检查遮挡", body: "旋转后逐层方块数量不变。前面看不到的方块，会在侧面视角露出轮廓。", formula: "旋转改变外观，不改变方块总数", variation: "变式：再加一层4×4作为新底座，总数会增加多少？" }
+    ]
+  },
+  {
+    id: "P-05",
+    sourceId: "Q-002",
+    family: "量与测量",
+    familyEn: "Measurement",
+    icon: "35′",
+    color: "#cf8a18",
+    soft: "#fff3d8",
+    badge: "时时（占位）",
+    title: "让实验倒计时准时开始",
+    titleEn: "Set the correct start time for the experiment",
+    prompt: "实验必须在15:20完成，整个过程需要35分钟。拨动时钟，找出最晚开始时刻。",
+    promptEn: "The experiment must finish at 15:20 and takes 35 minutes. Set the latest start time.",
+    instruction: "从完成时刻倒拨35分钟",
+    engine: "time",
+    skills: ["经过时间", "跨整点退位", "逆向验证"],
+    evidence: ["从结束时刻倒推", "处理跨整点", "加回用时复核"],
+    hints: ["因为已知完成时刻，所以要向后拨。", "可以先退20分钟到15:00。", "还剩15分钟，再退到14:45。"],
+    methods: [
+      { title: "在钟面上分段倒拨", body: "先从15:20退20分钟到15:00，再退15分钟到14:45。", formula: "15:20 − 20分 = 15:00\n15:00 − 15分 = 14:45" },
+      { title: "统一换成分钟计算", body: "15:20是从0点起920分钟。920−35＝885分钟，也就是14小时45分钟。", formula: "15×60+20=920\n920−35=885=14×60+45" },
+      { title: "把经过时间加回去", body: "从14:45开始，经过15分钟到15:00，再过20分钟到15:20，正好35分钟。", formula: "14:45 + 35分 = 15:20", variation: "变式：若过程需要50分钟，且中途休息10分钟，应何时开始？" }
+    ]
+  },
+  {
+    id: "P-06",
+    sourceId: "Q-090",
+    family: "数据与关系",
+    familyEn: "Data & relationships",
+    icon: "●○",
+    color: "#9a5fb8",
+    soft: "#f5eafa",
+    badge: "猜猜（占位）",
+    title: "七格灯带的不相邻点亮方案",
+    titleEn: "Choose three non-adjacent lights in a strip of seven",
+    prompt: "在7个格子中点亮3格，任意两个亮格不能相邻。先记录至少3种，再判断一共有多少种。",
+    promptEn: "Light 3 of 7 cells so that no two lit cells are adjacent. Record examples, then find the total.",
+    instruction: "点亮3格并记录不同方案，再推断方案总数",
+    engine: "combinations",
+    skills: ["有序枚举", "组合", "排斥条件"],
+    evidence: ["遵守不相邻约束", "有序枚举", "说明枚举完整性"],
+    hints: ["可以先固定最左边的亮格，再依次向右列。", "每选一个亮格，它右边紧邻的一格必须留空。", "把第2、3个亮格分别向左移1、2格，会变成从5格中任取3格。"],
+    methods: [
+      { title: "固定第一格有序枚举", body: "按最左亮格的位置分组，依次列出135、136、137、146、147、157、246、247、257、357，共10种。", formula: "6 + 3 + 1 = 10" },
+      { title: "把强制空格暂时收起来", body: "3个亮格之间至少放2个空格。先拿走这2个强制空格，就转化为从5个位置中选3个。", formula: "C(7−3+1, 3) = C(5, 3) = 10" },
+      { title: "递推与完整性核对", body: "从左到右看：第一格不亮时化为6格问题；第一格亮时，第二格必须暗，化为5格选2个不相邻。", formula: "F(7,3)=F(6,3)+F(5,2)=4+6=10", variation: "变式：10格中点亮4格且互不相邻，有多少种？" }
+    ]
+  }
+];
+
+const STORAGE_KEY = "math-explorer-commercial-prototype-v1";
+const $ = (selector) => document.querySelector(selector);
+const $$ = (selector) => [...document.querySelectorAll(selector)];
+
+function loadProgress() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    return new Set(Array.isArray(raw.completed) ? raw.completed : []);
+  } catch {
+    return new Set();
+  }
+}
+
+const state = {
+  index: 0,
+  language: "zh",
+  completed: loadProgress(),
+  hintLevel: 0,
+  methodTab: 0,
+  interaction: {},
+  processLog: [],
+  discovery: "",
+  feedback: { type: "neutral", text: "完成操作后检查结论。" }
+};
+
+function saveProgress() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ completed: [...state.completed] }));
+  } catch {
+    // 部分浏览器会限制 file:// 页面的本地存储；互动仍可在当前会话继续。
+  }
+}
+
+function question() { return QUESTIONS[state.index]; }
+function formatTime(total) {
+  const normalized = ((total % 1440) + 1440) % 1440;
+  return `${String(Math.floor(normalized / 60)).padStart(2, "0")}:${String(normalized % 60).padStart(2, "0")}`;
+}
+
+function resetInteraction() {
+  const thinkingOverlay = document.querySelector("#thinkingOverlay");
+  if (thinkingOverlay) thinkingOverlay.hidden = true;
+  const engine = question().engine;
+  if (engine === "sequence") state.interaction = { selected: null };
+  if (engine === "fraction") state.interaction = { selected: new Set() };
+  if (engine === "pyramid") state.interaction = { selected: null };
+  if (engine === "cubes") state.interaction = { counted: new Set(), layer: "all", rotation: 0, answer: null };
+  if (engine === "time") state.interaction = { current: 15 * 60 + 20, history: ["15:20"] };
+  if (engine === "combinations") state.interaction = { selected: new Set(), records: new Set(), answer: null };
+  state.processLog = [];
+  state.discovery = "";
+  state.hintLevel = 0;
+  state.methodTab = 0;
+  setFeedback("neutral", "完成操作后检查结论。", false);
+}
+
+function setTheme(q) {
+  document.documentElement.style.setProperty("--family", q.color);
+  document.documentElement.style.setProperty("--family-soft", q.soft);
+}
+
+function renderNavigation() {
+  $("#familyNav").innerHTML = QUESTIONS.map((q, index) => `
+    <button class="family-button ${index === state.index ? "active" : ""} ${state.completed.has(q.id) ? "done" : ""}"
+      style="--family:${q.color};--family-soft:${q.soft}" data-index="${index}" type="button">
+      <span class="family-icon">${q.icon}</span>
+      <span class="family-copy"><strong>${q.family}</strong><small>${q.badge}</small></span>
+      <span class="family-status">✓</span>
+    </button>`).join("");
+  const count = state.completed.size;
+  $("#progressText").textContent = `${count} / ${QUESTIONS.length}`;
+  $("#progressBar").style.width = `${count / QUESTIONS.length * 100}%`;
+}
+
+function renderQuestionHeader() {
+  const q = question();
+  setTheme(q);
+  $("#familyPill").textContent = state.language === "zh" ? q.family : q.familyEn;
+  $("#sourcePill").textContent = `题库 ${q.sourceId}`;
+  $("#questionTitle").textContent = state.language === "zh" ? q.title : q.titleEn;
+  $("#questionPrompt").textContent = state.language === "zh" ? q.prompt : q.promptEn;
+  $("#skillLine").innerHTML = q.skills.map((skill) => `<span class="skill-chip">${skill}</span>`).join("");
+  $("#stageInstruction").textContent = q.instruction;
+  $("#questionCounter").textContent = `${state.index + 1} / ${QUESTIONS.length}`;
+  $("#languageToggle").setAttribute("aria-pressed", String(state.language === "en"));
+  $("#languageToggle").textContent = state.language === "zh" ? "中 / EN" : "EN / 中";
+}
+
+function renderSequence() {
+  const selected = state.interaction.selected;
+  const values = [86, 76, 66, null, 46, 36];
+  return `<div class="engine sequence-engine">
+    <div class="train-line">${values.map((value) => `
+      <div class="train-car ${value === null ? `missing ${selected !== null ? "filled" : ""}` : ""}" ${value === null ? "data-seq-drop" : ""}>${value === null ? (selected ?? "?") : value}</div>`).join("")}</div>
+    <div class="engine-label"><b>把数字卡拖进空车厢</b>（也可单击）</div>
+    <div class="choice-row">${[52, 56, 60, 64].map((value) => `<button class="choice-chip ${selected === value ? "selected" : ""}" data-seq="${value}" draggable="true" type="button">${value}</button>`).join("")}</div>
+  </div>`;
+}
+
+function renderFraction() {
+  const selected = state.interaction.selected;
+  return `<div class="engine fraction-engine">
+    <div class="fraction-wrap">
+      <div class="fraction-grid" aria-label="12格花圃">${Array.from({ length: 12 }, (_, index) => `<button class="fraction-cell ${selected.has(index) ? "selected" : ""}" data-fraction="${index}" type="button" aria-label="第${index + 1}格"></button>`).join("")}</div>
+      <div class="fraction-meter"><span>已铺珊瑚石</span><strong>${selected.size}<small>/12</small></strong><div class="fraction-target">目标：3 / 4</div></div>
+    </div>
+    <div class="engine-label">把12格分成 <b>4个相等的小组</b></div>
+  </div>`;
+}
+
+function renderPyramid() {
+  const selected = state.interaction.selected;
+  return `<div class="engine pyramid-engine">
+    <div class="pyramid">
+      <div class="pyramid-row"><div class="pyramid-block top">30</div></div>
+      <div class="pyramid-row"><div class="pyramid-block sum">16</div><div class="pyramid-block sum">14</div></div>
+      <div class="pyramid-row"><div class="pyramid-block">7</div><div class="pyramid-block unknown ${selected !== null ? "filled" : ""}" data-pyramid-drop>${selected ?? "?"}</div><div class="pyramid-block">5</div></div>
+    </div>
+    <div class="pyramid-rule">规则：相邻两块相加，得到正上方的数字</div>
+    <div class="choice-row">${[7, 8, 9, 10, 11].map((value) => `<button class="choice-chip ${selected === value ? "selected" : ""}" data-pyramid="${value}" draggable="true" type="button">${value}</button>`).join("")}</div>
+  </div>`;
+}
+
+function cubeCoordinates() {
+  const cubes = [];
+  for (let x = -1; x <= 1; x += 1) for (let y = -1; y <= 1; y += 1) cubes.push({ id: `0-${x}-${y}`, x, y, z: 0 });
+  for (const x of [-.5, .5]) for (const y of [-.5, .5]) cubes.push({ id: `1-${x}-${y}`, x, y, z: 1 });
+  cubes.push({ id: "2-0-0", x: 0, y: 0, z: 2 });
+  const angle = state.interaction.rotation * Math.PI / 2;
+  return cubes.map((cube) => {
+    const rx = cube.x * Math.cos(angle) - cube.y * Math.sin(angle);
+    const ry = cube.x * Math.sin(angle) + cube.y * Math.cos(angle);
+    return { ...cube, left: 225 + (rx - ry) * 48, top: 170 + (rx + ry) * 23 - cube.z * 53 };
+  }).sort((a, b) => a.top - b.top || a.z - b.z);
+}
+
+function renderCubes() {
+  const it = state.interaction;
+  const cubes = cubeCoordinates();
+  return `<div class="engine cube-engine">
+    <div class="cube-layout">
+      <div class="cube-scene" aria-label="三层单位方块塔">${cubes.map((cube) => {
+        const hidden = it.layer !== "all" && Number(it.layer) !== cube.z;
+        return `<button class="iso-cube ${it.counted.has(cube.id) ? "counted" : ""} ${hidden ? "layer-hidden" : ""}" data-cube="${cube.id}" data-layer="${cube.z}" style="left:${cube.left}px;top:${cube.top}px;z-index:${Math.round(cube.top + cube.z * 10)}" type="button" aria-label="第${cube.z + 1}层方块"><span class="cube-top"></span><span class="cube-left"></span><span class="cube-right"></span></button>`;
+      }).join("")}</div>
+      <div class="cube-controls">
+        <button class="${it.layer === "all" ? "active" : ""}" data-cube-layer="all" type="button">查看整座塔</button>
+        <button class="${String(it.layer) === "0" ? "active" : ""}" data-cube-layer="0" type="button">只看底层</button>
+        <button class="${String(it.layer) === "1" ? "active" : ""}" data-cube-layer="1" type="button">只看中层</button>
+        <button class="${String(it.layer) === "2" ? "active" : ""}" data-cube-layer="2" type="button">只看顶层</button>
+        <button data-cube-rotate type="button">旋转视角 ↻</button>
+        <div class="cube-count"><span>已标记</span><strong>${it.counted.size}</strong><span>块</span></div>
+      </div>
+    </div>
+    <div class="answer-predict">${it.counted.size === 14 ? `<span>填写总数</span>${[12, 13, 14, 15].map((value) => `<button class="choice-chip ${it.answer === value ? "selected" : ""}" data-cube-answer="${value}" type="button">${value}</button>`).join("")}` : `<span class="process-gate">先逐块标记，再填写总数</span>`}</div>
+  </div>`;
+}
+
+function renderTime() {
+  const it = state.interaction;
+  const hour = ((it.current / 60) % 12) + (it.current % 60) / 60;
+  const minute = it.current % 60;
+  return `<div class="engine time-engine">
+    <div class="time-layout">
+      <div class="clock-face">
+        <span class="clock-three">3</span><span class="clock-nine">9</span>
+        <i class="hand hour-hand" style="transform:rotate(${hour * 30}deg)"></i>
+        <i class="hand minute-hand" style="transform:rotate(${minute * 6}deg)"></i>
+        <span class="clock-pin"></span>
+      </div>
+      <div class="time-console">
+        <div class="digital-time">${formatTime(it.current)}</div>
+        <span class="duration-badge">完成时刻15:20 · 需要35分钟</span>
+        <div class="time-buttons">
+          <button data-time-delta="-10" type="button">−10分</button>
+          <button data-time-delta="-5" type="button">−5分</button>
+          <button data-time-delta="5" type="button">＋5分</button>
+        </div>
+        <div class="time-history">${it.history.map((item) => `<span>${item}</span>`).join("")}</div>
+      </div>
+    </div>
+    <div class="engine-label">拨动记录会保留在时间轨迹中</div>
+  </div>`;
+}
+
+function hasConflict(selected) {
+  const values = [...selected].sort((a, b) => a - b);
+  return values.some((value, index) => index > 0 && value - values[index - 1] === 1);
+}
+
+function renderCombinations() {
+  const it = state.interaction;
+  const conflict = hasConflict(it.selected);
+  return `<div class="engine combo-engine">
+    <div class="combo-wrap">
+      <div class="combo-grid">${Array.from({ length: 7 }, (_, index) => `<button class="combo-cell ${it.selected.has(index) ? "selected" : ""} ${conflict && it.selected.has(index) ? "conflict" : ""}" data-combo-cell="${index}" type="button">${index + 1}</button>`).join("")}</div>
+      <div class="combo-actions"><p>已选 <strong>${it.selected.size}</strong> 格 · 亮格不能相邻</p><button class="mini-action" data-record-combo type="button">记录这组方案</button></div>
+      <div class="recorded-list">${it.records.size ? [...it.records].map((key) => `<span>${key.split("-").map((n) => Number(n) + 1).join("")}</span>`).join("") : "<span>记录区还是空的</span>"}</div>
+      <div class="answer-predict">${it.records.size >= 3 ? `<span>判断方案总数</span>${[8, 9, 10, 12].map((value) => `<button class="choice-chip ${it.answer === value ? "selected" : ""}" data-combo-answer="${value}" type="button">${value}</button>`).join("")}` : `<span class="process-gate">还需记录 ${3 - it.records.size} 组有效方案</span>`}</div>
+    </div>
+  </div>`;
+}
+
+function renderStage() {
+  const renderers = { sequence: renderSequence, fraction: renderFraction, pyramid: renderPyramid, cubes: renderCubes, time: renderTime, combinations: renderCombinations };
+  $("#stage").innerHTML = renderers[question().engine]();
+}
+
+function addProcess(text) {
+  if (!text || state.processLog.at(-1) === text) return;
+  state.processLog.push(text);
+  if (state.processLog.length > 6) state.processLog.shift();
+  renderProcessPanel();
+}
+
+function renderProcessPanel() {
+  const done = state.completed.has(question().id);
+  const status = $("#processStatus");
+  status.textContent = done ? "已完成" : "探索中";
+  status.classList.toggle("done", done);
+  $("#processLog").innerHTML = state.processLog.length
+    ? state.processLog.map((item) => `<li>${item}</li>`).join("")
+    : `<li class="empty">操作后会自动记录</li>`;
+}
+
+function renderDiscovery() {
+  $("#discoveryInput").value = state.discovery;
+}
+
+function renderHints() {
+  const q = question();
+  $("#hintProgress").textContent = `${state.hintLevel} / ${q.hints.length}`;
+  $("#hintBox").hidden = state.hintLevel === 0;
+  $("#hintBox").textContent = state.hintLevel === 0 ? "" : q.hints[state.hintLevel - 1];
+  $("#hintButton").disabled = state.hintLevel >= q.hints.length;
+}
+
+function renderMethods() {
+  const done = state.completed.has(question().id);
+  $("#openThinking").hidden = !done;
+  $("#checkAnswer").hidden = done;
+  if (!done) {
+    $("#thinkingOverlay").hidden = true;
+    return;
+  }
+  const q = question();
+  const pathMeta = [
+    { label: "操作路径", icon: "✋", note: "用动作重新看见关系", color: "#2f78c4", soft: "#e8f3ff" },
+    { label: "模型路径", icon: "◇", note: "换一种表示与推理", color: "#765fc5", soft: "#f0edff" },
+    { label: "挑战路径", icon: "↺", note: "反向验证并继续发散", color: "#4ca985", soft: "#e7f7f0" }
+  ];
+  $("#thinkingCoreIcon").textContent = q.icon;
+  $("#thinkingCoreTitle").textContent = q.title;
+  $("#thinkingPaths").innerHTML = q.methods.map((method, index) => {
+    const meta = pathMeta[index];
+    return `<button class="thinking-path-card ${index === state.methodTab ? "active" : ""}" data-thinking-path="${index}" style="--path:${meta.color};--path-soft:${meta.soft}" type="button"><span class="thinking-path-icon">${meta.icon}</span><span><small>${meta.label}</small><strong>${method.title}</strong><em>${meta.note}</em></span></button>`;
+  }).join("");
+  const method = q.methods[state.methodTab];
+  const meta = pathMeta[state.methodTab];
+  const detail = $("#thinkingDetail");
+  detail.style.setProperty("--path", meta.color);
+  detail.style.setProperty("--path-soft", meta.soft);
+  detail.innerHTML = `<span>${meta.label}</span><h3>${method.title}</h3><p>${method.body}</p><div class="method-formula">${method.formula.replaceAll("\n", "<br>")}</div>`;
+  const challenge = q.methods[2].variation?.replace(/^变式：/, "") || "改变一个条件，重新预测答案会怎样变化。";
+  $("#thinkingChallenge").innerHTML = `<i>✦</i><span>再走一步</span><h3>变式挑战</h3><p>${challenge}</p>`;
+}
+
+function openThinkingStage() {
+  if (!state.completed.has(question().id)) return;
+  renderMethods();
+  $("#thinkingOverlay").hidden = false;
+  $("#closeThinking").focus();
+}
+
+function closeThinkingStage() {
+  $("#thinkingOverlay").hidden = true;
+  $("#openThinking").focus();
+}
+
+function setFeedback(type, text, render = true) {
+  state.feedback = { type, text };
+  if (render) renderFeedback();
+}
+
+function renderFeedback() {
+  const box = $("#feedback");
+  box.className = `feedback ${state.feedback.type === "neutral" ? "" : state.feedback.type}`;
+  box.querySelector(".feedback-icon").textContent = state.feedback.type === "success" ? "✓" : state.feedback.type === "error" ? "!" : "→";
+  box.querySelector("p").textContent = state.feedback.text;
+}
+
+function renderAll() {
+  renderNavigation();
+  renderQuestionHeader();
+  renderStage();
+  renderProcessPanel();
+  renderDiscovery();
+  renderHints();
+  renderMethods();
+  renderFeedback();
+}
+
+function navigate(index) {
+  state.index = (index + QUESTIONS.length) % QUESTIONS.length;
+  resetInteraction();
+  renderAll();
+}
+
+function checkCurrentAnswer() {
+  const q = question();
+  const it = state.interaction;
+  let ok = false;
+  let incomplete = "";
+  if (q.engine === "sequence") { incomplete = it.selected === null ? "先选择一节候选车厢。" : ""; ok = it.selected === 56; }
+  if (q.engine === "fraction") { incomplete = it.selected.size === 0 ? "先点击花圃格子。" : ""; ok = it.selected.size === 9; }
+  if (q.engine === "pyramid") { incomplete = it.selected === null ? "先给未知石块选择一个数字。" : ""; ok = it.selected === 9; }
+  if (q.engine === "cubes") { incomplete = it.answer === null || it.counted.size < 14 ? "请先标记全部方块，并选择总数。" : ""; ok = it.answer === 14 && it.counted.size === 14; }
+  if (q.engine === "time") { ok = it.current === 14 * 60 + 45; }
+  if (q.engine === "combinations") { incomplete = it.records.size < 3 || it.answer === null ? "请至少记录3种有效方案，再选择总数。" : ""; ok = it.answer === 10 && it.records.size >= 3; }
+  if (incomplete) {
+    setFeedback("error", incomplete);
+    return;
+  }
+  if (!ok) {
+    addProcess("检查未通过，继续调整");
+    setFeedback("error", "这个结论还没有通过所有条件。看看提示，或换一个方向验证。 ");
+    return;
+  }
+  state.completed.add(q.id);
+  addProcess("结论通过验证");
+  saveProgress();
+  setFeedback("success", "验证通过，三种思路已解锁。", false);
+  renderNavigation();
+  renderMethods();
+  renderFeedback();
+  openThinkingStage();
+  showToast(`${q.family}样板已完成`);
+}
+
+function showToast(message) {
+  const toast = $("#toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => toast.classList.remove("show"), 1700);
+}
+
+$("#familyNav").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-index]");
+  if (button) navigate(Number(button.dataset.index));
+});
+
+$("#stage").addEventListener("click", (event) => {
+  const seq = event.target.closest("[data-seq]");
+  if (seq) {
+    state.interaction.selected = Number(seq.dataset.seq);
+    addProcess(`把 ${seq.dataset.seq} 放进空车厢`);
+    renderStage(); return;
+  }
+  const fraction = event.target.closest("[data-fraction]");
+  if (fraction) {
+    const index = Number(fraction.dataset.fraction);
+    state.interaction.selected.has(index) ? state.interaction.selected.delete(index) : state.interaction.selected.add(index);
+    if ([1, 3, 6, 9, 12].includes(state.interaction.selected.size)) addProcess(`已铺 ${state.interaction.selected.size}/12 格`);
+    renderStage(); return;
+  }
+  const pyramid = event.target.closest("[data-pyramid]");
+  if (pyramid) {
+    state.interaction.selected = Number(pyramid.dataset.pyramid);
+    addProcess(`把 ${pyramid.dataset.pyramid} 放入未知石块`);
+    renderStage(); return;
+  }
+  const layer = event.target.closest("[data-cube-layer]");
+  if (layer) {
+    state.interaction.layer = layer.dataset.cubeLayer;
+    const label = { all: "查看整座塔", 0: "单独查看底层", 1: "单独查看中层", 2: "单独查看顶层" }[layer.dataset.cubeLayer];
+    addProcess(label); renderStage(); return;
+  }
+  const rotate = event.target.closest("[data-cube-rotate]");
+  if (rotate) {
+    state.interaction.rotation = (state.interaction.rotation + 1) % 4;
+    addProcess(`旋转到第 ${state.interaction.rotation + 1} 个视角`);
+    renderStage(); return;
+  }
+  const cube = event.target.closest("[data-cube]");
+  if (cube) {
+    const id = cube.dataset.cube;
+    const adding = !state.interaction.counted.has(id);
+    state.interaction.counted.has(id) ? state.interaction.counted.delete(id) : state.interaction.counted.add(id);
+    if (adding && [1, 4, 9, 14].includes(state.interaction.counted.size)) addProcess(`已标记 ${state.interaction.counted.size} 块`);
+    renderStage(); return;
+  }
+  const cubeAnswer = event.target.closest("[data-cube-answer]");
+  if (cubeAnswer) {
+    state.interaction.answer = Number(cubeAnswer.dataset.cubeAnswer);
+    addProcess(`判断总数为 ${cubeAnswer.dataset.cubeAnswer}`);
+    renderStage(); return;
+  }
+  const time = event.target.closest("[data-time-delta]");
+  if (time) {
+    const before = formatTime(state.interaction.current);
+    state.interaction.current += Number(time.dataset.timeDelta);
+    const after = formatTime(state.interaction.current);
+    state.interaction.history.push(after);
+    if (state.interaction.history.length > 8) state.interaction.history.shift();
+    addProcess(`${before} → ${after}`);
+    renderStage(); return;
+  }
+  const comboCell = event.target.closest("[data-combo-cell]");
+  if (comboCell) {
+    const index = Number(comboCell.dataset.comboCell);
+    if (!state.interaction.selected.has(index) && state.interaction.selected.size >= 3) { showToast("一组只能点亮3格"); return; }
+    state.interaction.selected.has(index) ? state.interaction.selected.delete(index) : state.interaction.selected.add(index);
+    renderStage(); return;
+  }
+  const record = event.target.closest("[data-record-combo]");
+  if (record) {
+    const selected = state.interaction.selected;
+    if (selected.size !== 3 || hasConflict(selected)) { setFeedback("error", "这一组必须正好点亮3格，而且亮格不能相邻。"); renderStage(); return; }
+    const key = [...selected].sort((a, b) => a - b).join("-");
+    const existed = state.interaction.records.has(key);
+    state.interaction.records.add(key);
+    state.interaction.selected = new Set();
+    addProcess(existed ? `方案 ${key.split("-").map((n) => Number(n) + 1).join("")} 已记录` : `记录方案 ${key.split("-").map((n) => Number(n) + 1).join("")}`);
+    setFeedback("neutral", existed ? "这组已经记录过，换一个起点继续枚举。" : "方案已记录。保持固定顺序，继续寻找不同方案。");
+    renderStage(); return;
+  }
+  const comboAnswer = event.target.closest("[data-combo-answer]");
+  if (comboAnswer) {
+    state.interaction.answer = Number(comboAnswer.dataset.comboAnswer);
+    addProcess(`判断共有 ${comboAnswer.dataset.comboAnswer} 种`);
+    renderStage();
+  }
+});
+
+$("#stage").addEventListener("dragstart", (event) => {
+  const card = event.target.closest("[data-seq], [data-pyramid]");
+  if (!card) return;
+  const kind = card.hasAttribute("data-seq") ? "sequence" : "pyramid";
+  const value = card.dataset.seq ?? card.dataset.pyramid;
+  event.dataTransfer.setData("text/plain", `${kind}:${value}`);
+  event.dataTransfer.effectAllowed = "move";
+});
+
+$("#stage").addEventListener("dragover", (event) => {
+  if (event.target.closest("[data-seq-drop], [data-pyramid-drop]")) event.preventDefault();
+});
+
+$("#stage").addEventListener("drop", (event) => {
+  const target = event.target.closest("[data-seq-drop], [data-pyramid-drop]");
+  if (!target) return;
+  event.preventDefault();
+  const [kind, rawValue] = event.dataTransfer.getData("text/plain").split(":");
+  const value = Number(rawValue);
+  if (kind === "sequence" && target.hasAttribute("data-seq-drop")) {
+    state.interaction.selected = value;
+    addProcess(`把 ${value} 拖进空车厢`);
+    renderStage();
+  }
+  if (kind === "pyramid" && target.hasAttribute("data-pyramid-drop")) {
+    state.interaction.selected = value;
+    addProcess(`把 ${value} 拖入未知石块`);
+    renderStage();
+  }
+});
+
+$("#checkAnswer").addEventListener("click", checkCurrentAnswer);
+$("#resetQuestion").addEventListener("click", () => { resetInteraction(); renderAll(); showToast("本题操作已重置"); });
+$("#previousQuestion").addEventListener("click", () => navigate(state.index - 1));
+$("#nextQuestion").addEventListener("click", () => navigate(state.index + 1));
+$("#languageToggle").addEventListener("click", () => { state.language = state.language === "zh" ? "en" : "zh"; renderQuestionHeader(); });
+$("#hintButton").addEventListener("click", () => {
+  state.hintLevel = Math.min(question().hints.length, state.hintLevel + 1);
+  addProcess(`查看第 ${state.hintLevel} 层提示`);
+  renderHints();
+});
+$("#discoveryInput").addEventListener("input", (event) => { state.discovery = event.target.value; });
+$("#resetProgress").addEventListener("click", () => {
+  if (!window.confirm("只清空这台电脑上的6题完成记录，确定继续吗？")) return;
+  state.completed.clear();
+  saveProgress();
+  resetInteraction();
+  renderAll();
+  showToast("本机进度已清空");
+});
+$("#openThinking").addEventListener("click", openThinkingStage);
+$("#closeThinking").addEventListener("click", closeThinkingStage);
+$("#thinkingPaths").addEventListener("click", (event) => {
+  const path = event.target.closest("[data-thinking-path]");
+  if (!path) return;
+  state.methodTab = Number(path.dataset.thinkingPath);
+  renderMethods();
+});
+$("#thinkingOverlay").addEventListener("click", (event) => {
+  if (event.target === $("#thinkingOverlay")) closeThinkingStage();
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !$("#thinkingOverlay").hidden) {
+    closeThinkingStage();
+    return;
+  }
+  if (event.altKey && event.key === "ArrowRight") navigate(state.index + 1);
+  if (event.altKey && event.key === "ArrowLeft") navigate(state.index - 1);
+});
+
+window.__MATH_LAB_TEST__ = {
+  questions: QUESTIONS,
+  state,
+  navigate,
+  resetInteraction,
+  checkCurrentAnswer
+};
+
+resetInteraction();
+renderAll();
+
+</script>
+</body>
+</html>

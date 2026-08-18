@@ -13,6 +13,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import AskFlow from "@/components/AskFlow";
+import FeatureCoach from "@/components/FeatureCoach";
 
 type Q = { id: string; emoji: string; label: string; category: string; badge?: string };
 type Reward = { name: string; required: number };
@@ -205,7 +206,19 @@ export default function AskPanel({
       >
         🦊
       </button>
-      <div className="h-full min-h-0 overflow-hidden rounded-2xl border-3 border-[#2b3a4a] bg-[#fffdf5] shadow-card">
+      {/* 第一次打开小狐狸：自动一对一教学（默认只教一次） */}
+      <div className="shrink-0 px-1 pt-1">
+        <FeatureCoach
+          storageKey="coach:ask"
+          title="🦊 我是你的 AI 小狐狸"
+          message={
+            <>
+              把不会的题或知识点发给我，我来给你讲～ 每次提问还能攒 ✨火花，攒够神秘小怪就出现在岛上啦！
+            </>
+          }
+        />
+      </div>
+      <div className="min-h-0 flex-1 overflow-hidden rounded-2xl border-3 border-[#2b3a4a] bg-[#fffdf5] shadow-card">
         <AskFlow
           questions={questions}
           sparks={sparks}

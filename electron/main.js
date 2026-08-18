@@ -14,8 +14,18 @@ const http = require("http");
 const fs = require("fs");
 
 const isDev = !app.isPackaged;
-// standalone 服务目录：开发时走 .next/standalone，打包后在 asar 内同一相对路径
-const SERVER_DIR = path.join(__dirname, "..", ".next", "standalone");
+
+// 把「asar 内的虚拟路径」映射为 asarUnpack 解包出的真实文件路径。
+// 打包后 __dirname 形如 ...\resources\app.asar\electron，是虚拟路径（不存在的真实文件夹），
+// server.js 里的 process.chdir(__dirname) 和原生模块加载都会因此 ENOENT（"找不到文件夹"）。
+// asarUnpack 已把 .next/standalone、icon.ico 解包到 ...\resources\app.asar.unpacked\ 下。
+function unpackedPath(p) {
+  if (isDev) return p;
+  return p.replace(`${path.sep}app.asar${path.sep}`, `${path.sep}app.asar.unpacked${path.sep}`);
+}
+
+// standalone 服务目录：开发时走 .next/standalone，打包后走 app.asar.unpacked\.next\standalone
+const SERVER_DIR = unpackedPath(path.join(__dirname, "..", ".next", "standalone"));
 const SERVER_ENTRY = path.join(SERVER_DIR, "server.js");
 
 // ---------------------------------------------------------------------------
@@ -101,7 +111,7 @@ function createWindow(port) {
     minWidth: 1024,
     minHeight: 700,
     title: "知识岛 · 驯养你的 AI 伙伴",
-    icon: path.join(__dirname, "icon.ico"),
+    icon: unpackedPath(path.join(__dirname, "icon.ico")),
     autoHideMenuBar: true,
     show: false, // 先隐藏，等页面可交互再显示，避免白屏闪烁
     webPreferences: {

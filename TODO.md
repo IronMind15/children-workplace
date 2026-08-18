@@ -3,13 +3,13 @@
 ## 进行中 / 待补充
 
 ### 错题集后端逻辑（v1.2.12 前端 UI 已占位）
-- [ ] 数据模型：设计 `mistakes` 表（或扩展 `growth_logs`）记录错题
-  - 字段参考：id / user_id / monster_id / question / user_answer / correct_answer / meta_id / island / tags / created_at / resolved_at / review_count
-- [ ] 错题入口：在 `lib/actions.ts` 新增 `logMistake(...)` / `resolveMistake(...)` / `getMistakes()` 等 server action
-- [ ] 战斗埋点：BattleFlow / BossFlow 答错时调用 `logMistake`，答对/复习成功时调用 `resolveMistake`
-- [ ] 掌握度算法：按错题次数、间隔、复习结果计算薄弱元认知，给推荐复习列表
-- [ ] 错题集页面数据化：`app/mistakes/page.tsx` 接真实数据，替换空数组占位
-- [ ] 复习入口：在 AskPanel / 首页增加「今日待复习」快捷入口
+- [x] 数据模型：`mistake` 表扩展 `resolved_at` / `step_json` / `review_count`（v7 rebuild copy + 老库 ALTER 迁移均补齐）
+- [x] 错题入口：`logMistake`(带 step_json) / `resolveMistake`(批量) / `resolveMistakeQuestion`(按 id 或题干精准订正) / `getReviewSteps` / `evaluateMetaProficiency` 已落地
+- [x] 战斗埋点：BattleFlow / BossFlow 答错记完整题目（`JSON.stringify(currentStep)`），答对且本步曾错时调 `resolveMistakeQuestion`（作对即自动订正单条 + 成长日志）
+- [x] 掌握度算法：`evaluateMetaProficiency`（精灵等级 60% + 错题订正率 40% → 0~100 分 + 精通/良好/待加强/薄弱/未涉及 等级 + 徽章色）
+- [x] 错题集页面数据化：`app/mistakes/page.tsx` 接真实 `getMistakes`：累计/已订正/待复习统计、按元认知聚合、熟练度徽章、每条详情、再挑战按钮跳小怪战；`/parent` 各元认知加熟练度标记
+- [x] 复习注入：小怪战按未掌握错题数加权（1~3 道）把旧错题（`step_json`）重建为 SolveStep 插入招式之间，更可能碰到并改对（命中 `mistakeId` 精准订正）
+- [ ] 复习入口：在 AskPanel / 首页增加「今日待复习」快捷入口（待做，非核心）
 
 ### 小探险家角色配置（v1.2.14 资源已入 `public/explorers/`）
 - [x] Onboarding 引导页改造：`app/onboarding/page.tsx` 当前使用 emoji 头像，需替换为 `public/explorers/` 的 boy_1~3 / girl_1~3 图片，并增加性别分组选择
@@ -42,6 +42,7 @@
 - [ ] 语音输入（STT）：在 `AskFlow`/`AskPanel` 增加「🎤 按住说话」大按钮
   - 首选浏览器原生 Web Speech API（`SpeechRecognition`），零成本、无需后端 Key；注意需 HTTPS/localhost + Chrome/Edge 麦克风授权
   - 备选：接入云端 STT（如讯飞/腾讯云语音识别）以覆盖 Safari/iPad，按兼容性做降级
+  - [ ] **桌面打包（Electron）语音兼容**：当前 Web Speech API 的识别后端依赖 Google 在线服务，Electron 的 Chromium 未接好该后端，**打包版语音输入大概率失效**（语音合成 `SpeechSynthesis` 可用、识别不可用；且音频走 Google 涉及儿童隐私）。将来做桌面分发时，需把 STT 替换为**独立后端**：云端 STT API（讯飞/腾讯云等，需后端代理 + Key）或本地 Whisper 模型，才能保证「打包后也能语音输入」。此项为打包阶段改造，不在网页版范围。
   - 识别结果填入现有 `freeText` 流程，复用 `askFree()`，无需重写后端
 - [ ] 语音输出（TTS）：AI 回答后自动用 `SpeechSynthesis` 朗读（小狐狸「开口说话」）
   - 选用童声/温柔女声 voice（按 `lang="zh-CN"` 过滤可用嗓音），语速放慢适合儿童
@@ -70,13 +71,16 @@
 
 ## 范围校正（2026-08-18 代码调研 · 第三轮开工前）
 - **觉醒·性质系统**：后端已就绪，非缺口。property/strategy 已在 `seedSecondStage()` 入库；`guardWin→recordAwakening→internalized_property` 已接通；`IslandBattleMap` 已渲染「✦ N 位知识守卫现身」。剩余仅「觉醒/性质/策略收集展示视图」+ 端到端验证（UI 展示缺口）。
-- **错题集后端**：写入层已完成，非缺口。`mistake` 表已建；`logMistake/resolveMistake/explainMistake` 已存在且 `BattleFlow`/`BossFlow` 已埋点。剩余仅 `/mistakes` 页接真实数据 + 掌握度/复习推荐算法（读取展示缺口）。
+- **错题集后端**：已全栈打通（2026-08-18）。`mistake` 表扩展 `resolved_at/step_json/review_count`；`logMistake/resolveMistake/explainMistake` + 新增 `resolveMistakeQuestion`（按 id/题干精准订正）/`getReviewSteps`/`evaluateMetaProficiency`；`BattleFlow`/`BossFlow` 答错存整题、答对自动订正单条；小怪战按未掌握数加权插入旧错题重做；`/mistakes`、`/parent` 已接真实数据与熟练度徽章。
 - **等级头衔**：`lib/ranks.ts` 函数已定义但无人调用；`explorer` 表缺 `level/xp/title` 列；`checkAndPromote` 不存在。这是真实地基缺口。
 - **探险家化身**：`explorer` 表缺 `gender/avatar_id`；onboarding 用 emoji；四处 emoji 占位未换图。真实缺口。
 - 结论：第三轮真实新增工程量集中在 ① explorer 表扩展（头像字段 + 等级字段，共享地基）② 等级/头衔接线 ③ 化身落地 ④ 错题页数据化 + 掌握度算法 ⑤ 觉醒收集视图 ⑥ 地图重构 ⑦ 语音。觉醒与错题「后端」已免做。
 
 ## 已完成（最近）
 
+- [x] **字体 UI + 错题全栈（2026-08-18 晚）**：
+  - 字体/费曼合并：AskFlow 右侧小狐狸窗口新增「💬聊天 / 📚费曼小课堂」分段切换，费曼不再独立成块，合并进同一窗口（顶部图标切换）；聊天与费曼字号整体放大（答案 15px、提问卡 15px、费曼卡 compact/非 compact 同步放大）；修复 JSX 结构失衡（`tab === "chat" ?` 三元缺 else 分支 → 补 `: null`；聊天片段与费曼条件块正确闭合）。
+  - 错题全栈：`mistake` 表加 `resolved_at/step_json/review_count`（rebuild copy + ALTER 迁移）；`recordMistake` 存完整题目；新增 `resolveMistakeQuestion`（按 mistakeId 或题干精准订正单条 + 成长日志）、`evaluateMetaProficiency`（熟练度评分+等级+徽章色）、`getReviewSteps`（取未掌握旧题重建 SolveStep 并 bump review_count）、`getUnresolvedMistakeCountByMeta`；BattleFlow/BossFlow 答错传 `step_json`、答对曾错时改调 `resolveMistakeQuestion`；`app/page.tsx` 小怪战按未掌握数加权（1~3）插入旧错题重做；`/mistakes` 接真实数据（统计/按元认知聚合/熟练度徽章/再挑战跳小怪）、`/parent` 各元认知加熟练度标记。`tsc` 通过。
 - [x] **Electron 桌面版落地（2026-08-18，workbuddy 半成品收尾）**：
   - 主进程 `electron/main.js` 补全：单实例锁（重复启动聚焦已有窗口）、`ready-to-show` 去白屏、运行日志写 `userData/electron.log`、macOS activate 重建窗口；`package.json` 补顶层 `main` 字段（此前 `electron .` 找不到入口直接报错）。
   - 构建链打通：`next build --webpack` → `scripts/prepare-standalone.py`（public/static 复制进 standalone）→ `electron-builder --win portable`，产出 `dist/知识岛-v1.4.0-portable.exe`（160MB，已签名）。asar 校验：`electron/main.js`、`.next/standalone/server.js`、public、static 齐全。

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { purifyMonster, logMistake, explainMistake, resolveMistake, bossFail } from "@/lib/actions";
+import { purifyMonster, logMistake, explainMistake, resolveMistakeQuestion, bossFail } from "@/lib/actions";
 import ImgSprite from "@/components/ImgSprite";
 import UiButton from "@/components/UiButton";
 import EvolutionModal, { type ChainNode, type ChainEdge } from "@/components/EvolutionModal";
@@ -85,7 +85,7 @@ export default function BossFlow({
   function answer(opt: { label: string; correct?: boolean }) {
     if (opt.correct) {
       if (wrongOnThisStep) {
-        if (targetMeta) resolveMistake(targetMeta);
+        if (targetMeta) resolveMistakeQuestion(targetMeta, steps[stepIdx].prompt, steps[stepIdx].mistakeId ?? null);
         setWrongOnThisStep(false);
       }
       setShake(true);
@@ -114,7 +114,10 @@ export default function BossFlow({
       setShake(true);
       setTimeout(() => setShake(false), 450);
       const correctLabel = steps[stepIdx].options.find((o) => o.correct)?.label ?? "";
-      if (targetMeta) logMistake(targetMeta, steps[stepIdx].prompt, opt.label, correctLabel);
+      // 复习步骤（mistakeId 存在）是错题本旧题，不再重复入库
+      if (targetMeta && !steps[stepIdx].mistakeId) {
+        logMistake(targetMeta, steps[stepIdx].prompt, opt.label, correctLabel, JSON.stringify(steps[stepIdx]), steps[stepIdx].kp ?? null);
+      }
       const base = steps[stepIdx].explain ?? "再想想，Boss 的弱点就藏在这道题里哦～";
       setExplain({ text: base, userAnswer: opt.label, correctAnswer: correctLabel });
       explainMistake(steps[stepIdx].prompt, correctLabel, opt.label, metaName).then((ai) => {

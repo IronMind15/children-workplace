@@ -2,7 +2,7 @@
 
 import { seedIfEmpty } from "./seed";
 import { setExplorerName, setBrainSettings, setExplorerIsland, getIslands, getExplorer, getMeta, getInternalizedMetas, getMetas, getProperties, setIslandLevel, setConfig, getAllConfig, getInternalizedStrategies, recordAwakening, setExplorerGenderAvatar, getGuards, getUsers } from "./repo";
-import { trainWin as doTrainWin, purify as doPurify, addSpark, getSparkStats, clearSparks, resetAllProgress, getDifficultyLevel, adjustDifficultyBias, recordMistake as doRecordMistake, resolveMistakes as doResolveMistakes, guardWin as doGuardWin, checkAwakenings, getVisibleGuardsByIsland, bossFail as doBossFail, checkAndPromote } from "./game";
+import { trainWin as doTrainWin, purify as doPurify, addSpark, getSparkStats, clearSparks, resetAllProgress, getDifficultyLevel, adjustDifficultyBias, recordMistake as doRecordMistake, resolveMistakes as doResolveMistakes, resolveMistakeQuestion as doResolveMistakeQuestion, getReviewSteps as doGetReviewSteps, getUnresolvedMistakeCountByMeta as doGetUnresolvedMistakeCountByMeta, evaluateMetaProficiency as doEvaluateMetaProficiency, guardWin as doGuardWin, checkAwakenings, getVisibleGuardsByIsland, bossFail as doBossFail, checkAndPromote } from "./game";
 import db from "./db";
 import { getQuestionById, getTipById } from "./askBank";
 import { askAi, saveAiConfig, clearAiConfig, explainWrong, feynmanChat } from "./ai";
@@ -209,18 +209,68 @@ export async function adjustDifficulty(delta: number) {
   revalidatePath("/battle");
 }
 
-/** 记录答错（写入错题集） */
-export async function logMistake(metaId: string, question: string, userAnswer: string, correctAnswer: string) {
+/** 记录答错（写入错题集）；stepJson 存完整 SolveStep，kp 为知识点标签（更细于元认知） */
+export async function logMistake(metaId: string, question: string, userAnswer: string, correctAnswer: string, stepJson?: string | null, kp?: string | null) {
   await ensureSession();
-  doRecordMistake(metaId, question, userAnswer, correctAnswer);
+  doRecordMistake(metaId, question, userAnswer, correctAnswer, stepJson, kp);
   revalidatePath("/");
 }
 
-/** 重做答对后，标记该知识点的未掌握错题为已掌握 */
+/**
+ * 错题本「🦊 综合解析」：让小狐狸针对某个知识点（一组错题）给出
+ * ① 易错点分析 ② 综合讲解 ③ 3 条练习方法。配了 AI 才返回真解析，否则回退友好提示。
+ */
+export async function foxAnalyzeMistakes(kp: string, questions: string[]) {
+  await ensureSession();
+  if (!questions || questions.length === 0) return { ok: false, answer: "这个知识点还没有错题哦～" };
+  const kidName = getExplorer()?.name.split(" ")[0] ?? "小朋友";
+  const list = questions.slice(0, 8).map((q, i) => `${i + 1}. ${q}`).join("\n");
+  const prompt = `你是小朋友的数学伙伴小狐狸老师。下面是「${kp}」这个知识点上，小朋友做错的题：\n${list}\n请用小学低年级孩子能听懂的话，分三段简短讲：\n① 他容易错在哪（1-2句）；\n② 这个知识点的综合讲解（用例子，亲切）；\n③ 给他 3 条练习小方法（用序号列）。\n语气像邻家大哥哥大姐姐，多用「我们」「试试看」，别用难词。`;
+  const ai = await askAi(prompt, kidName);
+  if (ai.ok) return { ok: true, answer: ai.text };
+  return {
+    ok: false,
+    answer:
+      "🦊 我还没连上 AI 大脑～想让我综合讲解的话，请大人帮我点开右上角 ⚙️ 设置，连上 AI 伙伴就好啦！也可以先自己重做一遍这些题哦。",
+  };
+}
+
+/** 重做答对后，标记该知识点的【所有】未掌握错题为已掌握（Boss 净化等"整岛掌握"场景） */
 export async function resolveMistake(metaId: string) {
   await ensureSession();
   doResolveMistakes(metaId);
   revalidatePath("/");
+}
+
+/**
+ * 重做答对后，精准订正【单条】错题：优先按 mistakeId 定位（战斗重做注入），
+ * 否则按「元认知 + 题干」定位。命中写入成长日志，前端据此刷新错题本。
+ */
+export async function resolveMistakeQuestion(metaId: string, question: string, mistakeId?: number | null) {
+  await ensureSession();
+  const ok = doResolveMistakeQuestion(metaId, question, mistakeId);
+  if (ok) revalidatePath("/");
+  revalidatePath("/mistakes");
+  revalidatePath("/parent");
+  return { ok };
+}
+
+/** 取某元认知未掌握的旧错题，重建成战斗步骤（用于小怪战里重点巩固） */
+export async function getReviewSteps(metaId: string, maxCount?: number) {
+  await ensureSession();
+  return doGetReviewSteps(metaId, maxCount ?? 3);
+}
+
+/** 某元认知未掌握错题数（战斗加权重做用） */
+export async function getUnresolvedMistakeCountByMeta(metaId: string) {
+  await ensureSession();
+  return doGetUnresolvedMistakeCountByMeta(metaId);
+}
+
+/** 某元认知知识熟练度评估（家长端/错题本徽章用） */
+export async function evaluateMetaProficiency(metaId: string) {
+  await ensureSession();
+  return doEvaluateMetaProficiency(metaId);
 }
 
 /** AI 讲解错题（配了 AI 时返回讲解，否则 null，前端回退内置讲解） */
