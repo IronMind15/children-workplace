@@ -101,6 +101,7 @@ function createWindow(port) {
     minWidth: 1024,
     minHeight: 700,
     title: "知识岛 · 驯养你的 AI 伙伴",
+    icon: path.join(__dirname, "icon.ico"),
     autoHideMenuBar: true,
     show: false, // 先隐藏，等页面可交互再显示，避免白屏闪烁
     webPreferences: {
