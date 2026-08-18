@@ -2,8 +2,12 @@ import { DatabaseSync } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
 
-// 数据库文件放 data/ 下（运行时生成，gitignore 整目录排除）
-const dataDir = path.join(process.cwd(), "data");
+// 数据库文件位置：
+// - 常规运行（npm run dev/start）：项目下 data/（运行时生成，gitignore 整目录排除）
+// - Electron 桌面版：主进程设置 KB_DATA_DIR=userData，数据写到用户目录（程序安装目录可能只读）
+const dataDir = process.env.KB_DATA_DIR
+  ? path.join(process.env.KB_DATA_DIR, "data")
+  : path.join(process.cwd(), "data");
 fs.mkdirSync(dataDir, { recursive: true });
 
 // 构建阶段（next build 会用多个 worker 并发加载本模块）：只读打开 + 跳过建表/迁移，

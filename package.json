@@ -2,6 +2,9 @@
   "name": "knowledge-island",
   "version": "1.4.0",
   "private": true,
+  "description": "知识岛 · 游戏化小学数学元认知学习应用（儿童友好，驯养 AI 伙伴）",
+  "author": "IronMind15",
+  "main": "electron/main.js",
   "engines": {
     "node": ">=22.5.0"
   },
@@ -9,7 +12,40 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "electron:dev": "next build --webpack && python scripts/prepare-standalone.py && electron .",
+    "electron:build": "next build --webpack && python scripts/prepare-standalone.py && electron-builder --win portable",
+    "electron:pack": "next build --webpack && python scripts/prepare-standalone.py && electron-builder --win dir"
+  },
+  "build": {
+    "appId": "com.knowledgeisland.desktop",
+    "productName": "知识岛",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      ".next/standalone/**",
+      "public/**",
+      "electron/**"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.js"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "知识岛-v${version}-portable.exe"
+    },
+    "asar": true,
+    "npmRebuild": false
   },
   "dependencies": {
     "next": "16.3.1",
@@ -21,6 +57,8 @@
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "electron": "^43.4.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.3.1",
     "tailwindcss": "^4",

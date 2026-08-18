@@ -77,6 +77,12 @@
 
 ## 已完成（最近）
 
+- [x] **Electron 桌面版落地（2026-08-18，workbuddy 半成品收尾）**：
+  - 主进程 `electron/main.js` 补全：单实例锁（重复启动聚焦已有窗口）、`ready-to-show` 去白屏、运行日志写 `userData/electron.log`、macOS activate 重建窗口；`package.json` 补顶层 `main` 字段（此前 `electron .` 找不到入口直接报错）。
+  - 构建链打通：`next build --webpack` → `scripts/prepare-standalone.py`（public/static 复制进 standalone）→ `electron-builder --win portable`，产出 `dist/知识岛-v1.4.0-portable.exe`（160MB，已签名）。asar 校验：`electron/main.js`、`.next/standalone/server.js`、public、static 齐全。
+  - 数据隔离：`lib/db.ts` 支持 `KB_DATA_DIR`，主进程设为 `userData`（打包后程序目录可能只读）；验证 standalone 服务 + 登录重定向 + 数据库落自定义目录均正常。
+  - 环境坑：沙箱注入 `ELECTRON_RUN_AS_NODE=1` 会让 Electron 退化为 Node 模式（非注册表、非代码问题，正常终端无此变量）；修复 node_modules 解包缺 `dist/index.js`（http-proxy-agent/agent-base/https-proxy-agent 家族）。
+  - 已知跟进：exe 图标仍是默认 Electron 图标（待 `build/icon.ico`）；`@humanfs/core@0.19.2` 上游 tarball 缺编译产物（npmmirror，仅 eslint 懒加载受影响）。**窗口真机开屏需用户本机验证**（沙箱禁止 GUI 进程）。
 - [x] **v1.3.1 群岛/大地图共存 + 岛屿点击修复 + AI 无回复根因修复（2026-08-18）**：
   - 群岛恢复：新建 `components/WorldArchipelago.tsx`（从 054802f 恢复 7 页群岛分页：左右箭头/页指示器/全览 WorldAtlas/岛屿节点/玩家化身/未解锁拦截）；`HomeClient` 地图视图加「🏝️ 群岛 | 🗺️ 大地图」分段切换，**默认群岛**，localStorage `kb:mapMode` 记忆偏好；两视图共用 `WorldNode/WorldEdge` 类型与 page.tsx 的 `x/y/depth/page` 数据契约。
   - 点击修复：新 `WorldMap` 岛屿 `onClick` 曾有 `if (dragRef.current.moved) return` 守卫，`moved` 仅在 `beginDrag` 复位 → 拖动地图一次后所有岛屿点击被吞。删除该守卫（岛屿 mousedown 已 stopPropagation，地图拖动不会从岛屿开始），点击登岛恢复正常。

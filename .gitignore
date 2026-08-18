@@ -60,3 +60,9 @@ docs/bug修复*
 
 # 原始 PNG 素材备份（游戏内已用压缩 WebP，原始图本地留存不入库）
 /assets_backup
+
+# 奥数/袋鼠数学真题素材（版权材料 + 大体积 zip/pdf，不入库）
+docs/奥数题目*
+
+# electron-builder 打包输出（便携 exe 等大产物，不入库）
+/dist/
