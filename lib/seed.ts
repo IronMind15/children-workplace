@@ -1,4 +1,5 @@
 import db from "./db";
+import type { Monster } from "./types";
 
 // ========== 种子数据：完整小学数学体系（第二阶段 · 属性策略/觉醒）==========
 // 29 个元认知 = 29 只精灵 = 29 座岛（含 MK-37 因数倍数；数学广角 8 主题已迁为策略）。
@@ -444,30 +445,8 @@ export function requiredSparksOf(id: string): number {
 /** 已淘汰的元认知（数学广角 8 主题 → 策略；运算定律 → 性质） */
 const RETIRED_METAS = ["MK-29", "MK-30", "MK-31", "MK-32", "MK-33", "MK-34", "MK-35", "MK-36", "MK-38"];
 const RETIRED_ISLANDS = ["搭配岛", "推理岛", "优化岛", "鸡兔同笼岛", "植树问题岛", "找次品岛", "数与形岛", "鸽巢问题岛", "运算定律岛"];
-
-/** 第二阶段种子：性质（30）/ 策略（19）/ 知识守卫（30）/ config 默认值（幂等） */
-function seedSecondStage() {
-  const upsertProperty = db.prepare(
-    'INSERT OR IGNORE INTO property (id, name, belongs_to, "order", explain) VALUES (?, ?, ?, ?, ?)'
-  );
-  for (const p of WORLD_PROPERTIES) upsertProperty.run(p.id, p.name, JSON.stringify(p.belongsTo), p.order, p.explain);
-
-  const upsertStrategy = db.prepare("INSERT OR IGNORE INTO strategy (id, name, effect, tier) VALUES (?, ?, ?, ?)");
-  for (const s of WORLD_STRATEGIES) upsertStrategy.run(s.id, s.name, s.effect, s.tier);
-
-  const upsertGuard = db.prepare(
-    "INSERT OR REPLACE INTO monster (id, name, type, island, question, correct_meta, target_meta, prerequisites, options, steps, required_metas, required_level, spawn_mode, spawn_islands) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  );
-  for (const g of WORLD_GUARDS) {
-    upsertGuard.run(
-      g.id, g.name, g.type, g.island, g.question, g.correct_meta, g.target_meta,
-      g.prerequisites ? JSON.stringify(g.prerequisites) : null,
-      null, JSON.stringify(g.steps),
-      JSON.stringify(g.required_metas), g.required_level, g.spawn_mode, JSON.stringify(g.spawn_islands)
-    );
-  }
-
-  // config 默认值（INSERT OR IGNORE：已有用户调过的值不覆盖）
+/** config 默认值（INSERT OR IGNORE：已有用户调过的值不覆盖） */
+function seedConfigDefaults() {
   const defaults: [string, string][] = [
     ["xp_threshold", "3"],        // 每升 1 级需赢的场数
     ["step_base", "4"],           // 每场基础题目数
@@ -482,130 +461,47 @@ function seedSecondStage() {
   for (const [k, v] of defaults) upsertConfig.run(k, v);
 }
 
+// ============ 静态内容全量导出（供 lib/content.ts 内存查询，DB 不落库） ============
+
+/** 种子怪物/守卫 → DB 形状 Monster（options/steps 等 JSON 序列化，与旧 monster 表列完全一致） */
+function toDbMonster(m: SeedMonster | GuardSeed): Monster {
+  return {
+    id: m.id,
+    name: m.name,
+    type: m.type,
+    island: m.island,
+    question: m.question,
+    correct_meta: m.correct_meta,
+    target_meta: m.target_meta,
+    prerequisites: m.prerequisites ? JSON.stringify(m.prerequisites) : null,
+    options: m.type === "hidden" ? JSON.stringify({ required_sparks: requiredSparksOf(m.id) }) : null,
+    steps: JSON.stringify(m.steps),
+    required_metas: "required_metas" in m && m.required_metas ? JSON.stringify(m.required_metas) : null,
+    required_level: "required_level" in m ? (m.required_level ?? null) : null,
+    spawn_mode: "spawn_mode" in m ? (m.spawn_mode ?? null) : null,
+    spawn_islands: "spawn_islands" in m && m.spawn_islands ? JSON.stringify(m.spawn_islands) : null,
+  };
+}
+
+/** 全量怪物（Boss/小怪/隐藏/守卫，126 只）—— 与旧 monster 表数据一一对应 */
+export const WORLD_MONSTERS: Monster[] = [
+  ...monsters.map(toDbMonster),
+  ...legacyMonsters.map(toDbMonster),
+  ...hiddenMonsters.map(toDbMonster),
+  ...WORLD_GUARDS.map(toDbMonster),
+];
+
 /**
- * 世界结构迁移（v6：第二阶段 · 属性策略/觉醒）：
- * - 29 元认知 / 31 进化边 / 29 精灵 幂等入库
- * - 淘汰 MK-29~36、MK-38（清理孤儿行）
- * - 性质 30 / 策略 19 / 知识守卫 30 / config 默认值 幂等 seed
- * - Boss 全量 UPSERT（布局可随版本调整）；小怪/神秘怪幂等补种
- * - 老库补偿：图形认识（几何线起点）补发初始内化；MK-01 初始内化保留
+ * 数据播种（每次页面/action 调用，幂等零开销）：
+ * - 表结构与多用户迁移已由 lib/db.ts 模块加载时完成
+ * - 这里只补 config 默认值（INSERT OR IGNORE）
+ * - 不再创建任何玩家：用户档案由登录页创建
  */
-function migrateWorld() {
-  // v6 迁移：淘汰数学广角 8 主题（→ 策略）与运算定律（→ 性质），清理孤儿行
-  const retired = `(${RETIRED_METAS.map((m) => `'${m}'`).join(",")})`;
-  const retiredIslands = `(${RETIRED_ISLANDS.map((i) => `'${i}'`).join(",")})`;
-  db.exec(`DELETE FROM meta_cognition WHERE id IN ${retired}`);
-  db.exec(`DELETE FROM evolution_edge WHERE from_meta IN ${retired} OR to_meta IN ${retired}`);
-  db.exec(`DELETE FROM spirit WHERE meta_id IN ${retired}`);
-  db.exec(`DELETE FROM internalized_meta WHERE meta_id IN ${retired}`);
-  db.exec(`DELETE FROM monster WHERE target_meta IN ${retired} OR island IN ${retiredIslands}`);
-  // 进化边为静态知识（无用户状态）：全量重建，避免旧库 E-xx 编号与新库错位
-  db.exec("DELETE FROM evolution_edge");
-  seedSecondStage();
-
-  const upsertMeta = db.prepare(
-    "INSERT OR IGNORE INTO meta_cognition (id, name, meaning, domain, is_mvp) VALUES (?, ?, ?, ?, ?)"
-  );
-  const upsertEdge = db.prepare(
-    "INSERT OR IGNORE INTO evolution_edge (id, from_meta, to_meta, operator, is_primary) VALUES (?, ?, ?, ?, ?)"
-  );
-  const upsertSpirit = db.prepare(
-    "INSERT OR IGNORE INTO spirit (id, meta_id, emoji, nickname) VALUES (?, ?, ?, ?)"
-  );
-  for (const m of WORLD_METAS) upsertMeta.run(m.id, m.name, m.meaning, m.domain, m.isMvp);
-  for (const e of WORLD_EDGES) upsertEdge.run(e.id, e.from_meta, e.to_meta, e.operator, e.is_primary);
-  for (const s of WORLD_SPIRITS) upsertSpirit.run(s.id, s.meta_id, s.emoji, s.nickname);
-
-  const upsertMonster = db.prepare(
-    "INSERT OR REPLACE INTO monster (id, name, type, island, question, correct_meta, target_meta, prerequisites, options, steps) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  );
-  const insertMonster = db.prepare(
-    "INSERT OR IGNORE INTO monster (id, name, type, island, question, correct_meta, target_meta, prerequisites, options, steps) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  );
-  const run = (st: ReturnType<typeof db.prepare>, mo: SeedMonster) =>
-    st.run(
-      mo.id, mo.name, mo.type, mo.island, mo.question,
-      mo.correct_meta, mo.target_meta,
-      mo.prerequisites ? JSON.stringify(mo.prerequisites) : null,
-      null, JSON.stringify(mo.steps)
-    );
-  // Boss 覆盖式迁移（布局可随版本调整），小怪/神秘怪幂等补种
-  for (const mo of monsters.filter((m) => m.type === "boss")) run(upsertMonster, mo);
-  for (const mo of [...monsters.filter((m) => m.type !== "boss"), ...legacyMonsters, ...hiddenMonsters]) run(insertMonster, mo);
-
-  // 清理 v4 及更早的旧格式 Boss id（已被 boss-mkxx 取代，留着会变成不可达的孤儿行）
-  db.exec("DELETE FROM monster WHERE id IN ('boss-add', 'boss-sub', 'boss-mul', 'boss-place')");
-  // MK-28 由隐藏彩蛋升级为「集合岛」：删掉旧版 12 火花解锁的彩蛋小怪（避免与集合岛小怪重复）
-  db.exec("DELETE FROM monster WHERE id = 'minion-set-01'");
-
-  // 几何线起点：图形认识（MK-15）初始内化（老库补偿；新库在 seedIfEmpty 里发）
-  db.prepare(
-    "INSERT OR IGNORE INTO internalized_meta (meta_id, acquired_at, source, mastery_level, mastery_xp) VALUES (?, ?, ?, ?, ?)"
-  ).run("MK-15", new Date().toISOString(), "initial", 1, 0);
-}
-
-/** 神秘小怪幂等补种：老库升级也能拿到新内容 */
-function seedHidden() {
-  migrateWorld();
-}
-
-/** 数据 schema 版本：v6 = 第二阶段（29 元认知 + 性质/策略/守卫/config）。迁移只跑一次，写 config.schema_version 标记 */
-export const SCHEMA_VERSION = "6";
-
 export function seedIfEmpty() {
-  // 版本标记（关键性能优化）：迁移只需执行一次，之后每次请求直接跳过。
-  // 此前每次页面渲染都会跑 migrateWorld() → DELETE evolution_edge 全表 + 重插
-  // 31 条边 + 30 守卫 upsert…（慢盘 + DELETE journal 每次写都 fsync，单请求 2~3 秒）。
-  const ver = (
-    db.prepare("SELECT value FROM config WHERE key = 'schema_version'").get() as { value?: string } | undefined
-  )?.value;
-  if (ver === SCHEMA_VERSION) return false; // 已迁移到当前版本，零开销返回
-
-  const count = db.prepare("SELECT COUNT(*) AS c FROM meta_cognition").get() as { c: number };
-  if (count.c > 0) {
-    seedHidden(); // 已种子过的老库：增量迁移到当前版本
-    db.prepare("INSERT OR REPLACE INTO config (key, value) VALUES ('schema_version', ?)").run(SCHEMA_VERSION);
-    return false; // 已种子过
-  }
-
-  db.exec("BEGIN");
-  try {
-    const insertMeta = db.prepare("INSERT INTO meta_cognition (id, name, meaning, domain, is_mvp) VALUES (?, ?, ?, ?, ?)");
-    const insertEdge = db.prepare("INSERT INTO evolution_edge (id, from_meta, to_meta, operator, is_primary) VALUES (?, ?, ?, ?, ?)");
-    const insertSpirit = db.prepare("INSERT INTO spirit (id, meta_id, emoji, nickname) VALUES (?, ?, ?, ?)");
-    const insertMonster = db.prepare("INSERT INTO monster (id, name, type, island, question, correct_meta, target_meta, prerequisites, options, steps) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    for (const m of WORLD_METAS) insertMeta.run(m.id, m.name, m.meaning, m.domain, m.isMvp);
-    for (const e of WORLD_EDGES) insertEdge.run(e.id, e.from_meta, e.to_meta, e.operator, e.is_primary);
-    for (const s of WORLD_SPIRITS) insertSpirit.run(s.id, s.meta_id, s.emoji, s.nickname);
-    for (const mo of [...monsters, ...legacyMonsters, ...hiddenMonsters]) {
-      insertMonster.run(
-        mo.id, mo.name, mo.type, mo.island, mo.question,
-        mo.correct_meta, mo.target_meta,
-        mo.prerequisites ? JSON.stringify(mo.prerequisites) : null,
-        mo.type === "hidden" ? JSON.stringify({ required_sparks: requiredSparksOf(mo.id) }) : null,
-        JSON.stringify(mo.steps)
-      );
-    }
-    seedSecondStage(); // 性质 / 策略 / 守卫 / config
-    db.prepare("INSERT OR REPLACE INTO explorer (id, name, brain_settings, current_island) VALUES (?, ?, ?, ?)")
-      .run(defaultExplorer.id, defaultExplorer.name, defaultExplorer.brain_settings, defaultExplorer.current_island);
-    // 初始内化：计数（孩子天生会数数）+ 图形认识（几何线起点）
-    const now = new Date().toISOString();
-    db.prepare("INSERT OR REPLACE INTO internalized_meta (meta_id, acquired_at, source, mastery_level, mastery_xp) VALUES (?, ?, ?, ?, ?)")
-      .run("MK-01", now, "initial", 1, 0);
-    db.prepare("INSERT OR REPLACE INTO internalized_meta (meta_id, acquired_at, source, mastery_level, mastery_xp) VALUES (?, ?, ?, ?, ?)")
-      .run("MK-15", now, "initial", 1, 0);
-    db.prepare("INSERT OR REPLACE INTO config (key, value) VALUES ('schema_version', ?)").run(SCHEMA_VERSION);
-    db.exec("COMMIT");
-  } catch (e) {
-    db.exec("ROLLBACK");
-    throw e;
-  }
-  return true;
+  seedConfigDefaults();
 }
 
 // 兼容旧导出
 export const metas = WORLD_METAS.map((m) => ({ id: m.id, name: m.name, meaning: m.meaning, domain: m.domain, is_mvp: m.isMvp }));
 export const edges = WORLD_EDGES;
 export const spirits = WORLD_SPIRITS;
-export { monsters as __monsters, hiddenMonsters as __hiddenMonsters };

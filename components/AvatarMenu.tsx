@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { getUiIcon } from "@/lib/uiIcons";
+import { logoutAction } from "@/lib/actions";
 
 /**
  * 头像下拉菜单（"我的"）
@@ -113,6 +114,17 @@ export default function AvatarMenu({ avatarSrc, rank }: { avatarSrc: string; ran
               </button>
             );
           })}
+          <button
+            role="menuitem"
+            onClick={() => void logoutAction()}
+            className="flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-[#fcebeb]"
+          >
+            <span className="text-2xl">🚪</span>
+            <span className="flex-1">
+              <span className="block text-base font-black text-[#a32d2d]">退出登录</span>
+              <span className="block text-xs text-[#7a8a9a]">换一个探险家玩</span>
+            </span>
+          </button>
         </div>
       )}
     </div>

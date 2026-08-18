@@ -1,4 +1,5 @@
 import { seedIfEmpty } from "@/lib/seed";
+import { requireUser } from "@/lib/session";
 import { getExplorer } from "@/lib/repo";
 import PageHeader from "@/components/PageHeader";
 import TestTools from "@/components/TestTools";
@@ -11,7 +12,8 @@ export const dynamic = "force-dynamic";
  * - UI 先行，展示错题集空壳：列表/筛选/标签/复习按钮
  * - 后端数据（错题记录、掌握度、复习推荐）待补充
  */
-export default function MistakesPage() {
+export default async function MistakesPage() {
+  await requireUser();
   seedIfEmpty();
   const explorer = getExplorer();
   const kidName = explorer?.name.split(" ")[0] ?? "小小探险家";

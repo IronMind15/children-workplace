@@ -1,4 +1,5 @@
 import { seedIfEmpty } from "@/lib/seed";
+import { requireUser } from "@/lib/session";
 import {
   getExplorer,
   getMetas,
@@ -22,7 +23,8 @@ import { getUiIcon } from "@/lib/uiIcons";
 
 export const dynamic = "force-dynamic";
 
-export default function Journal() {
+export default async function Journal() {
+  await requireUser();
   seedIfEmpty();
   const explorer = getExplorer();
 

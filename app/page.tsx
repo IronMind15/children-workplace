@@ -1,4 +1,5 @@
 import { seedIfEmpty } from "@/lib/seed";
+import { requireUser } from "@/lib/session";
 import { getWorldLayout, getWorldPages, pageOf, pageOfIsland } from "@/lib/worldLayout";
 import { QUESTIONS, AI_TIPS, RECOMMEND_BY_META } from "@/lib/askBank";
 import {
@@ -43,11 +44,13 @@ import type { SolveStep } from "@/lib/types";
 export const dynamic = "force-dynamic";
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ battle?: string; boss?: string; island?: string }> }) {
+  // 先完成全部 await（searchParams / cookie 会话），此后主体保持同步执行，
+  // 避免异步点让出事件循环导致并发请求覆盖「当前用户上下文」。
+  const sp = await searchParams;
+  const uid = await requireUser();
   seedIfEmpty();
   const explorer = getExplorer();
   if (!explorer?.name) redirect("/onboarding");
-
-  const sp = await searchParams;
   const island = explorer.current_island ?? "计数岛";
   const sparks = getSparkStats();
   const brain = getBrainSettings();

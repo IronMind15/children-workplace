@@ -1,4 +1,5 @@
 import { seedIfEmpty } from "@/lib/seed";
+import { requireUser } from "@/lib/session";
 import {
   getExplorer,
   getSpiritCards,
@@ -13,7 +14,8 @@ import { getUiIcon } from "@/lib/uiIcons";
 
 export const dynamic = "force-dynamic";
 
-export default function Spirits() {
+export default async function Spirits() {
+  await requireUser();
   seedIfEmpty();
   const explorer = getExplorer();
   const cards = getSpiritCards();

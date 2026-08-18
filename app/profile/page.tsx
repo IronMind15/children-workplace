@@ -1,4 +1,5 @@
 import { seedIfEmpty } from "@/lib/seed";
+import { requireUser } from "@/lib/session";
 import {
   getExplorer,
   getExplorerAvatarSrc,
@@ -15,7 +16,8 @@ import ProfileAvatarPicker from "@/components/ProfileAvatarPicker";
 
 export const dynamic = "force-dynamic";
 
-export default function ProfilePage() {
+export default async function ProfilePage() {
+  await requireUser();
   seedIfEmpty();
   const explorer = getExplorer();
   if (!explorer?.name) redirect("/onboarding");

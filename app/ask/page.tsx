@@ -1,4 +1,5 @@
 import { seedIfEmpty } from "@/lib/seed";
+import { requireUser } from "@/lib/session";
 import { getSparkStats } from "@/lib/game";
 import { QUESTIONS, AI_TIPS, RECOMMEND_BY_META } from "@/lib/askBank";
 import { getMonstersByIsland, getExplorer, getInternalizedMetas, getIslands, getMeta, getExplorerAvatarSrc } from "@/lib/repo";
@@ -10,7 +11,8 @@ import TestTools from "@/components/TestTools";
 
 export const dynamic = "force-dynamic";
 
-export default function Ask() {
+export default async function Ask() {
+  await requireUser();
   seedIfEmpty();
   const explorer = getExplorer();
   if (!explorer?.name) redirect("/onboarding");

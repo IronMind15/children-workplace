@@ -3,9 +3,11 @@ import {
   getMonster, getMeta, isInternalized, getInternalized, getExplorer, getIslands, getEvolutionEdges, getMetas,
   getProperty, getNextAwakenable, recordAwakening, isPropertyAwakened, getGuard, getGuardsByIsland,
   getConfigNum, bumpIslandLevel, bumpBossAttempt, getPurifiedBossCount, setExplorerLevelTitle,
+  getGuards as getAllGuards,
 } from "./repo";
 import type { GuardInfo, Property } from "./types";
 import { computeRankLevel, getRankByLevel } from "./ranks";
+import { getCurrentUser } from "./session";
 
 /**
  * 训练胜利：该元认知熟练经验 +1，达到「递增阈值」则熟练等级 +1（= 精灵进化），并写成长日志。
@@ -33,8 +35,9 @@ export function trainWin(metaId: string, stars: number): { leveledUp: boolean; l
     xp = 0;
     leveledUp = true;
   }
-  db.prepare("UPDATE internalized_meta SET mastery_level = ?, mastery_xp = ? WHERE meta_id = ?").run(level, xp, metaId);
-  db.prepare("INSERT INTO growth_log (event, detail) VALUES (?, ?)").run(
+  db.prepare("UPDATE internalized_meta SET mastery_level = ?, mastery_xp = ? WHERE user_id = ? AND meta_id = ?").run(level, xp, getCurrentUser(), metaId);
+  db.prepare("INSERT INTO growth_log (user_id, event, detail) VALUES (?, ?, ?)").run(
+    getCurrentUser(),
     "train_win",
     JSON.stringify({ meta_id: metaId, stars, mastery_level: level, mastery_xp: xp })
   );
@@ -46,19 +49,22 @@ export function trainWin(metaId: string, stars: number): { leveledUp: boolean; l
 export type SparkStats = { total: number; todayCount: number };
 
 export function getSparkStats(): SparkStats {
-  const total = (db.prepare("SELECT COALESCE(SUM(sparks), 0) AS s FROM curiosity_log").get() as { s: number }).s;
+  const uid = getCurrentUser();
+  const total = (db.prepare("SELECT COALESCE(SUM(sparks), 0) AS s FROM curiosity_log WHERE user_id = ?").get(uid) as { s: number }).s;
   const today = new Date().toISOString().slice(0, 10);
   const todayCount = (
-    db.prepare("SELECT COUNT(*) AS c FROM curiosity_log WHERE created_at >= ?").get(today) as { c: number }
+    db.prepare("SELECT COUNT(*) AS c FROM curiosity_log WHERE user_id = ? AND created_at >= ?").get(uid, today) as { c: number }
   ).c;
   return { total, todayCount };
 }
 
 /** 提问奖励火花（demo 阶段不限每日次数） */
 export function addSpark(questionId: string, label: string): SparkStats & { ok: boolean } {
-  db.prepare("INSERT INTO curiosity_log (question_id, label, sparks, created_at) VALUES (?, ?, 1, ?)")
-    .run(questionId, label, new Date().toISOString());
-  db.prepare("INSERT INTO growth_log (event, detail) VALUES (?, ?)").run(
+  const uid = getCurrentUser();
+  db.prepare("INSERT INTO curiosity_log (user_id, question_id, label, sparks, created_at) VALUES (?, ?, ?, 1, ?)")
+    .run(uid, questionId, label, new Date().toISOString());
+  db.prepare("INSERT INTO growth_log (user_id, event, detail) VALUES (?, ?, ?)").run(
+    uid,
     "ask_ai",
     JSON.stringify({ question_id: questionId, label })
   );
@@ -67,7 +73,7 @@ export function addSpark(questionId: string, label: string): SparkStats & { ok: 
 
 /** 测试用：清空火花记录 */
 export function clearSparks(): SparkStats {
-  db.exec("DELETE FROM curiosity_log");
+  db.prepare("DELETE FROM curiosity_log WHERE user_id = ?").run(getCurrentUser());
   return getSparkStats();
 }
 
@@ -105,7 +111,7 @@ export function getDifficultyLevel(): number {
 export function adjustDifficultyBias(delta: number): number {
   const cur = getExplorer()?.difficulty_bias ?? 0;
   const next = Math.max(-10, Math.min(20, cur + delta));
-  db.prepare("UPDATE explorer SET difficulty_bias = ? WHERE id = 'default'").run(next);
+  db.prepare("UPDATE explorer SET difficulty_bias = ? WHERE id = ?").run(next, getCurrentUser());
   return next;
 }
 
@@ -113,19 +119,21 @@ export function adjustDifficultyBias(delta: number): number {
  * 测试用：一键重置全部进度 ——
  * 内化归零（仅保留两个起点：计数 MK-01、图形认识 MK-15）、熟练度/成长日志/火花清空、回到计数岛。
  * 岛屿解锁、Boss 净化状态、精灵进化全部由 internalized_meta 派生，随之归零。
+ * 只作用于当前登录用户。
  */
 export function resetAllProgress(): void {
+  const uid = getCurrentUser();
   db.exec("BEGIN");
   try {
-    db.exec("DELETE FROM internalized_meta");
+    db.prepare("DELETE FROM internalized_meta WHERE user_id = ?").run(uid);
     const now = new Date().toISOString();
-    db.prepare("INSERT INTO internalized_meta (meta_id, acquired_at, source, mastery_level, mastery_xp) VALUES (?, ?, ?, ?, ?)")
-      .run("MK-01", now, "initial", 1, 0);
-    db.prepare("INSERT INTO internalized_meta (meta_id, acquired_at, source, mastery_level, mastery_xp) VALUES (?, ?, ?, ?, ?)")
-      .run("MK-15", now, "initial", 1, 0);
-    db.exec("DELETE FROM growth_log");
-    db.exec("DELETE FROM curiosity_log");
-    db.exec("UPDATE explorer SET current_island = '计数岛'");
+    db.prepare("INSERT INTO internalized_meta (user_id, meta_id, acquired_at, source, mastery_level, mastery_xp) VALUES (?, ?, ?, ?, ?, ?)")
+      .run(uid, "MK-01", now, "initial", 1, 0);
+    db.prepare("INSERT INTO internalized_meta (user_id, meta_id, acquired_at, source, mastery_level, mastery_xp) VALUES (?, ?, ?, ?, ?, ?)")
+      .run(uid, "MK-15", now, "initial", 1, 0);
+    db.prepare("DELETE FROM growth_log WHERE user_id = ?").run(uid);
+    db.prepare("DELETE FROM curiosity_log WHERE user_id = ?").run(uid);
+    db.prepare("UPDATE explorer SET current_island = '计数岛' WHERE id = ?").run(uid);
     db.exec("COMMIT");
   } catch (e) {
     db.exec("ROLLBACK");
@@ -153,15 +161,17 @@ export function purify(monsterId: string): { ok: boolean; targetMeta?: string; n
 
   const nextIsland = target.name + "岛";
   const explorer = getExplorer();
+  const uid = getCurrentUser();
 
   db.exec("BEGIN");
   try {
-    db.prepare("INSERT INTO internalized_meta (meta_id, acquired_at, source, mastery_level, mastery_xp) VALUES (?, ?, ?, ?, ?)")
-      .run(monster.target_meta, new Date().toISOString(), "boss", 1, 0);
+    db.prepare("INSERT INTO internalized_meta (user_id, meta_id, acquired_at, source, mastery_level, mastery_xp) VALUES (?, ?, ?, ?, ?, ?)")
+      .run(uid, monster.target_meta, new Date().toISOString(), "boss", 1, 0);
     if (explorer) {
       db.prepare("UPDATE explorer SET current_island = ? WHERE id = ?").run(nextIsland, explorer.id);
     }
-    db.prepare("INSERT INTO growth_log (event, detail) VALUES (?, ?)").run(
+    db.prepare("INSERT INTO growth_log (user_id, event, detail) VALUES (?, ?, ?)").run(
+      uid,
       "purify",
       JSON.stringify({ monster_id: monsterId, target_meta: monster.target_meta, next_island: nextIsland })
     );
@@ -177,13 +187,13 @@ export function purify(monsterId: string): { ok: boolean; targetMeta?: string; n
 
 /** 记录一次答错（选错时调用，写入错题集） */
 export function recordMistake(metaId: string, question: string, userAnswer: string, correctAnswer: string): void {
-  db.prepare("INSERT INTO mistake (meta_id, question, user_answer, correct_answer, created_at) VALUES (?, ?, ?, ?, ?)")
-    .run(metaId, question, userAnswer, correctAnswer, new Date().toISOString());
+  db.prepare("INSERT INTO mistake (user_id, meta_id, question, user_answer, correct_answer, created_at) VALUES (?, ?, ?, ?, ?, ?)")
+    .run(getCurrentUser(), metaId, question, userAnswer, correctAnswer, new Date().toISOString());
 }
 
 /** 重做答对后，把该知识点的未掌握错题标记为已掌握 */
 export function resolveMistakes(metaId: string): void {
-  db.prepare("UPDATE mistake SET resolved = 1 WHERE meta_id = ? AND resolved = 0").run(metaId);
+  db.prepare("UPDATE mistake SET resolved = 1 WHERE user_id = ? AND meta_id = ? AND resolved = 0").run(getCurrentUser(), metaId);
 }
 
 // ============ 第二阶段 · 知识守卫 / 觉醒 ============
@@ -219,8 +229,9 @@ function toGuardInfo(g: ReturnType<typeof getGuard> & { type: string }): GuardIn
 
 /** 全部可达的守卫（达标且未觉醒 = 触发广播 / 岛上现身） */
 export function checkAwakenings(): GuardInfo[] {
-  const rows = db.prepare("SELECT * FROM monster WHERE type = 'guard'").all() as (ReturnType<typeof getGuard> & { type: string })[];
-  return rows.map((r) => toGuardInfo(r)).filter((x): x is GuardInfo => !!x && x.visible && !x.awakened);
+  return getAllGuards()
+    .map((r) => toGuardInfo(r as ReturnType<typeof getGuard> & { type: string }))
+    .filter((x): x is GuardInfo => !!x && x.visible && !x.awakened);
 }
 
 /** 某岛当前可见的守卫（达标 + 未觉醒 + 主岛或随机池含该岛） */
@@ -242,7 +253,8 @@ export function guardWin(
   // 觉醒：所有相关精灵共同记录（共同镀金）
   for (const m of info.required_metas) recordAwakening(m, info.property_id, "guard");
   const islandLevel = bumpIslandLevel(info.island);
-  db.prepare("INSERT INTO growth_log (event, detail) VALUES (?, ?)").run(
+  db.prepare("INSERT INTO growth_log (user_id, event, detail) VALUES (?, ?, ?)").run(
+    getCurrentUser(),
     "property_awaken",
     JSON.stringify({ property_id: info.property_id, guard_id: guardId, island: info.island, island_level: islandLevel })
   );
@@ -284,13 +296,14 @@ export function checkAndPromote(
   const e = getExplorer();
   if (!e) return { promoted: false, fromLevel: 1, toLevel: 1, title: getRankByLevel(1).title };
   const purifiedBosses = getPurifiedBossCount();
-  const sparks = (db.prepare("SELECT COALESCE(SUM(sparks), 0) AS s FROM curiosity_log").get() as { s: number }).s;
+  const sparks = (db.prepare("SELECT COALESCE(SUM(sparks), 0) AS s FROM curiosity_log WHERE user_id = ?").get(getCurrentUser()) as { s: number }).s;
   const targetLevel = computeRankLevel(purifiedBosses, sparks);
   const fromLevel = e.level ?? 1;
   if (targetLevel > fromLevel) {
     const title = getRankByLevel(targetLevel).title;
     setExplorerLevelTitle(targetLevel, title);
-    db.prepare("INSERT INTO growth_log (event, detail) VALUES (?, ?)").run(
+    db.prepare("INSERT INTO growth_log (user_id, event, detail) VALUES (?, ?, ?)").run(
+      getCurrentUser(),
       "promote",
       JSON.stringify({ from: fromLevel, to: targetLevel, title })
     );

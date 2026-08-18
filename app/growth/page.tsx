@@ -1,4 +1,5 @@
 import { seedIfEmpty } from "@/lib/seed";
+import { requireUser } from "@/lib/session";
 import { getExplorer, getGrowthLogs, getMeta, getSpirit, getInternalizedMetas } from "@/lib/repo";
 import { getSparkStats } from "@/lib/game";
 import { redirect } from "next/navigation";
@@ -53,7 +54,8 @@ function formatDate(iso: string): string {
   return `${d.getMonth() + 1}月${d.getDate()}日 ${hm}`;
 }
 
-export default function Growth() {
+export default async function Growth() {
+  await requireUser();
   seedIfEmpty();
   const explorer = getExplorer();
   if (!explorer?.name) redirect("/onboarding");

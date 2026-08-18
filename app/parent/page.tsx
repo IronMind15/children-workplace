@@ -1,4 +1,5 @@
 import { seedIfEmpty } from "@/lib/seed";
+import { requireUser } from "@/lib/session";
 import { getExplorer, getInternalizedMetas, getMetas, getMistakes, getGrowthLogs, getMeta } from "@/lib/repo";
 import Guide from "@/components/Guide";
 import PageHeader from "@/components/PageHeader";
@@ -28,7 +29,8 @@ function formatShortDay(iso: string): string {
   return `${Number(m)}月${Number(d)}日`;
 }
 
-export default function ParentJournal() {
+export default async function ParentJournal() {
+  await requireUser();
   seedIfEmpty();
   const explorer = getExplorer();
   const metas = getInternalizedMetas(); // 已内化（= 已掌握本领）
