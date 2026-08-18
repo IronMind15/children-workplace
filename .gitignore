@@ -34,6 +34,9 @@ next-env.d.ts
 # workbuddy local agent memory (project-private, not for the repo)
 /.workbuddy
 
+# MicroEngine 公网部署（含 session_token 等短期凭据，严禁入库）
+/.microengine-deploy/
+
 # large demo recordings (use Git LFS if you want them tracked)
 docs/*.mp4
 
