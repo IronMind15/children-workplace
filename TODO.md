@@ -60,6 +60,11 @@
 
 ## 已完成（最近）
 
+- [x] **v1.3.1 群岛/大地图共存 + 岛屿点击修复 + AI 无回复根因修复（2026-08-18）**：
+  - 群岛恢复：新建 `components/WorldArchipelago.tsx`（从 054802f 恢复 7 页群岛分页：左右箭头/页指示器/全览 WorldAtlas/岛屿节点/玩家化身/未解锁拦截）；`HomeClient` 地图视图加「🏝️ 群岛 | 🗺️ 大地图」分段切换，**默认群岛**，localStorage `kb:mapMode` 记忆偏好；两视图共用 `WorldNode/WorldEdge` 类型与 page.tsx 的 `x/y/depth/page` 数据契约。
+  - 点击修复：新 `WorldMap` 岛屿 `onClick` 曾有 `if (dragRef.current.moved) return` 守卫，`moved` 仅在 `beginDrag` 复位 → 拖动地图一次后所有岛屿点击被吞。删除该守卫（岛屿 mousedown 已 stopPropagation，地图拖动不会从岛屿开始），点击登岛恢复正常。
+  - AI 诊断结论：`ai_config` 表密钥完好（35 字符，未被删除/覆盖/重置）；本机外网正常（baidu 200）；DeepSeek API 可达（401 鉴权态属正常）；真实 key+model 调用返回 **HTTP 200** → 密钥与 `deepseek-v4-flash` 模型均有效。**根因**：v4-flash 是推理模型，`max_tokens=400` 被 `reasoning_content` 耗尽 → `content` 为空被误判失败。修复：`lib/ai.ts` 三处 max_tokens 提高（askAi 1000 / explainWrong 300 / feynmanChat 800）+ `content ?? reasoning_content` 兜底；修复后真实调用返回儿童友好回答（82 字）。
+  - 校验：`tsc` 通过；`next build --webpack` 29s 通过；`next start` 冒烟 `/`、`/ask`、`/spirits`、`/journal`、`/brain`、`/profile`、`/onboarding` 全 HTTP 200；SSR 验证群岛（全览/arch_01/计数岛）+ 切换控件均在、大地图不在 SSR（默认群岛，符合预期）。已提交 `de54019` + push origin/main。
 - [x] **v1.3.0 统一世界地图重设计（2026-08-18）**：
   - 底图替换：移除 7 页群岛分页与独立 `arch_01~07.webp` 背景，改用单张 `docs/数学世界地图.png` 经 WebP 压缩后的 `public/world/world_map.webp`（3840×2400，由 21MB PNG 降至约 0.86MB），作为唯一底图全量展示 29 座岛。
   - 坐标标定：新增 `lib/worldMapData.ts`，按新底图视觉岛屿位置给出 29 个 MK id 的百分比坐标（7 大领域环绕中央城堡），`WorldMap` 按 `metaId` 查找坐标叠加节点。
