@@ -2,7 +2,8 @@
 
 import { seedIfEmpty } from "./seed";
 import { setExplorerName, setBrainSettings, setExplorerIsland, getIslands, getExplorer, getMeta, getInternalizedMetas, getMetas, getProperties, setIslandLevel, setConfig, getAllConfig, getInternalizedStrategies, recordAwakening, setExplorerGenderAvatar, getGuards, getUsers, getMonsters } from "./repo";
-import { trainWin as doTrainWin, purify as doPurify, addSpark, getSparkStats, clearSparks, resetAllProgress, getDifficultyLevel, adjustDifficultyBias, recordMistake as doRecordMistake, resolveMistakes as doResolveMistakes, resolveMistakeQuestion as doResolveMistakeQuestion, getReviewSteps as doGetReviewSteps, getUnresolvedMistakeCountByMeta as doGetUnresolvedMistakeCountByMeta, evaluateMetaProficiency as doEvaluateMetaProficiency, guardWin as doGuardWin, checkAwakenings, getVisibleGuardsByIsland, bossFail as doBossFail, checkAndPromote } from "./game";
+import { trainWin as doTrainWin, purify as doPurify, addSpark, getSparkStats, clearSparks, resetAllProgress, getDifficultyLevel, adjustDifficultyBias, recordMistake as doRecordMistake, resolveMistakes as doResolveMistakes, resolveMistakeQuestion as doResolveMistakeQuestion, getReviewSteps as doGetReviewSteps, getUnresolvedMistakeCountByMeta as doGetUnresolvedMistakeCountByMeta, evaluateMetaProficiency as doEvaluateMetaProficiency, guardWin as doGuardWin, checkAwakenings, getVisibleGuardsByIsland, bossFail as doBossFail, checkAndPromote, maybeTriggerEncounter, recordMysteryCatch, getMysteryCatches, getMysteryState, mysteryDailyCap, mysteryPityLimit } from "./game";
+import { getHiddenMonsters, getHiddenMonsterMeta } from "./content";
 import db from "./db";
 import { getQuestionById, getTipById } from "./askBank";
 import { askAi, saveAiConfig, clearAiConfig, explainWrong, feynmanChat } from "./ai";
@@ -119,33 +120,53 @@ export async function travelToIsland(island: string) {
   revalidatePath("/");
 }
 
-/** 向 AI 伙伴提问：优先走已配置的 AI，失败/未配置回退内置题库；返回回答 + 火花奖励 */
+/** 把保底邂逅补全成前端可播报的信息 */
+function buildEncounterInfo(enc: { monsterId: string; isPity: boolean } | null) {
+  if (!enc) return null;
+  const hm = getHiddenMonsters().find((x) => x.id === enc.monsterId);
+  const meta = hm ? getHiddenMonsterMeta(hm) : null;
+  return {
+    monsterId: enc.monsterId,
+    name: hm?.name ?? "",
+    island: hm?.island ?? "",
+    emoji: meta?.emoji ?? "❓",
+    rarity: meta?.rarity ?? "普通",
+    color: meta?.color ?? "#8a97a5",
+    isPity: enc.isPity,
+  };
+}
+
+/** 向 AI 伙伴提问：优先走已配置的 AI，失败/未配置回退内置题库；返回回答 + 火花奖励 + 可能的保底邂逅 */
 export async function askQuestion(questionId: string) {
   await ensureSession();
   const q = getQuestionById(questionId) ?? getTipById(questionId);
-  if (!q) return { ok: false, answer: "", ...getSparkStats() };
+  if (!q) return { ok: false, answer: "", ...getSparkStats(), encounter: null };
   const kidName = getExplorer()?.name.split(" ")[0] ?? "小朋友";
   // 推荐问题卡：AI 不可用（超时/断网/出错）时静默回退内置题库，孩子仍能拿到答案
   const ai = await askAi(q.label, kidName);
   const answer = ai.ok ? ai.text : q.answer;
   const r = addSpark(q.id, q.label);
   checkAndPromote();
+  // 保底邂逅：每提问 mystery_pity 次必出
+  const enc = buildEncounterInfo(maybeTriggerEncounter(getHiddenMonsters()));
   revalidatePath("/");
-  return { ...r, answer };
+  return { ...r, answer, encounter: enc };
 }
 
 /** 自由提问（需要已配置 API key）：AI 连不上时用小狐狸口吻解释原因，保持界面简洁友好 */
 export async function askFree(question: string) {
   await ensureSession();
   const text = question.trim().slice(0, 200);
-  if (!text) return { ok: false, answer: "问题不能为空哦～", ...getSparkStats() };
+  if (!text) return { ok: false, answer: "问题不能为空哦～", ...getSparkStats(), encounter: null };
   const kidName = getExplorer()?.name.split(" ")[0] ?? "小朋友";
   const ai = await askAi(text, kidName);
   if (ai.ok) {
     const r = addSpark(`free-${Date.now()}`, text);
     checkAndPromote();
+    // 保底邂逅
+    const enc = buildEncounterInfo(maybeTriggerEncounter(getHiddenMonsters()));
     revalidatePath("/");
-    return { ...r, answer: ai.text };
+    return { ...r, answer: ai.text, encounter: enc };
   }
   // AI 不可用：用小朋友能懂的话说明「为什么现在问不了」，并给出下一步
   const tipByError: Record<string, string> = {
@@ -159,6 +180,61 @@ export async function askFree(question: string) {
     ok: false,
     answer: tipByError[ai.error] ?? "🦊 我刚才卡住啦，再点我一次试试看～",
     ...getSparkStats(),
+    encounter: null,
+  };
+}
+
+/** 隐藏小怪「fun 战斗」胜利：记录收集 + 返回彩蛋故事；首次捕捉返回 firstTime */
+export async function hiddenMonsterCatchAction(
+  monsterId: string
+): Promise<
+  | { ok: false }
+  | { ok: true; name: string; emoji: string; rarity: string; color: string; story: string; firstTime: boolean; caughtAt: string }
+> {
+  await ensureSession();
+  const m = getMonsters().find((x) => x.id === monsterId && x.type === "hidden");
+  if (!m) return { ok: false };
+  const meta = getHiddenMonsterMeta(m);
+  const r = recordMysteryCatch(monsterId);
+  revalidatePath("/");
+  return {
+    ok: true,
+    name: m.name,
+    emoji: meta.emoji,
+    rarity: meta.rarity,
+    color: meta.color,
+    story: meta.story,
+    firstTime: r.firstTime,
+    caughtAt: r.caughtAt,
+  };
+}
+
+/** 神秘图鉴数据：全部隐藏小怪 + 是否已收集 + 保底进度 */
+export async function getMysteryDexAction() {
+  await ensureSession();
+  const monsters = getHiddenMonsters();
+  const caught = new Map(getMysteryCatches().map((c) => [c.monsterId, c.caughtAt]));
+  const st = getMysteryState();
+  return {
+    pityCount: st.pityCount,
+    pityLimit: mysteryPityLimit(),
+    dailyCap: mysteryDailyCap(),
+    visibleIds: st.visibleIds,
+    items: monsters.map((m) => {
+      const meta = getHiddenMonsterMeta(m);
+      return {
+        id: m.id,
+        name: m.name,
+        island: m.island,
+        question: m.question,
+        rarity: meta.rarity,
+        emoji: meta.emoji,
+        color: meta.color,
+        story: meta.story,
+        requiredSparks: meta.required_sparks,
+        caughtAt: caught.get(m.id) ?? null,
+      };
+    }),
   };
 }
 

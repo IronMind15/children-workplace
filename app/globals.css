@@ -457,3 +457,15 @@ h2, .text-h2 { font-size: var(--fs-h2); font-weight: 600; line-height: 1.4; }
   background-color: rgba(120, 216, 216, 0.6);
   border-radius: 999px;
 }
+
+/* 神秘小怪稀有度光效（v1.5.2） */
+@keyframes legend-glow {
+  0%, 100% { transform: scale(1) translateY(0); filter: drop-shadow(0 0 6px #ffd54f); }
+  50% { transform: scale(1.1) translateY(-4px); filter: drop-shadow(0 0 20px #ffb300); }
+}
+.animate-legend-glow { animation: legend-glow 1.6s ease-in-out infinite; }
+@keyframes rare-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(126, 87, 194, 0.5)); }
+  50% { filter: drop-shadow(0 0 14px rgba(126, 87, 194, 0.9)); }
+}
+.animate-rare-glow { animation: rare-glow 2s ease-in-out infinite; }

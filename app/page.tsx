@@ -28,7 +28,8 @@ import {
   getMetaAwakened,
   getGuardsByIsland,
 } from "@/lib/repo";
-import { getSparkStats, checkAwakenings, getIslandDifficulty, getReviewSteps, getUnresolvedMistakeCountByMeta } from "@/lib/game";
+import { getSparkStats, checkAwakenings, getIslandDifficulty, getReviewSteps, getUnresolvedMistakeCountByMeta, getMysteryState } from "@/lib/game";
+import { getHiddenMonsterMeta } from "@/lib/content";
 import { getAiConfig } from "@/lib/ai";
 import { generateSteps, guardSteps } from "@/lib/questions";
 import { pickGuardStyle } from "@/lib/guardStyles";
@@ -82,7 +83,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
   // 单岛战斗数据
   const awakenings = checkAwakenings();
   const islandLevels = getAllIslandLevels();
-  const islandData: Record<string, { minions: { id: string; name: string; question: string }[]; guards: { id: string; name: string; question: string }[]; hiddenMonsters: { id: string; name: string; question: string }[]; bosses: { id: string; name: string; question: string; purified: boolean }[]; islandLevel: number }> = {};
+  const mysteryState = getMysteryState();
+  const islandData: Record<string, { minions: { id: string; name: string; question: string }[]; guards: { id: string; name: string; question: string }[]; hiddenMonsters: { id: string; name: string; question: string; rarity: string; emoji: string; color: string; newBadge: boolean }[]; bosses: { id: string; name: string; question: string; purified: boolean }[]; islandLevel: number }> = {};
   const byIsland = new Map<string, ReturnType<typeof getMonsters>>();
   for (const m of allMonsters) {
     const list = byIsland.get(m.island) ?? [];
@@ -102,9 +104,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
         return info.spawn_mode === "fixed" ? info.island === it.name : info.spawn_islands.includes(it.name);
       })
       .map((m) => ({ id: m.id, name: m.name, question: m.question }));
+    // 神秘小怪：火花门槛常驻现身 OR 保底邂逅可见（带"新出现"角标）
     const hiddenMonsters = all
       .filter((m) => m.type === "hidden")
       .filter((m) => {
+        const visible = mysteryState.visibleIds.includes(m.id);
+        if (visible) return true;
         try {
           const req = (JSON.parse(m.options ?? "{}") as { required_sparks?: number }).required_sparks;
           return req != null && sparks.total >= req;
@@ -112,7 +117,18 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
           return false;
         }
       })
-      .map((m) => ({ id: m.id, name: m.name, question: m.question }));
+      .map((m) => {
+        const meta = getHiddenMonsterMeta(m);
+        return {
+          id: m.id,
+          name: m.name,
+          question: m.question,
+          rarity: meta.rarity,
+          emoji: meta.emoji,
+          color: meta.color,
+          newBadge: mysteryState.visibleIds.includes(m.id),
+        };
+      });
     const bosses = all
       .filter((m) => m.type === "boss")
       .map((b) => ({
@@ -231,12 +247,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
     monsterId: string;
     name: string;
     question: string;
-    correctMeta: string;
+    correctMeta: string | null;
     steps: SolveStep[];
-    mode: "train" | "guard";
+    mode: "train" | "guard" | "fun";
     propertyName?: string;
     returnIsland: string;
     spirits: { meta_id: string; emoji: string; nickname: string; meta_name: string; level: number; awakened: boolean }[];
+    /** fun 模式：神秘小怪专属形象（emoji + 稀有度配色） */
+    hiddenEmoji?: string;
+    hiddenColor?: string;
     /** 守卫外观样式索引（1~6），守卫战渲染对应形象用；非守卫忽略 */
     guardStyleIndex?: number;
     /** v1.2.10 战斗背景图（群岛小怪按 page / 守卫统一） */
@@ -255,28 +274,33 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
 
   if (sp.battle) {
     const m = getMonster(sp.battle);
-    if (m && ["minion", "hidden", "guard"].includes(m.type) && m.correct_meta && m.steps) {
+    if (m && ["minion", "hidden", "guard"].includes(m.type) && m.steps && (m.type === "hidden" || m.correct_meta)) {
       let steps: SolveStep[];
-      let mode: "train" | "guard" = "train";
+      let mode: "train" | "guard" | "fun" = "train";
       let propertyName: string | undefined;
       if (m.type === "guard") {
         mode = "guard";
         const propertyId = m.id.replace(/^guard-/, "").toUpperCase();
         const gs = guardSteps(propertyId);
         steps = gs.length > 0 ? gs : (JSON.parse(m.steps) as SolveStep[]);
-        propertyName = getMeta(m.correct_meta)?.name ?? "";
+        propertyName = getMeta(m.correct_meta!)?.name ?? "";
+      } else if (m.type === "hidden") {
+        // 神秘小怪：fun 模式（不选精灵、无知识奖励，答对=收集进图鉴）
+        mode = "fun";
+        steps = JSON.parse(m.steps) as SolveStep[];
       } else if (m.type === "minion") {
-        const metaName = getMeta(m.correct_meta)?.name ?? "";
-        const level = getIslandDifficulty(m.correct_meta);
-        const baseSteps = generateSteps(m.correct_meta, undefined, level, {
+        const cm = m.correct_meta!; // 已由外层条件保证（非 hidden 必有 correct_meta）
+        const metaName = getMeta(cm)?.name ?? "";
+        const level = getIslandDifficulty(cm);
+        const baseSteps = generateSteps(cm, undefined, level, {
           islandLevel: getIslandLevel(`${metaName}岛`),
           awakened: getAwakenedPropertyIds(),
         });
         // 错题重做：按未掌握错题数加权，把旧错题插进招式之间，让孩子更可能碰到并改对
-        const unresolved = getUnresolvedMistakeCountByMeta(m.correct_meta);
+        const unresolved = getUnresolvedMistakeCountByMeta(cm);
         const reviewSteps =
           unresolved > 0
-            ? getReviewSteps(m.correct_meta, Math.min(3, Math.max(1, Math.ceil(unresolved / 2))))
+            ? getReviewSteps(cm, Math.min(3, Math.max(1, Math.ceil(unresolved / 2))))
             : [];
         steps = baseSteps;
         if (reviewSteps.length > 0 && baseSteps.length > 0) {
@@ -306,6 +330,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
         propertyName,
         returnIsland: m.island,
         spirits: spiritsAll,
+        // fun 模式：神秘小怪专属形象
+        hiddenEmoji: mode === "fun" ? getHiddenMonsterMeta(m).emoji : undefined,
+        hiddenColor: mode === "fun" ? getHiddenMonsterMeta(m).color : undefined,
         // 守卫战：算好该守卫的外观样式索引（与岛上一致：按群岛页号 + 岛内守卫序号链式避重复）
         guardStyleIndex: mode === "guard" ? computeGuardStyleIndex(m.id, m.island) : undefined,
         // v1.2.10 战斗背景：守卫统一 guard_bg，小怪按群岛 page 选 arch_XX_bg

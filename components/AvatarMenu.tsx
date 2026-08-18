@@ -29,6 +29,7 @@ const MENU_ITEMS = [
   { href: "/mistakes", label: "错题集", iconSrc: getUiIcon("mistakeBook"), desc: "收集错题、复盘弱点" },
   { href: "/parent", label: "家长端", iconSrc: getUiIcon("parent"), desc: "学习进度、错题、每日总结" },
   { href: "/profile", label: "我的资料", iconSrc: getUiIcon("profile"), desc: "头衔、火花、净化进度" },
+  { href: "/mystery", label: "神秘图鉴", iconEmoji: "🔮", desc: "收集隐藏小怪、读彩蛋故事" },
   { href: "/brain", label: "设置", iconEmoji: "⚙️", desc: "AI 伙伴连接、大脑编辑器" },
   { href: "/?tutorial=1", label: "新手引导", iconSrc: getUiIcon("tutorial"), desc: "重看玩法讲解" },
 ];

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { feynmanTeach } from "@/lib/actions";
-import { getUiIcon } from "@/lib/uiIcons";
 
 type Msg = { role: "kid" | "ai"; content: string };
 
@@ -57,26 +56,29 @@ export default function FeynmanChat({
   const curMeta = metas.find((m) => m.id === metaId);
   const cardPad = compact ? "p-2.5" : "p-4";
   const iconSize = compact ? "text-xl" : "text-2xl";
-  // 儿童友好：放大字号（紧凑模式也保底 text-sm，非紧凑到 text-base）
-  const titleSize = compact ? "text-sm" : "text-base";
-  const subSize = compact ? "text-[11px]" : "text-xs";
+  // 儿童友好：放大字号（紧凑模式也保底 text-base，非紧凑到 text-lg 标题）
+  const titleSize = compact ? "text-base" : "text-lg";
+  const subSize = compact ? "text-xs" : "text-sm";
   const chipPy = compact ? "py-1" : "py-1.5";
-  const chipSize = compact ? "text-[11px]" : "text-sm";
+  const chipSize = compact ? "text-sm" : "text-[15px]";
   const btnPy = compact ? "py-2.5" : "py-3";
-  const dialogMax = compact ? "max-h-56" : "max-h-80";
+  const dialogMax = compact ? "max-h-64" : "max-h-[55vh]";
   const inputPy = compact ? "py-2" : "py-2.5";
+  const msgSize = compact ? "text-[16px]" : "text-[17px]";
 
   return (
     <div className={`rounded-2xl border-2 border-[#b39ddb] bg-white ${cardPad}`}>
       <div className="flex items-center gap-2">
-        <img src={getUiIcon("feynman")} alt="" className={`shrink-0 object-contain ${compact ? "h-7 w-7" : "h-8 w-8"}`} />
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-[#2b3a4a] bg-[#fff8e1] ${iconSize}`}>
+          🦊
+        </span>
         <div className="min-w-0 flex-1">
           <p className={`${titleSize} font-black text-ink`}>费曼小课堂</p>
           {!compact && <p className={`${subSize} font-bold text-ink-soft`}>当小老师，教 AI 学数学 —— 能讲清楚才是真的会</p>}
         </div>
         {tier && (
           <span
-            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-black ${
               tier === "advanced" ? "bg-[#fff3d6] text-[#c98a12]" : "bg-[#eaf7e4] text-[#3a8f2f]"
             }`}
           >
@@ -119,7 +121,7 @@ export default function FeynmanChat({
               {history.map((m, i) => (
                 <div key={i} className={`flex ${m.role === "kid" ? "justify-end" : "justify-start"}`}>
                   <div
-                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                    className={`max-w-[85%] rounded-2xl px-3 py-2 ${msgSize} leading-relaxed ${
                       m.role === "kid" ? "rounded-br-none bg-[#7e57c2] text-white" : "rounded-bl-none bg-white text-ink shadow-sm"
                     }`}
                   >
@@ -130,7 +132,7 @@ export default function FeynmanChat({
               ))}
               {loading && (
                 <div className="flex justify-start">
-                  <div className="rounded-2xl rounded-bl-none bg-white px-3 py-2 text-sm text-ink-soft shadow-sm">🦊 正在想…</div>
+                  <div className={`rounded-2xl rounded-bl-none bg-white px-3 py-2 ${msgSize} text-ink-soft shadow-sm`}>🦊 正在想…</div>
                 </div>
               )}
             </div>

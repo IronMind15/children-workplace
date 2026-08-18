@@ -140,6 +140,23 @@ if (!isBuildPhase) {
     kp TEXT,
     wrong_count INTEGER NOT NULL DEFAULT 1
   );
+
+  -- 神秘图鉴收集（隐藏小怪：用户 → 已捕捉的小怪）
+  CREATE TABLE IF NOT EXISTS mystery_catch (
+    user_id TEXT NOT NULL,
+    monster_id TEXT NOT NULL,
+    caught_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, monster_id)
+  );
+
+  -- 神秘邂逅状态（每用户单行）：保底计数 + 当前可见的邂逅小怪
+  CREATE TABLE IF NOT EXISTS mystery_state (
+    user_id TEXT PRIMARY KEY,
+    pity_count INTEGER NOT NULL DEFAULT 0,
+    visible_ids TEXT NOT NULL DEFAULT '[]',
+    last_encounter_date TEXT,
+    encounter_today INTEGER NOT NULL DEFAULT 0
+  );
 `);
 
   // ============ 老库兼容 · 第二段静态内容表迁移（v7：内容代码化） ============

@@ -77,6 +77,106 @@ export function clearSparks(): SparkStats {
   return getSparkStats();
 }
 
+// ============ 神秘玩法：保底邂逅 + 收集（隐藏小怪） ============
+
+export type MysteryState = {
+  pityCount: number;
+  visibleIds: string[];
+  lastEncounterDate: string | null;
+  encounterToday: number;
+};
+
+/** 读取用户的神秘邂逅状态（无则初始化） */
+export function getMysteryState(uid?: string): MysteryState {
+  const u = uid ?? getCurrentUser();
+  const row = db.prepare("SELECT * FROM mystery_state WHERE user_id = ?").get(u) as
+    | { pity_count: number; visible_ids: string; last_encounter_date: string | null; encounter_today: number }
+    | undefined;
+  if (!row) return { pityCount: 0, visibleIds: [], lastEncounterDate: null, encounterToday: 0 };
+  let visibleIds: string[] = [];
+  try {
+    visibleIds = JSON.parse(row.visible_ids) as string[];
+  } catch {}
+  return { pityCount: row.pity_count, visibleIds, lastEncounterDate: row.last_encounter_date, encounterToday: row.encounter_today };
+}
+
+function saveMysteryState(s: MysteryState, uid?: string) {
+  const u = uid ?? getCurrentUser();
+  db.prepare(
+    `INSERT INTO mystery_state (user_id, pity_count, visible_ids, last_encounter_date, encounter_today)
+     VALUES (?, ?, ?, ?, ?)
+     ON CONFLICT(user_id) DO UPDATE SET pity_count=excluded.pity_count, visible_ids=excluded.visible_ids,
+       last_encounter_date=excluded.last_encounter_date, encounter_today=excluded.encounter_today`
+  ).run(u, s.pityCount, JSON.stringify(s.visibleIds), s.lastEncounterDate, s.encounterToday);
+}
+
+/** 保底参数（config 可调）：每 N 次提问必邂逅；每日邂逅上限 */
+export function mysteryPityLimit(): number {
+  return Math.max(1, getConfigNum("mystery_pity", 5));
+}
+export function mysteryDailyCap(): number {
+  return Math.max(1, getConfigNum("mystery_daily_cap", 3));
+}
+
+/** 提问后推进保底：满 N 次则触发一次「邂逅」（优先未收集），返回邂逅的小怪 id；否则 null */
+export function maybeTriggerEncounter(
+  allHidden: { id: string }[],
+  uid?: string
+): { monsterId: string; isPity: boolean } | null {
+  const u = uid ?? getCurrentUser();
+  const st = getMysteryState(u);
+  const today = new Date().toISOString().slice(0, 10);
+
+  // 跨天重置每日计数
+  if (st.lastEncounterDate !== today) {
+    st.lastEncounterDate = today;
+    st.encounterToday = 0;
+  }
+
+  st.pityCount += 1;
+  if (st.pityCount >= mysteryPityLimit() && st.encounterToday < mysteryDailyCap() && allHidden.length > 0) {
+    // 优先从未收集里抽；已集齐则随机一只
+    const caught = new Set(getMysteryCatches(u).map((c) => c.monsterId));
+    const pool = allHidden.filter((h) => !caught.has(h.id));
+    const pickPool = pool.length > 0 ? pool : allHidden;
+    const picked = pickPool[Math.floor(Math.random() * pickPool.length)];
+    if (!st.visibleIds.includes(picked.id)) st.visibleIds.push(picked.id);
+    st.pityCount = 0;
+    st.encounterToday += 1;
+    saveMysteryState(st, u);
+    return { monsterId: picked.id, isPity: true };
+  }
+  saveMysteryState(st, u);
+  return null;
+}
+
+/** 已收集的隐藏小怪（id + 捕捉时间） */
+export function getMysteryCatches(uid?: string): { monsterId: string; caughtAt: string }[] {
+  const u = uid ?? getCurrentUser();
+  const rows = db.prepare("SELECT monster_id, caught_at FROM mystery_catch WHERE user_id = ? ORDER BY caught_at ASC").all(u) as {
+    monster_id: string;
+    caught_at: string;
+  }[];
+  return rows.map((r) => ({ monsterId: r.monster_id, caughtAt: r.caught_at }));
+}
+
+/** 记录一次捕捉：写收集表 + 从邂逅可见列表移除；返回是否首次收集 */
+export function recordMysteryCatch(monsterId: string, uid?: string): { firstTime: boolean; caughtAt: string } {
+  const u = uid ?? getCurrentUser();
+  const existed = db.prepare("SELECT 1 FROM mystery_catch WHERE user_id = ? AND monster_id = ?").get(u, monsterId);
+  const caughtAt = new Date().toISOString();
+  if (!existed) {
+    db.prepare("INSERT INTO mystery_catch (user_id, monster_id, caught_at) VALUES (?, ?, ?)").run(u, monsterId, caughtAt);
+  }
+  // 从可见列表移除
+  const st = getMysteryState(u);
+  if (st.visibleIds.includes(monsterId)) {
+    st.visibleIds = st.visibleIds.filter((v) => v !== monsterId);
+    saveMysteryState(st, u);
+  }
+  return { firstTime: !existed, caughtAt };
+}
+
 // ============ 难度系统（按岛计算） ============
 // 每个岛的难度独立 = 基础(1) + a×已解锁下游岛数 + b×(精灵等级−1) + 全局偏置(bias)
 // a/b 权重可调（config.diff_a / diff_b，默认 1 / 2）

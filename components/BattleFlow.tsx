@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { trainWin, logMistake, explainMistake, resolveMistakeQuestion, guardWinAction } from "@/lib/actions";
+import { trainWin, logMistake, explainMistake, resolveMistakeQuestion, guardWinAction, hiddenMonsterCatchAction } from "@/lib/actions";
 import ImgSprite from "@/components/ImgSprite";
 import UiButton from "@/components/UiButton";
 import { getMonsterImage, getSpiritImage, getSpiritStage, getCompanionImage, AWAKENED_STAGE } from "@/lib/sprites";
@@ -66,15 +66,17 @@ export default function BattleFlow({
   bgUrl,
   avatarSrc,
   embedded = false,
+  hiddenEmoji,
+  hiddenColor,
 }: {
   monsterId: string;
   name: string;
   question: string;
-  correctMeta: string;
+  correctMeta: string | null;
   steps: SolveStep[];
   spirits: SpiritOption[];
   brain: BrainSettings;
-  mode?: "train" | "guard";
+  mode?: "train" | "guard" | "fun";
   propertyName?: string;
   /** 退出时返回该岛（聚焦态），而非 L1 世界地图 */
   returnIsland?: string;
@@ -86,9 +88,12 @@ export default function BattleFlow({
   avatarSrc?: string;
   /** v1.2.3 嵌入主界面左侧：去掉 min-h-screen / 外层衬底，避免超高 */
   embedded?: boolean;
+  /** fun 模式（神秘小怪）：我方用它的专属 emoji 出战 */
+  hiddenEmoji?: string;
+  hiddenColor?: string;
 }) {
   const router = useRouter();
-  const [phase, setPhase] = useState<"intro" | "pick" | "solve" | "result">("intro");
+  const [phase, setPhase] = useState<"intro" | "pick" | "solve" | "result">(() => (mode === "fun" ? "solve" : "intro"));
   const [picked, setPicked] = useState<SpiritOption | null>(null);
   const [helpers, setHelpers] = useState<SpiritOption[]>([]);
   const [effect, setEffect] = useState<Effect>(null);
@@ -105,8 +110,18 @@ export default function BattleFlow({
   const [busy, setBusy] = useState(false);
   const [wrongOnThisStep, setWrongOnThisStep] = useState(false);
   const [qBanner, setQBanner] = useState<{ n: number; key: number } | null>(null);
+  // fun 模式：捕捉成功后的隐藏小怪信息
+  const [hiddenWin, setHiddenWin] = useState<{
+    name: string;
+    emoji: string;
+    rarity: string;
+    color: string;
+    story: string;
+    firstTime: boolean;
+  } | null>(null);
 
   const isGuard = mode === "guard";
+  const isFun = mode === "fun";
   const total = steps.length;
   const hpPercent = Math.round(((total - stepIdx) / total) * 100);
   const correctMetaName = spirits.find((s) => s.meta_id === correctMeta)?.meta_name;
@@ -218,7 +233,7 @@ export default function BattleFlow({
   function answer(opt: { label: string; correct?: boolean }) {
     if (opt.correct) {
       // 重做答对：精准订正这一条（或这道）错题 —— 作对即自动识别、统计成长
-      if (wrongOnThisStep) {
+      if (wrongOnThisStep && correctMeta) {
         resolveMistakeQuestion(correctMeta, currentStep.prompt, currentStep.mistakeId ?? null);
         setWrongOnThisStep(false);
       }
@@ -231,7 +246,26 @@ export default function BattleFlow({
       } else {
         const s = mistakes === 0 ? 3 : mistakes <= 2 ? 2 : 1;
         setStars(s);
-        if (isGuard) {
+        if (isFun) {
+          // 神秘小怪：答对 = 收集进图鉴（不涨熟练度、不写错题本）
+          hiddenMonsterCatchAction(monsterId).then((r) => {
+            if (r?.ok) {
+              setHiddenWin({
+                name: r.name,
+                emoji: r.emoji,
+                rarity: r.rarity,
+                color: r.color,
+                story: r.story,
+                firstTime: r.firstTime,
+              });
+              pushPartnerMessage(
+                r.firstTime
+                  ? `🌟 收服成功！${r.emoji}「${r.name}」住进了你的神秘图鉴！\n${r.story ?? ""}`
+                  : `🌟 又见到${r.emoji}「${r.name}」啦！它已经是你的图鉴伙伴了～`
+              );
+            }
+          });
+        } else if (isGuard) {
           // 守卫战：打赢 = 觉醒该性质 + 岛屿升级
           guardWinAction(monsterId).then((r) => {
             if (r?.ok && r.propertyName) {
@@ -239,7 +273,7 @@ export default function BattleFlow({
             }
           });
         } else {
-          trainWin(correctMeta, s).then((r) => {
+          trainWin(correctMeta ?? "", s).then((r) => {
             if (r.leveledUp) setLevelUp({ level: r.level });
           });
         }
@@ -250,10 +284,17 @@ export default function BattleFlow({
       setHp((h) => Math.max(0, h - 20));
       setWrongOnThisStep(true);
       hit();
+      // 神秘小怪（fun）：答错只给提示重试，不记录错题、不扣知识数据
+      if (isFun) {
+        const correctLabel = currentStep.options.find((o) => o.correct)?.label ?? "";
+        setWrongNote({ text: "再想想看，答案就藏在选项里哦～", userAnswer: opt.label, correctAnswer: correctLabel });
+        pushPartnerMessage(`🦊 再试一次！你选了「${opt.label}」，小怪还在等你呢～再点点看正确答案吧！`);
+        return;
+      }
       // 记录错题（连同完整题目，便于之后在战斗里精准重做）
       // 注意：复习步骤（mistakeId 存在）本身是错题本里的旧题，已记录过，不再重复入库，避免堆积重复行
       const correctLabel = currentStep.options.find((o) => o.correct)?.label ?? "";
-      if (!currentStep.mistakeId) {
+      if (!currentStep.mistakeId && correctMeta) {
         logMistake(correctMeta, currentStep.prompt, opt.label, correctLabel, JSON.stringify(currentStep), currentStep.kp ?? null);
       }
       // 答错讲解：统一推送到右侧 AI 对话区（AskPanel），不弹独立浮窗
@@ -302,7 +343,13 @@ export default function BattleFlow({
 
           {/* 我方站台：左下 */}
           <div className="absolute left-[12%] bottom-[14%] h-10 w-44 rounded-[50%] bg-black/15 lg:w-52" />
-          {picked && spiritImage ? (
+          {isFun ? (
+            <div className="absolute left-[10%] bottom-[16%] lg:left-[14%] lg:bottom-[18%]">
+              <div className={`animate-pop text-[96px] leading-none drop-shadow-lg ${shake ? "animate-shake" : "animate-float"}`}>
+                {hiddenEmoji ?? "❓"}
+              </div>
+            </div>
+          ) : picked && spiritImage ? (
             <div className={`absolute left-[10%] bottom-[16%] flex items-end gap-1 lg:left-[14%] lg:bottom-[18%] ${shake ? "animate-lunge" : ""}`}>
               <div className="animate-pop">
                 <ImgSprite src={spiritImage} size={132} />
@@ -330,7 +377,15 @@ export default function BattleFlow({
 
           {/* 我方信息框：右下 */}
           <div className="absolute bottom-4 right-4">
-            {picked ? (
+            {isFun ? (
+              <HpBox
+                name={`${hiddenEmoji ?? "❓"} ${name}`}
+                tag="神秘邂逅 · 答对收集"
+                hp={hp}
+                color={hp > 50 ? "#4cd964" : hp > 25 ? "#ffb300" : "#ff5252"}
+                right
+              />
+            ) : picked ? (
               <HpBox
                 name={`${picked.emoji} ${picked.nickname}${helpers.length > 0 ? ` +${helpers.length} 帮手` : ""}`}
                 tag={helpers.length > 0 ? "联手出击" : `连击×${combo}`}
@@ -601,7 +656,58 @@ export default function BattleFlow({
               </div>
             )}
 
-            {phase === "result" && (
+            {phase === "result" && isFun && hiddenWin && (
+              <div className="flex flex-col gap-3">
+                <div className="animate-pop rounded-2xl border-4 border-[#2b3a4a] bg-[#fffdf5] p-4 text-center shadow-[0_5px_0_rgba(43,58,74,0.2)]">
+                  <div className="text-6xl">{hiddenWin.emoji}</div>
+                  <p className="mt-2 text-lg font-black text-[#2b3a4a]">
+                    {hiddenWin.firstTime ? "🎉 收集成功！" : "🎉 再次相遇！"}「{hiddenWin.name}」
+                  </p>
+                  <span
+                    className="mt-1 inline-block rounded-full px-3 py-1 text-xs font-black text-white"
+                    style={{ background: hiddenWin.color }}
+                  >
+                    {hiddenWin.rarity}
+                  </span>
+                  {hiddenWin.firstTime && hiddenWin.story && (
+                    <p className="mt-3 whitespace-pre-wrap rounded-xl bg-[#f6f1ff] px-3 py-2 text-sm font-bold leading-relaxed text-[#4a3a6a]">
+                      📖 {hiddenWin.story}
+                    </p>
+                  )}
+                  <p className="mt-2 text-xs font-bold text-[#7a8a9a]">
+                    {hiddenWin.firstTime ? "它已经住进你的「神秘图鉴」啦！" : "它已经是你的图鉴伙伴了～"}
+                  </p>
+                </div>
+                <UiButton
+                  onClick={() => router.push(returnIsland ? `/?island=${encodeURIComponent(returnIsland)}` : "/")}
+                  height="lg"
+                  size="long"
+                  fullWidth
+                  data-tour="battle-exit"
+                >
+                  🏝️ 回到{returnIsland ?? "海图"}
+                </UiButton>
+                <div className="flex gap-2">
+                  <UiButton
+                    onClick={() => router.push("/mystery")}
+                    height="sm"
+                    size="medium"
+                  >
+                    🔮 看神秘图鉴
+                  </UiButton>
+                  <UiButton
+                    onClick={() => router.push(`/?battle=${monsterId}&r=${Date.now()}`)}
+                    height="sm"
+                    size="medium"
+                    disabled={busy}
+                  >
+                    🔁 再来一场
+                  </UiButton>
+                </div>
+              </div>
+            )}
+
+            {phase === "result" && !(isFun && hiddenWin) && (
               <div className="flex flex-col gap-3">
                 <UiButton
                   onClick={() => router.push(returnIsland ? `/?island=${encodeURIComponent(returnIsland)}` : "/")}

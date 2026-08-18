@@ -14,6 +14,11 @@ export type MapMonster = {
   id: string;
   name: string;
   question: string;
+  /** 神秘小怪专属形象（v1.5.2）：emoji + 稀有度配色 + 邂逅角标 */
+  rarity?: string;
+  emoji?: string;
+  color?: string;
+  newBadge?: boolean;
 };
 
 export type MapBoss = MapMonster & { purified: boolean };
@@ -56,29 +61,51 @@ function WanderingMonster({ monster, index, mystery = false, onPick }: { monster
 
   const inner = (
     <>
-      {/* 名牌（按键皮革底板，文字压在图案上） */}
-      <UiTag size="auto" className="mb-1 text-base">
-        {mystery ? "✨ " : ""}
+      {/* 名牌（按键皮革底板，文字压在图案上）；神秘小怪带稀有度徽章 */}
+      <UiTag size="auto" className={`mb-1 text-base ${mystery && monster.newBadge ? "animate-pop" : ""}`}>
+        {mystery ? `✨ ` : ""}
         {monster.name}
+        {mystery && monster.rarity && (
+          <span
+            className="ml-1 rounded-full px-1.5 py-0.5 text-[9px] font-black text-white"
+            style={{ background: monster.color ?? "#8a97a5" }}
+          >
+            {monster.rarity}
+          </span>
+        )}
       </UiTag>
       <span className="relative block">
-        <span
-          className={`block ${flip ? "-scale-x-100" : ""}`}
-          style={{ transition: "transform 0.3s" }}
-        >
-          <ImgSprite
-            src={image}
-            size={72}
-            className={`drop-shadow-md ${mystery ? "stage-aura walk-bob" : "walk-bob"}`}
-          />
-        </span>
+        {mystery && monster.emoji ? (
+          // 神秘小怪专属形象（emoji 过渡版）：稀有/传说带光晕
+          <span
+            className={`block text-6xl leading-none drop-shadow-lg ${
+              monster.rarity === "传说"
+                ? "animate-legend-glow"
+                : monster.rarity === "稀有"
+                  ? "animate-rare-glow"
+                  : "animate-twinkle"
+            }`}
+            style={{ color: monster.color ?? "#8a97a5", filter: `drop-shadow(0 0 8px ${monster.color ?? "#8a97a5"}88)` }}
+          >
+            {monster.emoji}
+          </span>
+        ) : (
+          <span className={`block ${flip ? "-scale-x-100" : ""}`} style={{ transition: "transform 0.3s" }}>
+            <ImgSprite src={image} size={72} className={`drop-shadow-md ${mystery ? "stage-aura walk-bob" : "walk-bob"}`} />
+          </span>
+        )}
         {mystery && (
           <span className="animate-twinkle absolute -right-2 -top-2 text-lg">✨</span>
+        )}
+        {mystery && monster.newBadge && (
+          <span className="animate-pop absolute -left-2 -top-3 rounded-full bg-[#e2582e] px-1.5 py-0.5 text-[10px] font-black text-white shadow-md">
+            新出现！
+          </span>
         )}
       </span>
       {/* 悬停提示：点我战斗 */}
       <span className="pointer-events-none mt-1 hidden rounded-md bg-[#22303f] px-2 py-0.5 text-xs font-bold text-white group-hover:block">
-        ⚔️ 点击战斗
+        {mystery ? "✨ 神秘邂逅" : "⚔️ 点击战斗"}
       </span>
     </>
   );

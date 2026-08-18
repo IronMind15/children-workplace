@@ -410,11 +410,66 @@ const legacyMonsters: SeedMonster[] = [
 const defaultExplorer = { id: "default", name: "", brain_settings: null, current_island: "计数岛" };
 
 // ---- 神秘小怪（type=hidden）：靠"好奇心火花"解锁，出现在对应岛屿 ----
+// 关键约束（v1.5.2）：隐藏小怪一律 correct_meta=null，走 fun 战斗（不引导选精灵），
+// 问题均为生活/好奇/趣味类，与知识验收完全解耦；奖励 = 收集进神秘图鉴。
+
+export type HiddenMeta = {
+  spark_cost: number;   // 火花门槛（达到即常驻现身）
+  rarity: "普通" | "稀有" | "传说";
+  emoji: string;        // 专属形象（先 emoji+配色，后补立绘）
+  color: string;        // 稀有度配色
+  story: string;        // 彩蛋故事（捕捉后解锁）
+};
+
+/** 神秘小怪元数据注册表（id → 门槛/稀有度/形象/彩蛋故事） */
+export const HIDDEN_META: Record<string, HiddenMeta> = {
+  "minion-why-01": {
+    spark_cost: 3, rarity: "普通", emoji: "❓", color: "#8a97a5",
+    story: "有一只总爱问「为什么」的小怪物，它问过十万个为什么，最后发现：每个问题都是一扇新世界的小门。",
+  },
+  "minion-riddle-01": {
+    spark_cost: 6, rarity: "普通", emoji: "🎭", color: "#8a97a5",
+    story: "谜语小怪是个小话痨，它说：世界上最好的谜语，就是「你猜对的那一刻，笑得最开心」。",
+  },
+  "minion-star-01": {
+    spark_cost: 9, rarity: "普通", emoji: "⭐", color: "#8a97a5",
+    story: "星星小怪每晚数星星，数着数着发现：看得见的星星是光，看不见的知识也是光，都在等你去发现。",
+  },
+  "minion-time-01": {
+    spark_cost: 12, rarity: "普通", emoji: "⏰", color: "#8a97a5",
+    story: "时间小怪有一块永远不准的怀表，它说：时间不会等你，但努力的时间会变成礼物回来找你。",
+  },
+  "minion-rainbow-01": {
+    spark_cost: 15, rarity: "稀有", emoji: "🌈", color: "#7e57c2",
+    story: "彩虹小怪在下雨天收集颜色，它相信：所有不同的颜色合在一起，才是最美的天空。",
+  },
+  "minion-echo-01": {
+    spark_cost: 20, rarity: "稀有", emoji: "🔊", color: "#7e57c2",
+    story: "回声小怪住在山谷里，你大声喊，它就大声回；你温柔说，它也温柔回。它说：世界就像回声，你给它什么，它还你什么。",
+  },
+  "minion-bubble-01": {
+    spark_cost: 26, rarity: "稀有", emoji: "🫧", color: "#7e57c2",
+    story: "泡泡小怪最爱吹泡泡，它说：一个泡泡破了没关系，再吹一个就好——失败从来不是结束，是下一个开始的泡泡。",
+  },
+  "minion-glow-01": {
+    spark_cost: 33, rarity: "稀有", emoji: "🪲", color: "#7e57c2",
+    story: "夜光小怪在黑夜里发光，它说：最黑的地方，星星最亮；最难的题目，学会后最骄傲。",
+  },
+  "minion-creation-01": {
+    spark_cost: 42, rarity: "传说", emoji: "🌌", color: "#e2582e",
+    story: "创世小怪是数字世界的守门人。传说它第一个发现：世界上本来没有数字，是人类的好奇心，让「一、二、三…」住进了生活。你也是创造者。",
+  },
+  "minion-dream-01": {
+    spark_cost: 50, rarity: "传说", emoji: "🦋", color: "#e2582e",
+    story: "梦蝶小怪会出现在认真思考的孩子梦里。它梦见一道题有一百种解法，醒来说：答案从来不止一个，找到自己最喜欢的那条路，就是最棒的解法。",
+  },
+};
+
 const hiddenMonsters: SeedMonster[] = [
   {
     id: "minion-why-01", name: "为什么小怪", type: "hidden", island: "加法岛",
-    question: "好奇心引来的神秘小怪！答对它，伙伴会给你大惊喜～",
-    correct_meta: "MK-03", target_meta: null, prerequisites: null,
+    question: "好奇心引来的神秘小怪！答对它，它就会住进你的图鉴～",
+    correct_meta: null, target_meta: null, prerequisites: null,
     steps: [
       { type: "solve", prompt: "AI 说的话全是真的吗？", options: shuffleOptions("不一定，要验证", ["全是真的", "全是假的"]) },
     ],
@@ -422,7 +477,7 @@ const hiddenMonsters: SeedMonster[] = [
   {
     id: "minion-riddle-01", name: "谜语小怪", type: "hidden", island: "减法岛",
     question: "集满 6 颗火花才出现的谜语大师！",
-    correct_meta: "MK-04", target_meta: null, prerequisites: null,
+    correct_meta: null, target_meta: null, prerequisites: null,
     steps: [
       { type: "solve", prompt: "什么东西越分享越多？", options: shuffleOptions("知识", ["糖果", "玩具"]) },
     ],
@@ -430,16 +485,77 @@ const hiddenMonsters: SeedMonster[] = [
   {
     id: "minion-star-01", name: "星星小怪", type: "hidden", island: "乘法岛",
     question: "集满 9 颗火花的星空守望者！",
-    correct_meta: "MK-05", target_meta: null, prerequisites: null,
+    correct_meta: null, target_meta: null, prerequisites: null,
     steps: [
       { type: "solve", prompt: "3 排星星，每排 4 颗，一共几颗？", options: shuffleOptions("12", ["7", "9"]) },
     ],
   },
+  {
+    id: "minion-time-01", name: "时间小怪", type: "hidden", island: "时间岛",
+    question: "滴答滴答…集满 12 颗火花，它会告诉你时间的小秘密！",
+    correct_meta: null, target_meta: null, prerequisites: null,
+    steps: [
+      { type: "solve", prompt: "1 小时等于几分钟？", options: shuffleOptions("60 分钟", ["30 分钟", "100 分钟"]) },
+    ],
+  },
+  {
+    id: "minion-rainbow-01", name: "彩虹小怪", type: "hidden", island: "图形认识岛",
+    question: "稀有访客！集满 15 颗火花，来看看它收集的颜色～",
+    correct_meta: null, target_meta: null, prerequisites: null,
+    steps: [
+      { type: "solve", prompt: "彩虹常常在什么时候出现？", options: shuffleOptions("雨后放晴时", ["大晴天", "下雪时"]) },
+    ],
+  },
+  {
+    id: "minion-echo-01", name: "回声小怪", type: "hidden", island: "小数岛",
+    question: "稀有访客！集满 20 颗火花，它会把你的话送回来～",
+    correct_meta: null, target_meta: null, prerequisites: null,
+    steps: [
+      { type: "solve", prompt: "为什么对着山谷大喊会有回声？", options: shuffleOptions("声音碰到山壁弹回来", ["山谷在学你说话", "风把声音吹回来"]) },
+    ],
+  },
+  {
+    id: "minion-bubble-01", name: "泡泡小怪", type: "hidden", island: "百分数岛",
+    question: "稀有访客！集满 26 颗火花，来和它一起吹泡泡～",
+    correct_meta: null, target_meta: null, prerequisites: null,
+    steps: [
+      { type: "solve", prompt: "泡泡为什么是圆圆的？", options: shuffleOptions("表面张力让它最省力地变成球", ["被风吹圆的", "天生就圆"]) },
+    ],
+  },
+  {
+    id: "minion-glow-01", name: "夜光小怪", type: "hidden", island: "负数岛",
+    question: "稀有访客！集满 33 颗火花，它在黑夜里等你～",
+    correct_meta: null, target_meta: null, prerequisites: null,
+    steps: [
+      { type: "solve", prompt: "萤火虫为什么会发光？", options: shuffleOptions("身体里有会发光的化学物质", ["它背着小灯泡", "月光照的"]) },
+    ],
+  },
+  {
+    id: "minion-creation-01", name: "创世小怪", type: "hidden", island: "集合岛",
+    question: "传说级访客！集满 42 颗火花，去见见数字世界的守门人！",
+    correct_meta: null, target_meta: null, prerequisites: null,
+    steps: [
+      { type: "solve", prompt: "如果世界上没有数字，会发生什么？", options: shuffleOptions("数不清、记不住，生活乱成一团", ["没变化", "人会发明更多数字"]) },
+    ],
+  },
+  {
+    id: "minion-dream-01", name: "梦蝶小怪", type: "hidden", island: "面积岛",
+    question: "传说级访客！集满 50 颗火花，它会在你的梦里出现～",
+    correct_meta: null, target_meta: null, prerequisites: null,
+    steps: [
+      { type: "solve", prompt: "一道数学题，只能有一种解法吗？", options: shuffleOptions("不是，解法可以有很多种", ["只能有一种", "看题目心情"]) },
+    ],
+  },
 ];
 
-/** 每只神秘小怪的火花门槛（options 字段存 JSON） */
+/** 每只神秘小怪的火花门槛 / 稀有度 / 形象 / 彩蛋故事（options 字段存 JSON） */
 export function requiredSparksOf(id: string): number {
-  return { "minion-why-01": 3, "minion-riddle-01": 6, "minion-star-01": 9 }[id] ?? 999;
+  return HIDDEN_META[id]?.spark_cost ?? 999;
+}
+
+/** 隐藏小怪注册表（id → 元数据）；未登记返回 null */
+export function hiddenMetaOf(id: string): HiddenMeta | null {
+  return HIDDEN_META[id] ?? null;
 }
 
 /** 已淘汰的元认知（数学广角 8 主题 → 策略；运算定律 → 性质） */
@@ -456,6 +572,8 @@ function seedConfigDefaults() {
     ["diff_b", "2"],              // 难度：精灵等级权重
     ["broadcast", "1"],           // 觉醒广播开关
     ["boss_stuck_attempts", "2"], // 卡关阈值（同 Boss 失败次数）
+    ["mystery_pity", "5"],        // 神秘保底：每提问 N 次必邂逅
+    ["mystery_daily_cap", "3"],   // 每日邂逅上限（防刷）
   ];
   const upsertConfig = db.prepare("INSERT OR IGNORE INTO config (key, value) VALUES (?, ?)");
   for (const [k, v] of defaults) upsertConfig.run(k, v);
@@ -474,7 +592,12 @@ function toDbMonster(m: SeedMonster | GuardSeed): Monster {
     correct_meta: m.correct_meta,
     target_meta: m.target_meta,
     prerequisites: m.prerequisites ? JSON.stringify(m.prerequisites) : null,
-    options: m.type === "hidden" ? JSON.stringify({ required_sparks: requiredSparksOf(m.id) }) : null,
+    options: m.type === "hidden"
+      ? JSON.stringify({
+          required_sparks: requiredSparksOf(m.id),
+          ...(hiddenMetaOf(m.id) ?? {}),
+        })
+      : null,
     steps: JSON.stringify(m.steps),
     required_metas: "required_metas" in m && m.required_metas ? JSON.stringify(m.required_metas) : null,
     required_level: "required_level" in m ? (m.required_level ?? null) : null,

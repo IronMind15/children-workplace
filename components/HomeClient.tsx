@@ -91,12 +91,14 @@ export default function HomeClient({
     monsterId: string;
     name: string;
     question: string;
-    correctMeta: string;
+    correctMeta: string | null;
     steps: SolveStep[];
-    mode: "train" | "guard";
+    mode: "train" | "guard" | "fun";
     propertyName?: string;
     returnIsland: string;
     spirits: { meta_id: string; emoji: string; nickname: string; meta_name: string; level: number; awakened: boolean }[];
+    hiddenEmoji?: string;
+    hiddenColor?: string;
     guardStyleIndex?: number;
     battleBg: string;
   };
@@ -305,6 +307,8 @@ export default function HomeClient({
           guardStyleIndex={battleData.guardStyleIndex}
           bgUrl={battleData.battleBg}
           avatarSrc={avatarSrc}
+          hiddenEmoji={battleData.hiddenEmoji}
+          hiddenColor={battleData.hiddenColor}
           embedded
         />
       </div>

@@ -43,6 +43,7 @@ const FEATURES: FeatureItem[] = [
   { icon: "🧬", title: "精灵图鉴", desc: "29 只精灵的进化路线、已得与未得状态一目了然。", href: "/spirits" },
   { icon: "🏡", title: "知识家园", desc: "岛屿图鉴 + 精灵档案，回顾你的成长足迹。", href: "/journal" },
   { icon: "👨‍👩‍👧", title: "家长端", desc: "学习进度、错题统计、每日总结，大人看得懂。", href: "/parent" },
+  { icon: "🔮", title: "神秘图鉴", desc: "火花召唤 + 保底邂逅神秘小怪，收集稀有度图鉴与彩蛋故事。", href: "/mystery" },
 ];
 
 type PageKey = "showcase" | "data" | "island" | "config" | "guard" | "reset";

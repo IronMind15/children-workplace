@@ -70,6 +70,35 @@ export function getMonstersByIsland(island: string): Monster[] {
   return CONTENT_MONSTERS.filter((m) => m.island === island);
 }
 
+/** 全部隐藏小怪（type=hidden，神秘玩法专用） */
+export function getHiddenMonsters(): Monster[] {
+  return CONTENT_MONSTERS.filter((m) => m.type === "hidden");
+}
+
+export type HiddenMonsterMeta = {
+  required_sparks: number;
+  rarity: "普通" | "稀有" | "传说";
+  emoji: string;
+  color: string;
+  story: string;
+};
+
+/** 隐藏小怪元数据（options JSON 解析）；无则给默认 */
+export function getHiddenMonsterMeta(monster: Monster): HiddenMonsterMeta {
+  try {
+    const o = JSON.parse(monster.options ?? "{}") as Partial<HiddenMonsterMeta>;
+    return {
+      required_sparks: o.required_sparks ?? 999,
+      rarity: o.rarity ?? "普通",
+      emoji: o.emoji ?? "❓",
+      color: o.color ?? "#8a97a5",
+      story: o.story ?? "",
+    };
+  } catch {
+    return { required_sparks: 999, rarity: "普通", emoji: "❓", color: "#8a97a5", story: "" };
+  }
+}
+
 export function getBossesByIsland(island: string): Monster[] {
   return CONTENT_MONSTERS.filter((m) => m.island === island && m.type === "boss");
 }

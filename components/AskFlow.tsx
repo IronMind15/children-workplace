@@ -87,16 +87,37 @@ export default function AskFlow({
   // 窗口内分段：聊天 / 费曼（二合一，不再把费曼单独甩到下方）
   const [tab, setTab] = useState<"chat" | "feynman">("chat");
 
+  // ===== 好奇小问号：定期推送可点按的小问题，引导持续互动 =====
+  const CURIOSITY_POOL = [
+    "AI 为什么需要「休息」？",
+    "为什么做错题并不可怕？",
+    "猜一猜：什么东西越分享越多？",
+    "为什么太阳每天从东边升起？",
+    "多检查一遍答案，为什么更安心？",
+    "问题问得越多，会发生什么好事？",
+    "为什么同一道题可以有好几种解法？",
+    "如果你能问 AI 一个问题，你想问什么？",
+  ];
+  const [curiosity, setCuriosity] = useState(() => CURIOSITY_POOL[Math.floor(Math.random() * CURIOSITY_POOL.length)]);
+  const askCountRef = useRef(0);
+  function rollCuriosity() {
+    const next = CURIOSITY_POOL[Math.floor(Math.random() * CURIOSITY_POOL.length)];
+    setCuriosity(next === curiosity ? CURIOSITY_POOL[(CURIOSITY_POOL.indexOf(next) + 1) % CURIOSITY_POOL.length] : next);
+  }
+
   // 语音输入（Web Speech API，仅浏览器支持时显示麦克风）
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [listening, setListening] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recogRef = useRef<any>(null);
   const voiceTextRef = useRef("");
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const w = window as any;
     if (w.SpeechRecognition || w.webkitSpeechRecognition) setVoiceSupported(true);
   }, []);
   function toggleVoice() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const w = window as any;
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!SR) return;
@@ -110,6 +131,7 @@ export default function AskFlow({
     rec.lang = "zh-CN";
     rec.interimResults = true;
     rec.continuous = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (e: any) => {
       let txt = "";
       for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
@@ -174,6 +196,7 @@ export default function AskFlow({
     setAnswer(r.answer);
     setTotal(r.total);
     if (r.ok) setGainSpark(Date.now());
+    afterAsk(r);
   }
 
   async function askFreeQuestion(prefill?: string) {
@@ -189,6 +212,33 @@ export default function AskFlow({
     setTotal(r.total);
     if (r.ok) {
       setGainSpark(Date.now());
+    }
+    afterAsk(r);
+  }
+
+  /** 提问后：每 2 次换一个好奇小问号；触发保底邂逅则播报 */
+  type AskResult = {
+    ok: boolean;
+    answer: string;
+    total: number;
+    todayCount: number;
+    encounter: { monsterId: string; name: string; island: string; emoji: string; rarity: string; isPity: boolean } | null;
+  };
+  function afterAsk(r: AskResult) {
+    if (!r) return;
+    askCountRef.current += 1;
+    if (askCountRef.current % 2 === 0) rollCuriosity();
+    if (r.encounter) {
+      const e = r.encounter;
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("partner-message", {
+            detail: {
+              text: `🌟 奇迹降临！${e.emoji}「${e.name}」（${e.rarity}）出现在「${e.island}」啦！去岛上找到它，答对就能收进神秘图鉴！`,
+            },
+          })
+        );
+      }
     }
   }
 
@@ -241,32 +291,42 @@ export default function AskFlow({
 
       {tab === "chat" ? (
         <>
-          {/* 分岛费曼 · 岛上小课堂（化身在某岛时聚焦该岛领域，按觉醒/等级分层） */}
-          {currentMeta && (
-            <div className="card mt-2 border-2 border-[#8fd14f] p-2.5">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">🏝️</span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-black text-[#2b3a4a]">岛上小课堂 · {currentMeta.island}</p>
-                  <p className="truncate text-[11px] font-bold text-[#7a8a9a]">领域：{currentMeta.domain} · {currentMeta.name}</p>
-                </div>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-black ${tierBadge[currentMeta.tier].cls}`}>
-                  {tierBadge[currentMeta.tier].label}
-                </span>
+          {/* 好奇小问号：定期推送可点按的小问题 */}
+          <div className="mt-2 rounded-xl border-2 border-[#6ec6ff] bg-[#eaf6ff] px-3 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-black text-[#185fa5]">🎲 好奇小问号</p>
+              <button
+                onClick={rollCuriosity}
+                className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-black text-[#185fa5] shadow-[0_2px_0_rgba(24,95,165,0.2)] transition-transform active:translate-y-0.5"
+              >
+                换一个 🔄
+              </button>
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <p className="min-w-0 flex-1 text-sm font-bold leading-relaxed text-[#2b3a4a]">{curiosity}</p>
+              <button
+                onClick={() => askFreeQuestion(curiosity)}
+                disabled={!!loading}
+                className="shrink-0 rounded-full bg-[#185fa5] px-3 py-1 text-xs font-black text-white shadow-[0_2px_0_rgba(24,95,165,0.35)] transition-transform active:translate-y-0.5 disabled:opacity-50"
+              >
+                问问小狐狸 ✨
+              </button>
+            </div>
+          </div>
+
+          {/* 火花进度条（嵌入式常驻，距下一只神秘小怪） */}
+          {embedded && rewards.length > 0 && nextReward && (
+            <div className="mt-2 flex items-center gap-2 rounded-xl border-2 border-[#fde9d0] bg-white/90 px-2.5 py-1.5">
+              <span className="shrink-0 text-base">✨{total}</span>
+              <div className="h-3 flex-1 overflow-hidden rounded-full border-2 border-[#2b3a4a] bg-[#e8edf2]">
+                <div
+                  className="h-full bg-gradient-to-r from-[#ffd54f] to-[#ffb300] transition-all duration-500"
+                  style={{ width: `${Math.min(100, (total / nextReward.required) * 100)}%` }}
+                />
               </div>
-              <p className="mt-2 text-xs font-bold leading-relaxed text-[#2b3a4a]">{tierGuidance[currentMeta.tier]}</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {islandQuestions.map((q, i) => (
-                  <button
-                    key={i}
-                    onClick={() => askFreeQuestion(q)}
-                    disabled={!aiConfigured || !!loading}
-                    className="rounded-full bg-[#eaf7e4] px-2.5 py-1 text-[11px] font-black text-[#3a8f2f] transition-transform active:scale-95 disabled:opacity-50"
-                  >
-                    {q}
-                  </button>
-                ))}
-              </div>
+              <span className="shrink-0 text-[11px] font-black text-[#7a8a9a]">
+                距【{nextReward.name}】还差 {Math.max(0, nextReward.required - total)} ✨
+              </span>
             </div>
           )}
 
@@ -327,12 +387,12 @@ export default function AskFlow({
                   </div>
                 ) : answer ? (
                   <div className="animate-pop rounded-xl bg-white/5 px-3 py-2">
-                    <p className="text-xs font-bold text-[#ffd54f]">你问：{askedLabel}</p>
-                    <p className="mt-1 break-words whitespace-pre-wrap text-[15px] font-bold leading-relaxed text-white">{answer}</p>
-                    <p className="mt-1.5 text-[11px] font-semibold text-white/60">🦊 想知道更多？继续问我，或者把答案讲给爸爸妈妈听！</p>
+                    <p className="text-sm font-bold text-[#ffd54f]">你问：{askedLabel}</p>
+                    <p className="mt-1 break-words whitespace-pre-wrap text-[17px] font-bold leading-relaxed text-white">{answer}</p>
+                    <p className="mt-1.5 text-xs font-semibold text-white/60">🦊 想知道更多？继续问我，或者把答案讲给爸爸妈妈听！</p>
                   </div>
                 ) : (
-                  <p className="text-[15px] font-bold text-white">
+                  <p className="text-base font-bold text-white">
                     {currentMeta ? (
                       <>
                         🏝️ 小小探险家现在在「{currentMeta.island}」！这一带属于「{currentMeta.domain}」领域，
@@ -348,11 +408,11 @@ export default function AskFlow({
                 )}
                 {partnerMsgs.length > 0 && (
                   <div className="mt-1 space-y-2 border-t border-white/10 pt-2">
-                    {partnerMsgs.map((m) => (
-                      <div key={m.key} className="animate-pop rounded-xl border border-[#f79228]/40 bg-[#fff3e0] px-3 py-2 text-sm font-bold leading-relaxed text-[#7a4a2a]">
-                        {m.text}
-                      </div>
-                    ))}
+                {partnerMsgs.map((m) => (
+                  <div key={m.key} className="animate-pop rounded-xl border border-[#f79228]/40 bg-[#fff3e0] px-3 py-2 text-base font-bold leading-relaxed text-[#7a4a2a]">
+                    {m.text}
+                  </div>
+                ))}
                   </div>
                 )}
               </div>
@@ -397,11 +457,11 @@ export default function AskFlow({
                     key={q.id}
                     onClick={() => ask(q)}
                     disabled={!!loading}
-                    className="btn btn-white flex items-center gap-2 p-2.5 text-left disabled:opacity-60"
+                    className="btn btn-white flex items-center gap-2 p-3 text-left disabled:opacity-60"
                   >
                     <span className="text-2xl">{q.emoji}</span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-black text-[#2b3a4a]">{q.label}</span>
+                      <span className="block text-base font-black text-[#2b3a4a]">{q.label}</span>
                       <span className="mt-0.5 flex items-center gap-1.5">
                         <span
                           className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
@@ -501,9 +561,37 @@ export default function AskFlow({
 
       </>) : null}
 
-      {/* 费曼小课堂标签：与聊天同一窗口，点顶部「📚 费曼小课堂」切换 */}
+      {/* 费曼小课堂标签：合并「岛上小课堂 + 费曼学习法」，字号大、可滚动、狐狸头像统一 */}
       {feynmanMetas.length > 0 && tab === "feynman" && (
         <div className={embedded ? "mt-2 flex min-h-0 flex-1 flex-col overflow-y-auto" : "mt-3"}>
+          {/* 岛上小课堂（化身在某岛时聚焦该岛领域，按觉醒/等级分层） */}
+          {currentMeta && (
+            <div className="mb-2 rounded-2xl border-2 border-[#8fd14f] bg-white p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🏝️</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-base font-black text-[#2b3a4a]">岛上小课堂 · {currentMeta.island}</p>
+                  <p className="truncate text-xs font-bold text-[#7a8a9a]">领域：{currentMeta.domain} · {currentMeta.name}</p>
+                </div>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-black ${tierBadge[currentMeta.tier].cls}`}>
+                  {tierBadge[currentMeta.tier].label}
+                </span>
+              </div>
+              <p className="mt-2 text-sm font-bold leading-relaxed text-[#2b3a4a]">{tierGuidance[currentMeta.tier]}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {islandQuestions.map((q, i) => (
+                  <button
+                    key={i}
+                    onClick={() => askFreeQuestion(q)}
+                    disabled={!aiConfigured || !!loading}
+                    className="rounded-full bg-[#eaf7e4] px-3 py-1.5 text-sm font-black text-[#3a8f2f] transition-transform active:scale-95 disabled:opacity-50"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <FeynmanChat
             metas={feynmanMetas}
             defaultMetaId={currentMeta?.metaId}
