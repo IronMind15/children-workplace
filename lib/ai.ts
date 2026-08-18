@@ -71,7 +71,9 @@ export async function askAi(question: string, kidName: string): Promise<AskResul
       },
       body: JSON.stringify({
         model: cfg.model,
-        max_tokens: 400,
+        // deepseek-v4-flash 是推理模型：reasoning 会先消耗配额，
+        // max_tokens 太小会导致 content 为空被误判为失败，故加大配额
+        max_tokens: 1000,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: `（小朋友叫${kidName}）问题：${question}` },
@@ -80,8 +82,12 @@ export async function askAi(question: string, kidName: string): Promise<AskResul
       signal: AbortSignal.timeout(20000),
     });
     if (!res.ok) return { ok: false, error: "http" };
-    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const text = data.choices?.[0]?.message?.content?.trim();
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string; reasoning_content?: string } }[];
+    };
+    const text = (
+      data.choices?.[0]?.message?.content ?? data.choices?.[0]?.message?.reasoning_content ?? ""
+    ).trim();
     return text ? { ok: true, text } : { ok: false, error: "http" };
   } catch (e) {
     if (e instanceof DOMException && e.name === "TimeoutError") return { ok: false, error: "timeout" };
@@ -116,7 +122,7 @@ export async function explainWrong(
       },
       body: JSON.stringify({
         model: cfg.model,
-        max_tokens: 120,
+        max_tokens: 300,
         messages: [
           { role: "system", content: EXPLAIN_PROMPT },
           {
@@ -128,8 +134,12 @@ export async function explainWrong(
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) return null;
-    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const text = data.choices?.[0]?.message?.content?.trim();
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string; reasoning_content?: string } }[];
+    };
+    const text = (
+      data.choices?.[0]?.message?.content ?? data.choices?.[0]?.message?.reasoning_content ?? ""
+    ).trim();
     return text || null;
   } catch {
     return null;
@@ -171,12 +181,16 @@ export async function feynmanChat(
     const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
-      body: JSON.stringify({ model: cfg.model, max_tokens: 300, messages }),
+      body: JSON.stringify({ model: cfg.model, max_tokens: 800, messages }),
       signal: AbortSignal.timeout(20000),
     });
     if (!res.ok) return null;
-    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const text = data.choices?.[0]?.message?.content?.trim();
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string; reasoning_content?: string } }[];
+    };
+    const text = (
+      data.choices?.[0]?.message?.content ?? data.choices?.[0]?.message?.reasoning_content ?? ""
+    ).trim();
     return text || null;
   } catch {
     return null;

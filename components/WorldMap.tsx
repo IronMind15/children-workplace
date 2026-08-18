@@ -403,7 +403,6 @@ export default function WorldMap({
                     onMouseDown={(e) => e.stopPropagation()}
                     onTouchStart={(e) => e.stopPropagation()}
                     onClick={() => {
-                      if (dragRef.current.moved) return;
                       enter(n.island);
                     }}
                     className="group absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center"

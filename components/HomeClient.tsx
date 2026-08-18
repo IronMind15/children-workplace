@@ -12,6 +12,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import WorldMap from "@/components/WorldMap";
+import WorldArchipelago from "@/components/WorldArchipelago";
 import IslandBattleMap from "@/components/IslandBattleMap";
 import BattleFlow from "@/components/BattleFlow";
 import BossFlow from "@/components/BossFlow";
@@ -115,6 +116,20 @@ export default function HomeClient({
   const [lockedHint, setLockedHint] = useState<string | null>(null);
   const [tutorialDone, setTutorialDone] = useState(false);
   const [tutorialDismissed, setTutorialDismissed] = useState(false);
+  // 主界面地图视图：群岛（原有分页）/ 大地图（v1.3.0 统一缩放图）共存切换
+  const [mapMode, setMapMode] = useState<"archipelago" | "big">("archipelago");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("kb:mapMode");
+      if (saved === "archipelago" || saved === "big") setMapMode(saved);
+    } catch {}
+  }, []);
+  function switchMapMode(m: "archipelago" | "big") {
+    setMapMode(m);
+    try {
+      localStorage.setItem("kb:mapMode", m);
+    } catch {}
+  }
 
   // 新手引导：开启后返回主界面自动进入；或手动 ?tutorial=1 重看
   const forceTutorial = searchParams.get("tutorial") === "1";
@@ -155,15 +170,52 @@ export default function HomeClient({
   let leftContent: React.ReactNode;
   if (view.kind === "map") {
     leftContent = (
-      <WorldMap
-        nodes={worldNodes}
-        edges={worldEdges}
-        avatarSrc={avatarSrc}
-        initialIsland={initialIsland}
-        pageLabels={pageLabels}
-        onPickIsland={(island) => goTo({ kind: "island", island })}
-        onLocked={locked}
-      />
+      <div className="flex h-full flex-col">
+        {/* 群岛 / 大地图 共存切换（默认群岛，恢复原有分页布局） */}
+        <div className="mb-2 flex shrink-0 items-center gap-2">
+          <div className="inline-flex rounded-xl border-2 border-[#2b3a4a] bg-white p-0.5 text-sm font-black shadow-card">
+            <button
+              onClick={() => switchMapMode("archipelago")}
+              className={`rounded-lg px-3 py-1.5 transition-colors ${
+                mapMode === "archipelago" ? "bg-[#f79228] text-white" : "text-[#2b3a4a] hover:bg-[#fde9d0]"
+              }`}
+            >
+              🏝️ 群岛
+            </button>
+            <button
+              onClick={() => switchMapMode("big")}
+              className={`rounded-lg px-3 py-1.5 transition-colors ${
+                mapMode === "big" ? "bg-[#f79228] text-white" : "text-[#2b3a4a] hover:bg-[#fde9d0]"
+              }`}
+            >
+              🗺️ 大地图
+            </button>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1">
+          {mapMode === "archipelago" ? (
+            <WorldArchipelago
+              nodes={worldNodes}
+              edges={worldEdges}
+              avatarSrc={avatarSrc}
+              initialIsland={initialIsland}
+              pageLabels={pageLabels}
+              onPickIsland={(island) => goTo({ kind: "island", island })}
+              onLocked={locked}
+            />
+          ) : (
+            <WorldMap
+              nodes={worldNodes}
+              edges={worldEdges}
+              avatarSrc={avatarSrc}
+              initialIsland={initialIsland}
+              pageLabels={pageLabels}
+              onPickIsland={(island) => goTo({ kind: "island", island })}
+              onLocked={locked}
+            />
+          )}
+        </div>
+      </div>
     );
   } else if (view.kind === "island") {
     const d = islandData[view.island] ?? { minions: [], guards: [], hiddenMonsters: [], bosses: [] };
