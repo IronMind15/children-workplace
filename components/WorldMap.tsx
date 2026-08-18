@@ -282,7 +282,12 @@ export default function WorldMap({
       onLocked?.(island);
       return;
     }
-    await travelToIsland(island);
+    // 落库失败（server action ID 失配/网络抖动）不阻断登岛，保证点击必有反馈
+    try {
+      await travelToIsland(island);
+    } catch (e) {
+      console.error("travelToIsland 失败（不阻断登岛）:", e);
+    }
     onPickIsland(island);
   }
 

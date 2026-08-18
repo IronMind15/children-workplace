@@ -6,12 +6,26 @@ import path from "node:path";
 const dataDir = path.join(process.cwd(), "data");
 fs.mkdirSync(dataDir, { recursive: true });
 
-export const db = new DatabaseSync(path.join(dataDir, "app.db"));
+// 构建阶段（next build 会用 15 个 worker 并发加载本模块）：只读打开 + 跳过建表，
+// 避免多进程并发执行 CREATE TABLE（写事务）在 DELETE 模式下竞争，
+// 留下 0 字节 app.db-journal 导致运行时所有写库报 readonly(errcode 8)。
+const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+
+export const db = new DatabaseSync(path.join(dataDir, "app_data.db"), {
+  readOnly: isBuildPhase,
+});
 
 // 并发场景（如 next build 多 worker）下，锁等待重试而不是立即报 database is locked
 db.exec("PRAGMA busy_timeout = 5000;");
 
-db.exec(`
+if (!isBuildPhase) {
+  // 自愈：清理上次异常退出残留的 0 字节 journal（否则 SQLite 写事务报 readonly）
+  try {
+    fs.rmSync(path.join(dataDir, "app_data.db-journal"), { force: true });
+  } catch {
+    /* 忽略 */
+  }
+  db.exec(`
   PRAGMA journal_mode = DELETE;
 
   CREATE TABLE IF NOT EXISTS meta_cognition (
@@ -151,6 +165,7 @@ db.exec(`
     resolved INTEGER NOT NULL DEFAULT 0
   );
 `);
+}
 
 export default db;
 

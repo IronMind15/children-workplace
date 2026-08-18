@@ -61,8 +61,13 @@ export default function WorldArchipelago({
       onLocked?.(island);
       return;
     }
-    // 先落库（server action），再切视图，避免两者竞态互相覆盖
-    await travelToIsland(island);
+    // 先落库（server action），再切视图；落库失败（如 server action ID 失配/网络抖动）
+    // 不能阻断登岛——否则用户会陷入"点击没反应"
+    try {
+      await travelToIsland(island);
+    } catch (e) {
+      console.error("travelToIsland 失败（不阻断登岛）:", e);
+    }
     onPickIsland(island);
   }
 

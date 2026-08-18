@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>知识岛毛绒按钮与自适应对话框</title>
+  <style>
+    :root {
+      font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      color: #19324a;
+      background: #f7f1df;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: clamp(20px, 4vw, 56px);
+      background:
+        radial-gradient(circle at 20% 10%, #fffdf5 0 16%, transparent 42%),
+        linear-gradient(160deg, #fbf7ea, #e9f5ef);
+    }
+    main { width: min(1180px, 100%); margin: 0 auto; }
+    h1 { margin: 0 0 8px; font-family: "Smiley Sans", "得意黑", "Noto Sans SC", sans-serif; }
+    .lead { margin: 0 0 28px; color: #5b6b78; }
+    .panel {
+      margin: 22px 0;
+      padding: 24px;
+      border: 2px solid #dfd2ae;
+      border-radius: 28px;
+      background: rgb(255 253 245 / 84%);
+      box-shadow: 0 12px 30px rgb(45 62 65 / 10%);
+    }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; margin-bottom: 28px; }
+    label { display: grid; gap: 6px; color: #56636f; font-size: 14px; }
+    select, input, button {
+      min-height: 42px;
+      border: 2px solid #b9c9ca;
+      border-radius: 14px;
+      padding: 8px 12px;
+      background: white;
+      font: inherit;
+    }
+    button { cursor: pointer; color: white; border-color: #123557; background: #28648b; }
+    .stage {
+      min-height: 300px;
+      padding: 30px;
+      border-radius: 24px;
+      background: linear-gradient(#a9e4ec, #75d0df);
+      overflow: hidden;
+    }
+    .examples { display: grid; gap: 46px; align-items: start; }
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 16px;
+    }
+    .icon-card { margin: 0; text-align: center; color: #57636c; font-size: 14px; }
+    .icon-card img { display: block; width: 100%; border-radius: 22px; }
+    code { padding: 2px 6px; border-radius: 6px; background: #e8efe9; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>毛绒按钮与自适应对话框</h1>
+    <p class="lead">直接点击对话框输入文字；短句横向伸展，达到最大宽度后自动换行并增高。</p>
+
+    <section class="panel">
+      <div class="toolbar">
+        <label>字号
+          <input id="fontSize" type="range" min="16" max="42" value="26">
+        </label>
+        <label>最大宽度
+          <input id="maxWidth" type="range" min="260" max="760" value="560">
+        </label>
+        <label>气泡尾巴
+          <select id="tail">
+            <option value="left">左侧</option>
+            <option value="center">中间</option>
+            <option value="right">右侧</option>
+            <option value="none">无</option>
+          </select>
+        </label>
+        <label>颜色
+          <select id="tone">
+            <option value="cream">奶油</option>
+            <option value="blue">海蓝</option>
+            <option value="green">草绿</option>
+            <option value="pink">珊瑚粉</option>
+            <option value="purple">探索紫</option>
+          </select>
+        </label>
+        <button id="clear" type="button">清空内容</button>
+      </div>
+      <div class="stage">
+        <div class="examples">
+          <plush-dialog id="liveDialog" placeholder="点击这里输入内容" min-width="180" max-width="560" font-size="26px" tail="left"></plush-dialog>
+          <plush-dialog value="" placeholder="我会随文字变长" tone="green" tail="center" max-width="440"></plush-dialog>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>图形按钮</h2>
+      <div class="icon-grid" id="iconGrid"></div>
+    </section>
+
+    <section class="panel">
+      <h2>嵌入方式</h2>
+      <p>引入 <code>plush-dialog.js</code> 后，直接使用：</p>
+      <pre><code>&lt;plush-dialog
+  placeholder="输入对话"
+  min-width="180"
+  max-width="560"
+  font-size="26px"
+  tone="cream"
+  tail="left"&gt;
+&lt;/plush-dialog&gt;</code></pre>
+    </section>
+  </main>
+
+  <script src="./plush-dialog.js"></script>
+  <script>
+    const dialog = document.querySelector("#liveDialog");
+    const fontSize = document.querySelector("#fontSize");
+    const maxWidth = document.querySelector("#maxWidth");
+    const tail = document.querySelector("#tail");
+    const tone = document.querySelector("#tone");
+
+    fontSize.addEventListener("input", () => dialog.setAttribute("font-size", `${fontSize.value}px`));
+    maxWidth.addEventListener("input", () => dialog.setAttribute("max-width", maxWidth.value));
+    tail.addEventListener("change", () => dialog.setAttribute("tail", tail.value));
+    tone.addEventListener("change", () => dialog.setAttribute("tone", tone.value));
+    document.querySelector("#clear").addEventListener("click", () => dialog.clear());
+
+    const icons = [
+      "01-家长端.png", "02-新手引导.png", "03-小课堂.png", "04-我的资料.png", "05-加号.png",
+      "06-减号.png", "07-测试.png", "08-设置.png", "09-提问.png", "10-空白按钮.png"
+    ];
+    const grid = document.querySelector("#iconGrid");
+    icons.forEach((file) => {
+      const figure = document.createElement("figure");
+      figure.className = "icon-card";
+      const img = document.createElement("img");
+      img.src = `./${file}`;
+      img.alt = file.replace(/^\d+-|\.png$/g, "");
+      const caption = document.createElement("figcaption");
+      caption.textContent = img.alt;
+      figure.append(img, caption);
+      grid.append(figure);
+    });
+  </script>
+</body>
+</html>

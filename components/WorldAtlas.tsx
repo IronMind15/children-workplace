@@ -32,7 +32,8 @@ export default function WorldAtlas({
   const router = useRouter();
 
   function pick(island: string) {
-    travelToIsland(island);
+    // 全览点岛 = 跳回该岛（更新当前岛标记）；失败不阻断返回
+    travelToIsland(island).catch((e) => console.error("travelToIsland 失败（全览）:", e));
     onClose();
     router.refresh();
   }
