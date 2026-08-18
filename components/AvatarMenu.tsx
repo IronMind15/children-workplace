@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { getUiIcon } from "@/lib/uiIcons";
@@ -30,6 +29,7 @@ const MENU_ITEMS = [
   { href: "/mistakes", label: "错题集", iconSrc: getUiIcon("mistakeBook"), desc: "收集错题、复盘弱点" },
   { href: "/parent", label: "家长端", iconSrc: getUiIcon("parent"), desc: "学习进度、错题、每日总结" },
   { href: "/profile", label: "我的资料", iconSrc: getUiIcon("profile"), desc: "头衔、火花、净化进度" },
+  { href: "/brain", label: "设置", iconEmoji: "⚙️", desc: "AI 伙伴连接、大脑编辑器" },
   { href: "/?tutorial=1", label: "新手引导", iconSrc: getUiIcon("tutorial"), desc: "重看玩法讲解" },
 ];
 
@@ -100,7 +100,13 @@ export default function AvatarMenu({ avatarSrc, rank }: { avatarSrc: string; ran
                   active ? "bg-[#fff3c4]" : ""
                 }`}
               >
-                <img src={it.iconSrc} alt="" className="h-9 w-9 object-contain" />
+                {it.iconSrc ? (
+                  <img src={it.iconSrc} alt="" className="h-9 w-9 object-contain" />
+                ) : (
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#fde9d0] text-2xl">
+                    {it.iconEmoji}
+                  </span>
+                )}
                 <span className="flex-1">
                   <span className="block text-base font-black text-[#2b3a4a]">
                     {it.label}

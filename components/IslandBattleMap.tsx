@@ -87,6 +87,7 @@ function WanderingMonster({ monster, index, mystery = false, onPick }: { monster
     return (
       <button
         type="button"
+        data-tour="minion"
         onClick={() => onPick(monster.id)}
         className="group absolute z-10 flex flex-col items-center"
         style={{
@@ -104,6 +105,7 @@ function WanderingMonster({ monster, index, mystery = false, onPick }: { monster
   return (
     <Link
       href={`/battle/${monster.id}`}
+      data-tour="minion"
       className="group absolute z-10 flex flex-col items-center"
       style={{
         left: `${pos.x}%`,

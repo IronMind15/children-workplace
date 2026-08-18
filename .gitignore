@@ -70,3 +70,6 @@ docs/奥数题目*
 # 外部打包/测试工具产物（源码归档 zip、etest 测试目录，不入库）
 /.etest2/
 知识岛-源代码-*.zip
+
+# 本地服务日志（不入库）
+scripts/_server_*.log

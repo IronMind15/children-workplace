@@ -178,6 +178,7 @@ export default function AskPanel({
     return (
       <button
         type="button"
+        data-tour="ask"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -196,7 +197,7 @@ export default function AskPanel({
 
   // === 展开态 ===
   return (
-    <div className="ask-panel-shell relative flex h-full flex-col">
+    <div className="ask-panel-shell relative flex h-full flex-col" data-tour="ask">
       {/* 浮标态的「最小化」按钮：仅在浮标位置为空时显示（默认右下角） */}
       <button
         type="button"

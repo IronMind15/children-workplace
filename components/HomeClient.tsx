@@ -17,7 +17,7 @@ import IslandBattleMap from "@/components/IslandBattleMap";
 import BattleFlow from "@/components/BattleFlow";
 import BossFlow from "@/components/BossFlow";
 import AskPanel from "@/components/AskPanel";
-import TutorialOverlay from "@/components/TutorialOverlay";
+import TutorialOverlay, { readTourStep } from "@/components/TutorialOverlay";
 import UiButton from "@/components/UiButton";
 import FinalBossRegion from "@/components/FinalBossRegion";
 import { EVIL_ISLAND_META_ID, EVIL_ISLAND_NAME } from "@/lib/worldMapData";
@@ -162,13 +162,25 @@ export default function HomeClient({
 
   // 新手引导：开启后返回主界面自动进入；或手动 ?tutorial=1 重看
   const forceTutorial = searchParams.get("tutorial") === "1";
+  // 全岛总览深链：?atlas=1 → 群岛视图直接打开「全览」进化总览
+  const forceAtlas = searchParams.get("atlas") === "1";
+  // 地图标记校准模式：?calibrate=1 → 标记可拖动、保存坐标
+  const calibrateMap = searchParams.get("calibrate") === "1";
   useEffect(() => {
     try {
       setTutorialDone(localStorage.getItem("tutorial:done") === "1");
     } catch {}
   }, []);
-  const tutorialActive = (brain.tutorial_enabled && !tutorialDone) || forceTutorial;
-  const showTutorial = tutorialActive && view.kind === "map" && !tutorialDismissed;
+  // 引导进行中：只要 sessionStorage 里有未完成的步骤，跨视图（岛/战斗）也保持显示
+  const [tourStep, setTourStep] = useState<number>(0);
+  useEffect(() => {
+    setTourStep(readTourStep());
+  }, []);
+  const tutorialActive = (brain.tutorial_enabled && !tutorialDone) || forceTutorial || tourStep > 0;
+  const tourStage: "map" | "island" | "battle" | "other" =
+    view.kind === "map" ? "map" : view.kind === "island" ? "island" : view.kind === "battle" ? "battle" : "other";
+  const showTutorial =
+    tutorialActive && !tutorialDismissed && (tourStage === "map" || tourStage === "island" || tourStage === "battle");
   function closeTutorial() {
     setTutorialDismissed(true);
     if (brain.tutorial_enabled) {
@@ -191,20 +203,7 @@ export default function HomeClient({
     else router.replace("/?finalboss=1");
   }
 
-  // 教程引导：取第一只可打小怪 / 第一个 Boss，供「新手教程」一键去体验
-  const tutMinion = useMemo(() => {
-    for (const d of Object.values(islandData)) if (d.minions[0]) return d.minions[0].id;
-    return undefined;
-  }, [islandData]);
-  const tutBoss = useMemo(() => {
-    for (const d of Object.values(islandData)) if (d.bosses[0]) return d.bosses[0].id;
-    return undefined;
-  }, [islandData]);
-  const tutBattle = (id: string) => goTo({ kind: "battle", monsterId: id });
-  const tutBossGo = (id: string) => goTo({ kind: "boss", monsterId: id });
-  const tutMistakes = () => router.push("/mistakes");
-  const tutAsk = () => setAskMinimized(false);
-
+  // 教程引导：不再传送，改由高亮引导真实操作（见 TutorialOverlay）
   function locked(island: string) {
     setLockedHint(island);
     setTimeout(() => setLockedHint(null), 2200);
@@ -246,6 +245,8 @@ export default function HomeClient({
               pageLabels={pageLabels}
               onPickIsland={pickIsland}
               onLocked={locked}
+              defaultAtlasOpen={forceAtlas}
+              calibrate={calibrateMap}
             />
           ) : (
             <WorldMap
@@ -256,6 +257,7 @@ export default function HomeClient({
               pageLabels={pageLabels}
               onPickIsland={pickIsland}
               onLocked={locked}
+              calibrate={calibrateMap}
             />
           )}
         </div>
@@ -266,7 +268,7 @@ export default function HomeClient({
     leftContent = (
       <div className="flex h-full flex-col">
         <div className="mb-2 flex items-center gap-2">
-          <UiButton onClick={() => goTo({ kind: "map" })} icon="arrowLeft">
+          <UiButton onClick={() => goTo({ kind: "map" })} icon="arrowLeft" data-tour="back-map">
             返回群岛
           </UiButton>
           <span className="text-lg font-black text-[#2b3a4a]">{view.island}</span>
@@ -393,17 +395,14 @@ export default function HomeClient({
         />
       )}
 
-      {/* 新手引导浮层：返回主界面且已开启时自动进入；设置里可重看（reset） */}
+      {/* 新手引导浮层：高亮圈出真实按钮，逐步带操作；跨视图（地图/岛/战斗）自动接续 */}
       {showTutorial && (
         <TutorialOverlay
           avatarSrc={avatarSrc}
-          firstMinion={tutMinion}
-          firstBoss={tutBoss}
-          onBattle={tutBattle}
-          onBoss={tutBossGo}
-          onMistakes={tutMistakes}
-          onOpenAsk={tutAsk}
+          initialIsland={initialIsland}
+          stage={tourStage}
           onClose={closeTutorial}
+          onStepChange={setTourStep}
           reset={forceTutorial}
         />
       )}

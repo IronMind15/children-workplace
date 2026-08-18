@@ -17,25 +17,32 @@ import {
   spawnGuardsForTest,
   clearAllAwakenings,
   getGuardOverview,
+  getShowcaseLinks,
 } from "@/lib/actions";
 
 type FeatureItem = {
   icon: string;
   title: string;
   desc: string;
+  /** 直达体验入口（静态链接）；动态链接用 hrefKey 从 getShowcaseLinks 取值 */
+  href?: string;
+  hrefKey?: "battle" | "guard" | "boss";
 };
 
 const FEATURES: FeatureItem[] = [
-  { icon: "🏝️", title: "群岛 / 大地图", desc: "双视图探索 29 座知识岛，按 7 大主题分页，解锁进化链。" },
-  { icon: "🦊", title: "小狐狸 AI 助手", desc: "不懂就问，随时讲解题意、总结方法，支持错题本综合解析。" },
-  { icon: "👾", title: "驯服小怪", desc: "选择合适元认知，答对题目即可驯服精灵、获得火花。" },
-  { icon: "🐲", title: "净化 Boss", desc: "用已驯服的精灵挑战 Boss，答对即可净化并解锁新本领。" },
-  { icon: "✨", title: "精灵觉醒", desc: "精灵等级提升后触发性质觉醒，点亮 30 条数学性质。" },
-  { icon: "📒", title: "错题本", desc: "同一题只记一次，按知识点分组统计错次，小狐狸给练习建议。" },
-  { icon: "🧭", title: "新手教程", desc: "小狐狸 + 小小探险家对话式引导，首次使用自动教学，设置可重看。" },
-  { icon: "🏰", title: "终章决战", desc: "挑战暗影终焉岛，体验新型 HTML 小游戏战斗。" },
-  { icon: "🗺️", title: "全岛总览", desc: "查看 29 岛进化关系、解锁进度，一键跳回指定岛屿。" },
-  { icon: "🎖️", title: "探险家等级", desc: "净化数 + 火花数双轨晋升，从海岛新丁成长为知识岛屿主。" },
+  { icon: "🏝️", title: "群岛 / 大地图", desc: "双视图探索 29 座知识岛，按 7 大主题分页，解锁进化链。", href: "/" },
+  { icon: "🦊", title: "小狐狸 AI 助手", desc: "不懂就问，随时讲解题意、总结方法，支持错题本综合解析。", href: "/ask" },
+  { icon: "👾", title: "驯服小怪", desc: "选择合适元认知，答对题目即可驯服精灵、获得火花。", hrefKey: "battle" },
+  { icon: "🐲", title: "净化 Boss", desc: "用已驯服的精灵挑战 Boss，答对即可净化并解锁新本领。", hrefKey: "boss" },
+  { icon: "✨", title: "精灵觉醒", desc: "精灵等级提升后触发性质觉醒，点亮 30 条数学性质。", hrefKey: "guard" },
+  { icon: "📒", title: "错题本", desc: "同一题只记一次，按知识点分组统计错次，小狐狸给练习建议。", href: "/mistakes" },
+  { icon: "🧭", title: "新手教程", desc: "小狐狸 + 小小探险家对话式引导，首次使用自动教学，设置可重看。", href: "/?tutorial=1" },
+  { icon: "🏰", title: "终章决战", desc: "挑战暗影终焉岛，体验新型 HTML 小游戏战斗。", href: "/?finalboss=1" },
+  { icon: "🗺️", title: "全岛总览", desc: "查看 29 岛进化关系、解锁进度，一键跳回指定岛屿。", href: "/?atlas=1" },
+  { icon: "🎖️", title: "探险家等级", desc: "净化数 + 火花数双轨晋升，从海岛新丁成长为知识岛屿主。", href: "/profile" },
+  { icon: "🧬", title: "精灵图鉴", desc: "29 只精灵的进化路线、已得与未得状态一目了然。", href: "/spirits" },
+  { icon: "🏡", title: "知识家园", desc: "岛屿图鉴 + 精灵档案，回顾你的成长足迹。", href: "/journal" },
+  { icon: "👨‍👩‍👧", title: "家长端", desc: "学习进度、错题统计、每日总结，大人看得懂。", href: "/parent" },
 ];
 
 type PageKey = "showcase" | "data" | "island" | "config" | "guard" | "reset";
@@ -66,12 +73,7 @@ export default function TestTools() {
   const [selIsland, setSelIsland] = useState("");
   const [config, setConfig] = useState<Record<string, string>>({});
   const [guards, setGuards] = useState<{ id: string; name: string; island: string; required_metas: string[]; required_level: number; visible: boolean }[]>([]);
-
-  useEffect(() => {
-    if (!open) return;
-    getDifficulty().then(setDiff);
-    load();
-  }, [open]);
+  const [links, setLinks] = useState<{ battle: string; guard: string; boss: string }>({ battle: "/", guard: "/", boss: "/" });
 
   async function load() {
     const [is, cfg, gds] = await Promise.all([getIslandsAction(), getConfigAction(), getGuardOverview()]);
@@ -80,6 +82,13 @@ export default function TestTools() {
     setConfig(cfg);
     setGuards(gds);
   }
+
+  useEffect(() => {
+    if (!open) return;
+    getDifficulty().then(setDiff);
+    getShowcaseLinks().then(setLinks);
+    load();
+  }, [open]);
 
   function spawnGuards(island?: string) {
     startTransition(async () => {
@@ -232,11 +241,11 @@ export default function TestTools() {
         >
           <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-3xl border-4 border-[#2b3a4a] bg-[#fffdf5] shadow-2xl">
             {/* 头部 */}
-            <div className="flex items-center justify-between border-b-2 border-[#fde9d0] px-5 py-3">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2 border-b-2 border-[#fde9d0] px-5 py-3">
+              <div className="flex min-w-0 items-center gap-2">
                 <span className="text-2xl">🧪</span>
-                <span className="text-xl font-black text-[#2b3a4a]">测试工具</span>
-                <span className="rounded-full bg-[#fde9d0] px-2 py-0.5 text-xs font-black text-[#a66d00]">DEMO</span>
+                <span className="truncate text-xl font-black text-[#2b3a4a]">测试工具</span>
+                <span className="shrink-0 rounded-full bg-[#fde9d0] px-2 py-0.5 text-xs font-black text-[#a66d00]">DEMO</span>
               </div>
               <button
                 onClick={() => setOpen(false)}
@@ -268,7 +277,7 @@ export default function TestTools() {
             {/* 内容区 */}
             <div className="min-h-[280px] flex-1 overflow-y-auto p-5">
               {msg && (
-                <div className="mb-4 rounded-lg border-2 border-[#2b3a4a] bg-[#22303f] px-3 py-2 text-center text-sm font-bold text-white shadow-md animate-pop">
+                <div className="mb-4 break-words rounded-lg border-2 border-[#2b3a4a] bg-[#22303f] px-3 py-2 text-center text-sm font-bold text-white shadow-md animate-pop">
                   {msg}
                 </div>
               )}
@@ -276,22 +285,30 @@ export default function TestTools() {
               {page === "showcase" && (
                 <div>
                   <h3 className="mb-1 text-lg font-black text-[#2b3a4a]">✨ 知识岛主要功能</h3>
-                  <p className="mb-4 text-sm text-[#7a8a9a]">下面是 App 当前已经落地的核心玩法。</p>
+                  <p className="mb-4 text-sm text-[#7a8a9a]">点击卡片即可直接进入对应界面体验（先解锁/重置后再体验更完整）。</p>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {FEATURES.map((f) => (
-                      <div
-                        key={f.title}
-                        className="flex gap-3 rounded-xl border-2 border-[#d7dee4] bg-white p-3 shadow-sm transition-transform hover:-translate-y-0.5 hover:shadow-md"
-                      >
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fde9d0] text-xl">
-                          {f.icon}
-                        </span>
-                        <div>
-                          <p className="font-black text-[#2b3a4a]">{f.title}</p>
-                          <p className="text-xs leading-relaxed text-[#5f6b78]">{f.desc}</p>
-                        </div>
-                      </div>
-                    ))}
+                    {FEATURES.map((f) => {
+                      const href = f.href ?? (f.hrefKey ? links[f.hrefKey] : null) ?? "/";
+                      return (
+                        <a
+                          key={f.title}
+                          href={href}
+                          onClick={() => setOpen(false)}
+                          className="group flex gap-3 rounded-xl border-2 border-[#d7dee4] bg-white p-3 shadow-sm transition-transform hover:-translate-y-0.5 hover:border-[#f79228] hover:shadow-md"
+                        >
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fde9d0] text-xl">
+                            {f.icon}
+                          </span>
+                          <div className="min-w-0 break-words">
+                            <p className="font-black text-[#2b3a4a]">{f.title}</p>
+                            <p className="text-xs leading-relaxed text-[#5f6b78]">{f.desc}</p>
+                            <p className="mt-1 inline-block rounded-full bg-[#fde9d0] px-2 py-0.5 text-[10px] font-black text-[#a66d00] transition-colors group-hover:bg-[#f79228] group-hover:text-white">
+                              🚀 去体验 →
+                            </p>
+                          </div>
+                        </a>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -302,14 +319,22 @@ export default function TestTools() {
                   <div className="flex flex-wrap gap-2">
                     <button onClick={refresh} className="btn btn-white px-4 py-2 text-sm shadow-md">🔄 刷新数据</button>
                     <button onClick={clear} disabled={pending} className="btn btn-white px-4 py-2 text-sm shadow-md disabled:opacity-60">♻️ 清空火花</button>
+                    <button
+                      onClick={() => router.push("/?calibrate=1")}
+                      className="btn px-4 py-2 text-sm text-white shadow-md"
+                      style={{ background: "#e2582e" }}
+                      title="地图标记可拖动校准，保存后坐标写入 public/calibration.json"
+                    >
+                      🎯 校准地图坐标
+                    </button>
                   </div>
-                  <div className="flex items-center gap-2 rounded-xl border-2 border-[#d7dee4] bg-white p-3">
-                    <button onClick={() => bump(-1)} disabled={pending} className="btn btn-white h-10 w-10 px-0 py-0 text-lg shadow disabled:opacity-60">➖</button>
+                  <div className="flex flex-wrap items-center gap-2 rounded-xl border-2 border-[#d7dee4] bg-white p-3">
+                    <button onClick={() => bump(-1)} disabled={pending} className="btn btn-white h-10 w-10 shrink-0 px-0 py-0 text-lg shadow disabled:opacity-60">➖</button>
                     <span className="min-w-[80px] rounded-lg border-2 border-[#2b3a4a] bg-[#22303f] px-3 py-2 text-center font-black text-white">
                       难度 Lv.{diff ?? "?"}
                     </span>
-                    <button onClick={() => bump(1)} disabled={pending} className="btn btn-white h-10 w-10 px-0 py-0 text-lg shadow disabled:opacity-60">➕</button>
-                    <span className="ml-2 text-xs text-[#7a8a9a]">已解锁岛数 + 手动偏置</span>
+                    <button onClick={() => bump(1)} disabled={pending} className="btn btn-white h-10 w-10 shrink-0 px-0 py-0 text-lg shadow disabled:opacity-60">➕</button>
+                    <span className="min-w-0 break-words text-xs text-[#7a8a9a]">已解锁岛数 + 手动偏置</span>
                   </div>
                 </div>
               )}

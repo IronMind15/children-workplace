@@ -1,7 +1,7 @@
 "use server";
 
 import { seedIfEmpty } from "./seed";
-import { setExplorerName, setBrainSettings, setExplorerIsland, getIslands, getExplorer, getMeta, getInternalizedMetas, getMetas, getProperties, setIslandLevel, setConfig, getAllConfig, getInternalizedStrategies, recordAwakening, setExplorerGenderAvatar, getGuards, getUsers } from "./repo";
+import { setExplorerName, setBrainSettings, setExplorerIsland, getIslands, getExplorer, getMeta, getInternalizedMetas, getMetas, getProperties, setIslandLevel, setConfig, getAllConfig, getInternalizedStrategies, recordAwakening, setExplorerGenderAvatar, getGuards, getUsers, getMonsters } from "./repo";
 import { trainWin as doTrainWin, purify as doPurify, addSpark, getSparkStats, clearSparks, resetAllProgress, getDifficultyLevel, adjustDifficultyBias, recordMistake as doRecordMistake, resolveMistakes as doResolveMistakes, resolveMistakeQuestion as doResolveMistakeQuestion, getReviewSteps as doGetReviewSteps, getUnresolvedMistakeCountByMeta as doGetUnresolvedMistakeCountByMeta, evaluateMetaProficiency as doEvaluateMetaProficiency, guardWin as doGuardWin, checkAwakenings, getVisibleGuardsByIsland, bossFail as doBossFail, checkAndPromote } from "./game";
 import db from "./db";
 import { getQuestionById, getTipById } from "./askBank";
@@ -11,6 +11,8 @@ import type { BrainSettings } from "./brain";
 import { requireUser, setCurrentUser, UID_COOKIE } from "./session";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import fs from "node:fs";
+import path from "node:path";
 
 /** 会话守卫 + 播种：所有登录后操作统一入口（未登录 → 跳 /login） */
 async function ensureSession(): Promise<string> {
@@ -449,4 +451,77 @@ export async function setConfigAction(key: string, value: string) {
 export async function getStrategiesAction() {
   await ensureSession();
   return getInternalizedStrategies();
+}
+
+/** 测试工具「展示功能」直达体验入口：按真实怪物数据生成可体验链接 */
+export async function getShowcaseLinks(): Promise<{ battle: string; guard: string; boss: string }> {
+  await ensureSession();
+  const monsters = getMonsters();
+  const minion =
+    monsters.find((m) => m.type === "minion" && m.island === "计数岛") ??
+    monsters.find((m) => m.type === "minion");
+  const guard = monsters.find((m) => m.type === "guard");
+  const boss = monsters.find((m) => m.type === "boss");
+  return {
+    battle: minion ? `/?battle=${minion.id}` : "/",
+    guard: guard ? `/?battle=${guard.id}` : "/",
+    boss: boss ? `/?boss=${boss.id}` : "/",
+  };
+}
+
+// ===== 地图标记「拖拽校准」工具 =====
+// 校准坐标持久化在 public/calibration.json（运行时叠加在默认坐标上）：
+//   { "archipelago": { "MK-19": {x,y}, ... }, "bigmap": { ... } }
+// 校准满意后把该文件内容合并进 lib/archipelagoLayout.ts / lib/worldMapData.ts 即固化。
+
+const CALIBRATION_PATH = () => path.join(process.cwd(), "public", "calibration.json");
+
+/** 读取现有校准坐标（无则空表） */
+export async function getCalibration(): Promise<{
+  archipelago: Record<string, { x: number; y: number }>;
+  bigmap: Record<string, { x: number; y: number }>;
+}> {
+  await ensureSession();
+  try {
+    return JSON.parse(fs.readFileSync(CALIBRATION_PATH(), "utf8")) as ReturnType<typeof getCalibration>;
+  } catch {
+    return { archipelago: {}, bigmap: {} };
+  }
+}
+
+/** 保存某类地图的校准坐标（合并写入，数值钳制 0~100） */
+export async function saveCalibration(
+  kind: "archipelago" | "bigmap",
+  coords: Record<string, { x: number; y: number }>
+) {
+  await ensureSession();
+  const clean: Record<string, { x: number; y: number }> = {};
+  for (const [k, v] of Object.entries(coords)) {
+    const x = Number(v?.x);
+    const y = Number(v?.y);
+    if (!isNaN(x) && !isNaN(y)) {
+      clean[k] = { x: Math.min(100, Math.max(0, Math.round(x * 10) / 10)), y: Math.min(100, Math.max(0, Math.round(y * 10) / 10)) };
+    }
+  }
+  const cur = await getCalibration();
+  cur[kind] = clean;
+  try {
+    fs.writeFileSync(CALIBRATION_PATH(), JSON.stringify(cur, null, 2), "utf8");
+    return { ok: true, count: Object.keys(clean).length };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
+}
+
+/** 清空某类地图的校准坐标 */
+export async function clearCalibration(kind: "archipelago" | "bigmap") {
+  await ensureSession();
+  const cur = await getCalibration();
+  cur[kind] = {};
+  try {
+    fs.writeFileSync(CALIBRATION_PATH(), JSON.stringify(cur, null, 2), "utf8");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
 }

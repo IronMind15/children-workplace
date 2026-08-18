@@ -559,7 +559,7 @@ export default function BattleFlow({
             )}
 
             {phase === "pick" && (
-              <div className="grid grid-cols-2 gap-3">
+              <div data-tour="battle-pick" className="grid grid-cols-2 gap-3">
                 {pickOptions.map((s) => (
                   <button key={s.meta_id} onClick={() => pickSpirit(s)} className="btn btn-white flex items-center gap-2 p-2.5 text-left">
                     <ImgSprite src={getSpiritImage(s.meta_id, s.level, s.awakened)} size={44} />
@@ -592,7 +592,7 @@ export default function BattleFlow({
             )}
 
             {phase === "solve" && !missingMeta && (
-              <div key={stepIdx} className="animate-question-in grid grid-cols-2 gap-3 lg:grid-cols-1">
+              <div key={stepIdx} data-tour="battle-answer" className="animate-question-in grid grid-cols-2 gap-3 lg:grid-cols-1">
                 {steps[stepIdx].options.map((o) => (
                   <button key={o.label} onClick={() => answer(o)} className="btn btn-green py-4 text-2xl">
                     {o.label}
@@ -608,6 +608,7 @@ export default function BattleFlow({
                   height="lg"
                   size="long"
                   fullWidth
+                  data-tour="battle-exit"
                 >
                   🏝️ 回到{returnIsland ?? "海图"}
                 </UiButton>

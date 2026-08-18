@@ -35,7 +35,6 @@ import { pickGuardStyle } from "@/lib/guardStyles";
 import { getMinionBattleBg, GUARD_BATTLE_BG, BOSS_BATTLE_BG } from "@/lib/battleArt";
 import { redirect } from "next/navigation";
 import TopShell from "@/components/TopShell";
-import SettingsEntry from "@/components/SettingsEntry";
 import TestTools from "@/components/TestTools";
 import AwakeningToast from "@/components/AwakeningToast";
 import HomeClient, { type View } from "@/components/HomeClient";
@@ -49,7 +48,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
   // 先完成全部 await（searchParams / cookie 会话），此后主体保持同步执行，
   // 避免异步点让出事件循环导致并发请求覆盖「当前用户上下文」。
   const sp = await searchParams;
-  const uid = await requireUser();
+  await requireUser();
   seedIfEmpty();
   const explorer = getExplorer();
   if (!explorer?.name) redirect("/onboarding");
@@ -291,6 +290,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
       } else {
         steps = JSON.parse(m.steps) as SolveStep[];
       }
+      // 联手题过滤：requires 里若有还没内化的本领，这题选不出帮手（会卡关/出现未获得精灵）
+      // → 跳过该题；若全被过滤（极端）则保留原 steps 兜底，避免 0 招战斗
+      const usable = steps.filter(
+        (s) => !s.requires || s.requires.length === 0 || s.requires.every((r) => masteredIds.has(r))
+      );
+      if (usable.length > 0) steps = usable;
       battleData = {
         monsterId: m.id,
         name: m.name,
@@ -400,9 +405,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
           chainEdges={chainEdges}
         />
       </main>
-      <div className="fixed bottom-4 right-4 z-30">
-        <SettingsEntry />
-      </div>
       <TestTools />
     </div>
   );

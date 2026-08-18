@@ -9,7 +9,7 @@ export const WORLD_MAP_SRC = "/world/world_map.webp";
 
 export type UnifiedCoord = { x: number; y: number };
 
-/** MK id → 统一世界地图百分比坐标（2026-08-19 按 world_map.webp 实际岛屿重标） */
+/** MK id → 统一世界地图百分比坐标（按 world_map.webp 实际岛屿独立标定；与群岛坐标系无关） */
 export const UNIFIED_MAP_COORDS: Record<string, UnifiedCoord> = {
   // 1 · 数与运算 · 整数运算基础（左上）
   "MK-01": { x: 8, y: 12 },   // 计数岛
