@@ -31,7 +31,7 @@ type FeatureItem = {
 
 const FEATURES: FeatureItem[] = [
   { icon: "🏝️", title: "群岛 / 大地图", desc: "双视图探索 29 座知识岛，按 7 大主题分页，解锁进化链。", href: "/" },
-  { icon: "🦊", title: "小狐狸 AI 助手", desc: "不懂就问，随时讲解题意、总结方法，支持错题本综合解析。", href: "/ask" },
+  { icon: "🦊", title: "小狐狸 AI 助手", desc: "不懂就问，随时讲解题意、总结方法，支持错题本综合解析。", href: "/?ask=1" },
   { icon: "👾", title: "驯服小怪", desc: "选择合适元认知，答对题目即可驯服精灵、获得火花。", hrefKey: "battle" },
   { icon: "🐲", title: "净化 Boss", desc: "用已驯服的精灵挑战 Boss，答对即可净化并解锁新本领。", hrefKey: "boss" },
   { icon: "✨", title: "精灵觉醒", desc: "精灵等级提升后触发性质觉醒，点亮 30 条数学性质。", hrefKey: "guard" },
@@ -294,7 +294,15 @@ export default function TestTools() {
                         <a
                           key={f.title}
                           href={href}
-                          onClick={() => setOpen(false)}
+                          onClick={() => {
+                            setOpen(false);
+                            // 小狐狸入口：回主页时让右侧助手保持展开（AskPanel 会读该 localStorage）
+                            if (f.title === "小狐狸 AI 助手") {
+                              try {
+                                localStorage.setItem("askpanel:minimized", "0");
+                              } catch {}
+                            }
+                          }}
                           className="group flex gap-3 rounded-xl border-2 border-[#d7dee4] bg-white p-3 shadow-sm transition-transform hover:-translate-y-0.5 hover:border-[#f79228] hover:shadow-md"
                         >
                           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#fde9d0] text-xl">

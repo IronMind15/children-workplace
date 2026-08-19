@@ -113,6 +113,18 @@ export default function AskPanel({
     return () => window.removeEventListener("partner-message", onMsg);
   }, [minimized]);
 
+  // 测试工具「小狐狸」入口（?ask=1）：强制展开面板
+  useEffect(() => {
+    function onAskOpen() {
+      setMinimized(false);
+      try {
+        localStorage.setItem(MIN_KEY, "0");
+      } catch {}
+    }
+    window.addEventListener("ask-open", onAskOpen);
+    return () => window.removeEventListener("ask-open", onAskOpen);
+  }, []);
+
   function toggleMin() {
     const next = !minimized;
     setMinimized(next);

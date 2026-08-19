@@ -61,19 +61,19 @@ function WanderingMonster({ monster, index, mystery = false, onPick }: { monster
 
   const inner = (
     <>
-      {/* 名牌（按键皮革底板，文字压在图案上）；神秘小怪带稀有度徽章 */}
-      <UiTag size="auto" className={`mb-1 text-base ${mystery && monster.newBadge ? "animate-pop" : ""}`}>
+      {/* 名牌（按键皮革底板，文字压在图案上）；小兵标签加大，稀有度徽章独立在下方 */}
+      <UiTag size="auto" className={`mb-1 text-lg ${mystery && monster.newBadge ? "animate-pop" : ""}`}>
         {mystery ? `✨ ` : ""}
         {monster.name}
-        {mystery && monster.rarity && (
-          <span
-            className="ml-1 rounded-full px-1.5 py-0.5 text-[9px] font-black text-white"
-            style={{ background: monster.color ?? "#8a97a5" }}
-          >
-            {monster.rarity}
-          </span>
-        )}
       </UiTag>
+      {mystery && monster.rarity && (
+        <span
+          className="mb-1 rounded-full px-2 py-0.5 text-[10px] font-black text-white shadow-sm"
+          style={{ background: monster.color ?? "#8a97a5" }}
+        >
+          {monster.rarity}
+        </span>
+      )}
       <span className="relative block">
         {mystery && monster.emoji ? (
           // 神秘小怪专属形象（emoji 过渡版）：稀有/传说带光晕

@@ -197,6 +197,13 @@ export default function HomeClient({
     // 保留 searchParams 触发响应（如 ?battle=ID 改变）
   }, [searchParams]);
 
+  // 测试工具「小狐狸」入口：?ask=1 → 通知 AskPanel 展开（若已挂载）
+  useEffect(() => {
+    if (searchParams.get("ask") === "1" && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("ask-open"));
+    }
+  }, [searchParams]);
+
   function goTo(next: View) {
     if (next.kind === "map") router.replace("/");
     else if (next.kind === "island") router.replace(`/?island=${encodeURIComponent(next.island)}`);

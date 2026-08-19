@@ -111,6 +111,7 @@ export default function AskFlow({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recogRef = useRef<any>(null);
   const voiceTextRef = useRef("");
+  const manualStopRef = useRef(false);
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const w = window as any;
@@ -122,15 +123,18 @@ export default function AskFlow({
     const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!SR) return;
     if (listening) {
+      // 手动停止：标记后停止，onend 才会自动提交
+      manualStopRef.current = true;
       recogRef.current?.stop();
       setListening(false);
       return;
     }
     voiceTextRef.current = "";
+    manualStopRef.current = false;
     const rec = new SR();
     rec.lang = "zh-CN";
     rec.interimResults = true;
-    rec.continuous = false;
+    rec.continuous = true; // 连续录制：说话停顿不会自动结束，可长时间录制
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (e: any) => {
       let txt = "";
@@ -138,12 +142,19 @@ export default function AskFlow({
       voiceTextRef.current = txt;
       setFreeText(txt);
     };
-    rec.onerror = () => setListening(false);
-    rec.onend = () => {
+    rec.onerror = () => {
+      manualStopRef.current = false;
       setListening(false);
-      const t = voiceTextRef.current.trim();
-      // 说完自动发送（类主流 AI 软件的语音输入体验）；空内容不发送
-      if (t) askFreeQuestion(t);
+    };
+    rec.onend = () => {
+      // 仅「手动停止」时才自动发送；异常结束（网络/自动超时）不抢发
+      const shouldSend = manualStopRef.current;
+      manualStopRef.current = false;
+      setListening(false);
+      if (shouldSend) {
+        const t = voiceTextRef.current.trim();
+        if (t) askFreeQuestion(t);
+      }
     };
     recogRef.current = rec;
     try {
@@ -245,7 +256,7 @@ export default function AskFlow({
   return (
     <div className={embedded ? "flex h-full min-h-0 flex-col gap-2 overflow-hidden p-3" : "mx-auto max-w-3xl px-4 pt-5 lg:px-8"}>
       {/* 顶部 */}
-      <header className="flex items-center justify-between gap-2">
+      <header className="flex shrink-0 items-center justify-between gap-2">
         <h1 className="font-story text-base font-black text-[#2b3a4a]">💬 跟小狐狸聊</h1>
         <div className="flex items-center gap-2">
           {!aiConfigured && (
@@ -267,7 +278,7 @@ export default function AskFlow({
 
       {/* 分段切换：聊天 / 费曼（二合一窗口） */}
       {feynmanMetas.length > 0 && (
-        <div className="mt-1 flex gap-1 rounded-full bg-[#efe7da] p-1">
+        <div className="mt-1 flex shrink-0 gap-1 rounded-full bg-[#efe7da] p-1">
           <button
             type="button"
             onClick={() => setTab("chat")}
@@ -289,10 +300,100 @@ export default function AskFlow({
         </div>
       )}
 
+      {/* ===== 固定输出区：小狐狸的回答永远在这里，不随 Tab 切换、不与输入区重叠 ===== */}
+      <div className={embedded ? "mt-2 flex min-h-0 flex-1 flex-col" : "mt-2 flex items-start gap-2.5"}>
+        {!embedded && (
+          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-4 border-[#2b3a4a] bg-[#fff8e1] text-3xl shadow-[0_5px_0_rgba(43,58,74,0.25)]">
+            🦊
+            {sparkBadge}
+          </div>
+        )}
+        <div className={embedded ? "flex min-h-0 flex-1 flex-col" : "relative min-h-[60px] flex-1"}>
+          {embedded && (
+            <div className="mb-1 flex items-center justify-between px-1 pr-10">
+              <div className="flex items-center gap-2">
+                <div className="relative flex h-9 w-9 items-center justify-center rounded-xl border-4 border-[#2b3a4a] bg-[#fff8e1] text-2xl shadow-[0_4px_0_rgba(43,58,74,0.25)]">
+                  🦊
+                  {sparkBadge}
+                </div>
+                <span className="font-story text-sm font-black text-[#2b3a4a]">小狐狸的回答</span>
+              </div>
+              {partnerMsgs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setPartnerMsgs([])}
+                  className="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-black text-[#7a8a9a] shadow-[0_2px_0_rgba(43,58,74,0.18)] transition-transform active:translate-y-0.5 hover:scale-105"
+                  title="清空战斗讲解历史"
+                >
+                  🧹 清空讲解
+                </button>
+              )}
+            </div>
+          )}
+          {!embedded && partnerMsgs.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setPartnerMsgs([])}
+              className="absolute right-2 top-2 z-10 rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-black text-[#7a8a9a] transition-transform hover:scale-105"
+              title="清空战斗讲解历史"
+            >
+              🧹
+            </button>
+          )}
+          <div
+            ref={chatScrollRef}
+            className={
+              embedded
+                ? "card-dark flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2.5"
+                : "card-dark max-h-[55vh] min-h-[60px] overflow-y-auto p-2.5"
+            }
+          >
+            {loading ? (
+              <div className="flex items-center gap-2 pt-3">
+                <span className="text-base text-white">🦊 正在想一想</span>
+                <span className="typing-dot inline-block h-2 w-2 rounded-full bg-white" />
+                <span className="typing-dot inline-block h-2 w-2 rounded-full bg-white" />
+                <span className="typing-dot inline-block h-2 w-2 rounded-full bg-white" />
+              </div>
+            ) : answer ? (
+              <div className="animate-pop rounded-xl bg-white/5 px-3 py-2">
+                <p className="text-sm font-bold text-[#ffd54f]">你问：{askedLabel}</p>
+                <p className="mt-1 break-words whitespace-pre-wrap text-[17px] font-bold leading-relaxed text-white">{answer}</p>
+                <p className="mt-1.5 text-xs font-semibold text-white/60">🦊 想知道更多？继续问我，或者把答案讲给爸爸妈妈听！</p>
+              </div>
+            ) : (
+              <p className="text-base font-bold text-white">
+                {currentMeta ? (
+                  <>
+                    🏝️ 小小探险家现在在「{currentMeta.island}」！这一带属于「{currentMeta.domain}」领域，
+                    我们正好可以聊聊「{currentMeta.name}」～ 点下面的问题，或自己打字问我都可以，每次提问都能收集 ✨火花！
+                  </>
+                ) : (
+                  <>
+                    嘿嘿，我是你的伙伴🦊！点下面的问题来问我，或者自己打字提问，每次提问都能收集 ✨火花，
+                    火花够了，神秘小怪就会出现在岛上！
+                  </>
+                )}
+              </p>
+            )}
+            {partnerMsgs.length > 0 && (
+              <div className="mt-1 space-y-2 border-t border-white/10 pt-2">
+                {partnerMsgs.map((m) => (
+                  <div key={m.key} className="animate-pop rounded-xl border border-[#f79228]/40 bg-[#fff3e0] px-3 py-2 text-base font-bold leading-relaxed text-[#7a4a2a]">
+                    {m.text}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ===== Tab 内容 = 输入窗口（输出区固定在上方） ===== */}
       {tab === "chat" ? (
-        <>
+        <div className={embedded ? "mt-2 flex shrink-0 flex-col gap-2 overflow-y-auto" : ""}>
           {/* 好奇小问号：定期推送可点按的小问题 */}
-          <div className="mt-2 rounded-xl border-2 border-[#6ec6ff] bg-[#eaf6ff] px-3 py-2">
+          <div className="rounded-xl border-2 border-[#6ec6ff] bg-[#eaf6ff] px-3 py-2">
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-black text-[#185fa5]">🎲 好奇小问号</p>
               <button
@@ -316,7 +417,7 @@ export default function AskFlow({
 
           {/* 火花进度条（嵌入式常驻，距下一只神秘小怪） */}
           {embedded && rewards.length > 0 && nextReward && (
-            <div className="mt-2 flex items-center gap-2 rounded-xl border-2 border-[#fde9d0] bg-white/90 px-2.5 py-1.5">
+            <div className="flex items-center gap-2 rounded-xl border-2 border-[#fde9d0] bg-white/90 px-2.5 py-1.5">
               <span className="shrink-0 text-base">✨{total}</span>
               <div className="h-3 flex-1 overflow-hidden rounded-full border-2 border-[#2b3a4a] bg-[#e8edf2]">
                 <div
@@ -330,97 +431,8 @@ export default function AskFlow({
             </div>
           )}
 
-          {/* 伙伴聊天窗口：可滚动回看；战斗讲解累计时不再无限撑高，可一键清空 */}
-          <div className={embedded ? "mt-2 flex min-h-0 flex-1 flex-col" : "mt-2 flex items-start gap-2.5"}>
-            {!embedded && (
-              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-4 border-[#2b3a4a] bg-[#fff8e1] text-3xl shadow-[0_5px_0_rgba(43,58,74,0.25)]">
-                🦊
-                {sparkBadge}
-              </div>
-            )}
-            <div className={embedded ? "min-h-0 flex-1" : "relative min-h-[60px] flex-1"}>
-              {embedded && (
-                <div className="mb-1 flex items-center justify-between px-1 pr-10">
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex h-9 w-9 items-center justify-center rounded-xl border-4 border-[#2b3a4a] bg-[#fff8e1] text-2xl shadow-[0_4px_0_rgba(43,58,74,0.25)]">
-                      🦊
-                      {sparkBadge}
-                    </div>
-                    <span className="font-story text-sm font-black text-[#2b3a4a]">小狐狸的聊天</span>
-                  </div>
-                  {partnerMsgs.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setPartnerMsgs([])}
-                      className="rounded-full bg-white px-2.5 py-0.5 text-[10px] font-black text-[#7a8a9a] shadow-[0_2px_0_rgba(43,58,74,0.18)] transition-transform active:translate-y-0.5 hover:scale-105"
-                      title="清空战斗讲解历史"
-                    >
-                      🧹 清空讲解
-                    </button>
-                  )}
-                </div>
-              )}
-              {!embedded && partnerMsgs.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setPartnerMsgs([])}
-                  className="absolute right-2 top-2 z-10 rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-black text-[#7a8a9a] transition-transform hover:scale-105"
-                  title="清空战斗讲解历史"
-                >
-                  🧹
-                </button>
-              )}
-              <div
-                ref={chatScrollRef}
-                className={
-                  embedded
-                    ? "card-dark flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2.5"
-                    : "card-dark max-h-[55vh] min-h-[60px] overflow-y-auto p-2.5"
-                }
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2 pt-3">
-                    <span className="text-base text-white">🦊 正在想一想</span>
-                    <span className="typing-dot inline-block h-2 w-2 rounded-full bg-white" />
-                    <span className="typing-dot inline-block h-2 w-2 rounded-full bg-white" />
-                    <span className="typing-dot inline-block h-2 w-2 rounded-full bg-white" />
-                  </div>
-                ) : answer ? (
-                  <div className="animate-pop rounded-xl bg-white/5 px-3 py-2">
-                    <p className="text-sm font-bold text-[#ffd54f]">你问：{askedLabel}</p>
-                    <p className="mt-1 break-words whitespace-pre-wrap text-[17px] font-bold leading-relaxed text-white">{answer}</p>
-                    <p className="mt-1.5 text-xs font-semibold text-white/60">🦊 想知道更多？继续问我，或者把答案讲给爸爸妈妈听！</p>
-                  </div>
-                ) : (
-                  <p className="text-base font-bold text-white">
-                    {currentMeta ? (
-                      <>
-                        🏝️ 小小探险家现在在「{currentMeta.island}」！这一带属于「{currentMeta.domain}」领域，
-                        我们正好可以聊聊「{currentMeta.name}」～ 点下面的岛域问题，或自己打字问我都可以，每次提问都能收集 ✨火花！
-                      </>
-                    ) : (
-                      <>
-                        嘿嘿，我是你的伙伴🦊！点下面的问题来问我，或者自己打字提问，每次提问都能收集 ✨火花，
-                        火花够了，神秘小怪就会出现在岛上！
-                      </>
-                    )}
-                  </p>
-                )}
-                {partnerMsgs.length > 0 && (
-                  <div className="mt-1 space-y-2 border-t border-white/10 pt-2">
-                {partnerMsgs.map((m) => (
-                  <div key={m.key} className="animate-pop rounded-xl border border-[#f79228]/40 bg-[#fff3e0] px-3 py-2 text-base font-bold leading-relaxed text-[#7a4a2a]">
-                    {m.text}
-                  </div>
-                ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
           {/* 自由提问 */}
-          <div className="card mt-2 flex flex-col gap-2 p-2 sm:flex-row sm:items-center">
+          <div className="card flex flex-col gap-2 p-2 sm:flex-row sm:items-center">
             {voiceSupported && (
               <button
                 type="button"
@@ -429,7 +441,7 @@ export default function AskFlow({
                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-[#2b3a4a] text-xl transition-transform active:scale-95 disabled:opacity-50 ${
                   listening ? "animate-breathe bg-[#ff8c8c] text-white" : "bg-white"
                 }`}
-                title={listening ? "正在听…点击停止" : "语音输入"}
+                title={listening ? "正在听…点击停止（说完再点一次就发送）" : "语音输入（长按说话，点一下开始/停止）"}
                 aria-label="语音输入"
               >
                 🎤
@@ -439,7 +451,7 @@ export default function AskFlow({
               value={freeText}
               onChange={(e) => setFreeText(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && askFreeQuestion()}
-              placeholder={listening ? "🎤 正在聆听…" : aiConfigured ? "自己想问什么？打字或语音问我吧～" : "自由提问需要先在「设置 ⚙️ → AI 伙伴连接」配置 DeepSeek Key"}
+              placeholder={listening ? "🎤 正在聆听…说完点一下麦克风发送" : aiConfigured ? "自己想问什么？打字或语音问我吧～" : "自由提问需要先在「设置 ⚙️ → AI 伙伴连接」配置 DeepSeek Key"}
               disabled={!aiConfigured}
               className="min-w-0 flex-1 rounded-md border-2 border-[#2b3a4a] px-3 py-2 text-[15px] font-bold text-[#2b3a4a] disabled:bg-[#e8edf2] disabled:text-[#7a8a9a]"
             />
@@ -450,7 +462,7 @@ export default function AskFlow({
 
           {/* 问题卡片（可滚动） */}
           {embedded ? (
-            <div className="ask-embedded-scroll mt-2 flex-1 overflow-y-auto pr-1">
+            <div className="ask-embedded-scroll flex-1 overflow-y-auto pr-1">
               <div className="grid grid-cols-1 gap-2">
                 {questions.map((q) => (
                   <button
@@ -484,87 +496,84 @@ export default function AskFlow({
               </div>
             </div>
           ) : (
-        <>
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {questions.map((q) => (
-              <button
-                key={q.id}
-                onClick={() => ask(q)}
-                disabled={!!loading}
-                className="btn btn-white flex items-center gap-3 p-3 text-left disabled:opacity-60"
-              >
-                <span className="text-3xl">{q.emoji}</span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-black text-[#2b3a4a]">{q.label}</span>
-                  <span className="mt-1 flex items-center gap-1.5">
-                    <span
-                      className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
-                      style={{ background: CATEGORY_COLOR[q.category] ?? "#7a8a9a" }}
-                    >
-                      {q.category}
-                    </span>
-                    {q.badge && (
-                      <span
-                        className="inline-block rounded px-1.5 py-0.5 text-[10px] font-black text-white"
-                        style={{ background: BADGE_COLOR[q.badge] }}
-                      >
-                        ⭐ {q.badge}
-                      </span>
-                    )}
-                  </span>
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {/* 火花奖励进度 */}
-          <div className="card mt-5 p-4">
-            <p className="text-sm font-black text-[#2b3a4a]">🎁 火花能换什么？</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {rewards.map((r) => {
-                const unlocked = total >= r.required;
-                return (
-                  <span
-                    key={r.name}
-                    className={`rounded-lg border-2 border-[#2b3a4a] px-2.5 py-1 text-xs font-bold ${
-                      unlocked ? "bg-[#d9f2e5] text-[#2b3a4a]" : "bg-[#e8edf2] text-[#7a8a9a]"
-                    }`}
+            <>
+              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {questions.map((q) => (
+                  <button
+                    key={q.id}
+                    onClick={() => ask(q)}
+                    disabled={!!loading}
+                    className="btn btn-white flex items-center gap-3 p-3 text-left disabled:opacity-60"
                   >
-                    {unlocked ? "✅" : "🔒"} {r.name}（✨{r.required}）
-                  </span>
-                );
-              })}
-            </div>
-            {nextReward && (
-              <div className="mt-3">
-                <div className="flex justify-between text-[10px] font-bold text-[#7a8a9a]">
-                  <span>距离【{nextReward.name}】出现还差</span>
-                  <span>
-                    ✨{total} / {nextReward.required}
-                  </span>
-                </div>
-                <div className="mt-1 h-3.5 overflow-hidden rounded-sm border-2 border-[#2b3a4a] bg-[#d3d1c7]">
-                  <div
-                    className="h-full bg-gradient-to-r from-[#ffd54f] to-[#ffb300] transition-all duration-500"
-                    style={{ width: `${Math.min(100, (total / (lastReward?.required || 1)) * 100)}%` }}
-                  />
-                </div>
+                    <span className="text-3xl">{q.emoji}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-black text-[#2b3a4a]">{q.label}</span>
+                      <span className="mt-1 flex items-center gap-1.5">
+                        <span
+                          className="inline-block rounded px-1.5 py-0.5 text-[10px] font-bold text-white"
+                          style={{ background: CATEGORY_COLOR[q.category] ?? "#7a8a9a" }}
+                        >
+                          {q.category}
+                        </span>
+                        {q.badge && (
+                          <span
+                            className="inline-block rounded px-1.5 py-0.5 text-[10px] font-black text-white"
+                            style={{ background: BADGE_COLOR[q.badge] }}
+                          >
+                            ⭐ {q.badge}
+                          </span>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+                ))}
               </div>
-            )}
-            {!nextReward && <p className="mt-2 text-xs font-bold text-[#3fb984]">所有神秘小怪都被你的好奇心唤醒啦！🎉</p>}
-            <p className="mt-2 text-[10px] font-bold text-[#7a8a9a]">
-              每次提问 +1 ✨火花（推荐问题和小贴士也一样），保持爱提问的好习惯！
-            </p>
-          </div>
-        </>
-      )}
 
-      </>) : null}
-
-      {/* 费曼小课堂标签：合并「岛上小课堂 + 费曼学习法」，字号大、可滚动、狐狸头像统一 */}
-      {feynmanMetas.length > 0 && tab === "feynman" && (
-        <div className={embedded ? "mt-2 flex min-h-0 flex-1 flex-col overflow-y-auto" : "mt-3"}>
-          {/* 岛上小课堂（化身在某岛时聚焦该岛领域，按觉醒/等级分层） */}
+              {/* 火花奖励进度 */}
+              <div className="card mt-5 p-4">
+                <p className="text-sm font-black text-[#2b3a4a]">🎁 火花能换什么？</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {rewards.map((r) => {
+                    const unlocked = total >= r.required;
+                    return (
+                      <span
+                        key={r.name}
+                        className={`rounded-lg border-2 border-[#2b3a4a] px-2.5 py-1 text-xs font-bold ${
+                          unlocked ? "bg-[#d9f2e5] text-[#2b3a4a]" : "bg-[#e8edf2] text-[#7a8a9a]"
+                        }`}
+                      >
+                        {unlocked ? "✅" : "🔒"} {r.name}（✨{r.required}）
+                      </span>
+                    );
+                  })}
+                </div>
+                {nextReward && (
+                  <div className="mt-3">
+                    <div className="flex justify-between text-[10px] font-bold text-[#7a8a9a]">
+                      <span>距离【{nextReward.name}】出现还差</span>
+                      <span>
+                        ✨{total} / {nextReward.required}
+                      </span>
+                    </div>
+                    <div className="mt-1 h-3.5 overflow-hidden rounded-sm border-2 border-[#2b3a4a] bg-[#d3d1c7]">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#ffd54f] to-[#ffb300] transition-all duration-500"
+                        style={{ width: `${Math.min(100, (total / (lastReward?.required || 1)) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {!nextReward && <p className="mt-2 text-xs font-bold text-[#3fb984]">所有神秘小怪都被你的好奇心唤醒啦！🎉</p>}
+                <p className="mt-2 text-[10px] font-bold text-[#7a8a9a]">
+                  每次提问 +1 ✨火花（推荐问题和小贴士也一样），保持爱提问的好习惯！
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        /* 费曼小课堂标签：合并「岛上小课堂 + 费曼学习法」；点岛域问题 → 答案显示在上方固定输出区 */
+        <div className={embedded ? "mt-2 shrink-0 overflow-y-auto" : "mt-3"}>
           {currentMeta && (
             <div className="mb-2 rounded-2xl border-2 border-[#8fd14f] bg-white p-3">
               <div className="flex items-center gap-2">

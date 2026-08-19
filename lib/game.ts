@@ -322,9 +322,11 @@ export function recordMistake(
     return;
   }
   const finalKp = kp && kp.trim() ? kp : (getMeta(metaId)?.name ?? metaId);
+  // 注意：SQL 里 wrong_count 已是字面量 1，.run() 只绑定 8 个占位符，多传会报
+  // 「column index out of range」(errcode 25) 导致错题静默不入库
   db.prepare(
     "INSERT INTO mistake (user_id, meta_id, question, user_answer, correct_answer, created_at, step_json, kp, wrong_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)"
-  ).run(uid, metaId, question, userAnswer, correctAnswer, new Date().toISOString(), stepJson ?? null, finalKp, 1);
+  ).run(uid, metaId, question, userAnswer, correctAnswer, new Date().toISOString(), stepJson ?? null, finalKp);
 }
 
 /** 重做答对后，把该知识点的【所有】未掌握错题标记为已掌握（Boss 净化等"整岛掌握"场景用） */

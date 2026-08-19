@@ -91,7 +91,7 @@ export function UiTag({
   const bg = size === "auto" ? getButtonBgByText(text) : getButtonBg(size);
   return (
     <span
-      className={`inline-flex max-w-[9rem] min-w-[3.5rem] items-center justify-center whitespace-normal break-words text-center leading-tight rounded-xl px-3 py-1 font-black shadow-[0_2px_0_rgba(43,58,74,0.4)] transition-transform group-hover:scale-105 ${
+      className={`inline-flex max-w-[14rem] min-w-[3.5rem] items-center justify-center whitespace-normal break-words text-center leading-tight rounded-xl px-3 py-1 font-black shadow-[0_2px_0_rgba(43,58,74,0.4)] transition-transform group-hover:scale-105 ${
         locked ? "text-[#7a8a9a]" : "text-[#2b3a4a]"
       } ${className}`}
       style={{

@@ -206,7 +206,7 @@ export default function WorldArchipelago({
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={safePage === 0}
             aria-label="上一页"
-            className="absolute left-2 top-1/2 z-10 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full border-3 border-[#2b3a4a] bg-white/90 p-2 shadow-[0_4px_0_rgba(16,24,34,0.4)] transition-all hover:scale-110 active:translate-y-1 active:shadow-[0_2px_0_rgba(16,24,34,0.4)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100"
+            className="absolute left-1 top-1/2 z-10 flex h-24 w-24 -translate-y-1/2 items-center justify-center drop-shadow-[0_3px_0_rgba(16,24,34,0.3)] transition-all hover:scale-110 active:translate-y-1 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100"
           >
             <img src={getUiIcon("arrowLeft")} alt="上一页" className="h-full w-full object-contain" />
           </button>
@@ -214,7 +214,7 @@ export default function WorldArchipelago({
             onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
             disabled={safePage >= totalPages - 1}
             aria-label="下一页"
-            className="absolute right-2 top-1/2 z-10 flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full border-3 border-[#2b3a4a] bg-white/90 p-2 shadow-[0_4px_0_rgba(16,24,34,0.4)] transition-all hover:scale-110 active:translate-y-1 active:shadow-[0_2px_0_rgba(16,24,34,0.4)] disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100"
+            className="absolute right-1 top-1/2 z-10 flex h-24 w-24 -translate-y-1/2 items-center justify-center drop-shadow-[0_3px_0_rgba(16,24,34,0.3)] transition-all hover:scale-110 active:translate-y-1 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:scale-100"
           >
             <img src={getUiIcon("arrowRight")} alt="下一页" className="h-full w-full object-contain" />
           </button>
